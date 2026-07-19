@@ -38,3 +38,50 @@ pub fn seed_from_mnemonic(phrase: &str) -> Result<String, JsError> {
     Ok(qcore::json::to_hex(&seed))
 }
 
+#[wasm_bindgen]
+pub fn sign_transfer(
+    seed_hex: &str,
+    index: u64,
+    to: &str,
+    amount: &str,
+    nonce: u64,
+    fee: &str,
+) -> Result<String, JsError> {
+    if !qcore::valid_address(to) {
+        return Err(JsError::new("the recipient is not a q1 address"));
+    }
+    let amount: u64 = amount
+        .parse()
+        .map_err(|_| JsError::new("amount is a whole number string"))?;
+    let fee: u128 = fee
+        .parse()
+        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let signed = qcore::sign_transfer(&seed(seed_hex)?, index, to, amount, nonce, fee);
+    Ok(qcore::json::object(vec![
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
+        ),
+    ])
+    .render())
+}
+
+#[wasm_bindgen(js_name = signRegister)]
+pub fn sign_register(seed_hex: &str, index: u64, nonce: u64, fee: &str) -> Result<String, JsError> {
+    let fee: u128 = fee
+        .parse()
+        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let signed = qcore::sign_register(&seed(seed_hex)?, index, nonce, fee);
+    Ok(qcore::json::object(vec![
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
+        ),
+    ])
+    .render())
+}
+
