@@ -139,3 +139,58 @@ pub fn order_signer(seed_hex: &str, index: u64) -> Result<String, JsError> {
     Ok(qcore::json::to_hex(&qcore::contract::order_signer(&seed(seed_hex)?, index)))
 }
 
+#[wasm_bindgen(js_name = nonceSlotKey)]
+pub fn nonce_slot_key(signer_hex: &str) -> Result<String, JsError> {
+    Ok(qcore::json::to_hex(&qcore::contract::nonce_slot_key(&addr32(signer_hex)?)))
+}
+
+#[wasm_bindgen(js_name = scalarSlotKey)]
+pub fn scalar_slot_key(slot: u64) -> String {
+    qcore::json::to_hex(&qcore::contract::scalar_slot_key(slot))
+}
+
+#[wasm_bindgen(js_name = mapSlotKey)]
+pub fn map_slot_key(map_domain_tag: u64, key_address_hex: &str) -> Result<String, JsError> {
+    Ok(qcore::json::to_hex(&qcore::contract::map_slot_key(
+        map_domain_tag,
+        &addr32(key_address_hex)?,
+    )))
+}
+
+#[wasm_bindgen(js_name = buildSignedOrderCall)]
+#[allow(clippy::too_many_arguments)]
+pub fn build_signed_order_call(
+    contract: &str,
+    selector_hex: &str,
+    scheme_off: u64,
+    ptr_off: u64,
+    field_offs_csv: &str,
+    fields_csv: &str,
+    region_off: u64,
+    owner_seed_hex: &str,
+    owner_index: u64,
+    nonce: u64,
+) -> Result<String, JsError> {
+    let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+    let mut layout = qcore::contract::OrderLayout::new(scheme_off, ptr_off, u64_list(field_offs_csv)?);
+    if region_off != 0 {
+        layout.region_off = region_off;
+    }
+    let fields = u64_list(fields_csv)?;
+    let order = qcore::contract::build_signed_order_call(
+        contract,
+        selector,
+        &layout,
+        &fields,
+        &seed(owner_seed_hex)?,
+        owner_index,
+        nonce,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    Ok(qcore::json::object(vec![
+        ("call_args", qcore::json::Json::str(qcore::json::to_hex(&order.call_args))),
+        ("message", qcore::json::Json::str(qcore::json::to_hex(&order.message))),
+        ("signature", qcore::json::Json::str(qcore::json::to_hex(&order.signature))),
