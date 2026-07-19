@@ -52,3 +52,20 @@ const client = new mod.Client('http://127.0.0.1:1');
 const to = client.address(seed, 1);
 if (!mod.core.valid_address(to)) fail('the browser core did not derive a valid address');
 
+// A JavaScript number amount is refused before any network call.
+let amtThrew = false;
+try { await client.transfer(seed, 0, to, 1000, '1000'); }
+catch (e) { amtThrew = true; if (!/decimal string or a BigInt/.test(e.message)) fail('browser amount error unclear: ' + e.message); }
+if (!amtThrew) fail('the browser Client must refuse a number amount');
+
+// A JavaScript number fee ceiling is refused before any network call.
+let ceilThrew = false;
+try { await client.transfer(seed, 0, to, '1000', 1000); }
+catch (e) { ceilThrew = true; if (!/maximum fee/.test(e.message) || !/JavaScript number/.test(e.message)) fail('browser ceiling error unclear: ' + e.message); }
+if (!ceilThrew) fail('the browser Client must refuse a number fee ceiling');
+
+// The raw build the browser must never resolve to has no Client, the gap this entry closes.
+const raw = await import(new URL('./pkg/qcore_js.js', import.meta.url));
+if (raw.Client !== undefined) fail('the raw wasm build was expected to have no Client');
+
+console.log('browser entry: guarded Client resolved, number amount and number ceiling both refused');
