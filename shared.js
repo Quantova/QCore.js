@@ -155,3 +155,48 @@ function makeClient(core) {
       return { signed, outcome };
     }
 
+    async register(seedHex, index, maxFeeQuon) {
+      const ceiling = feeCeiling(maxFeeQuon);
+      const info = await this.nodeInfo();
+      const fee = info && info.fee && info.fee.transfer_quon;
+      if (fee == null) throw new Error('the gateway did not report a transfer fee');
+      if (BigInt(fee) > ceiling) {
+        throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
+      }
+      const from = core.address(seedHex, BigInt(index));
+      const acct = await this.account(from);
+      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
+      const signed = JSON.parse(core.signRegister(seedHex, BigInt(index), BigInt(acct.nonce), String(fee)));
+      const outcome = await this.submit(signed.tx_hex);
+      return { signed, outcome };
+    }
+
+    async call(seedHex, index, target, argsHex, meterLimit, maxFeeQuon) {
+      if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
+      const ceiling = feeCeiling(maxFeeQuon);
+      const info = await this.nodeInfo();
+      const fee = info && info.fee && info.fee.transfer_quon;
+      if (fee == null) throw new Error('the gateway did not report a transfer fee');
+      if (BigInt(fee) > ceiling) {
+        throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
+      }
+      const from = core.address(seedHex, BigInt(index));
+      const acct = await this.account(from);
+      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
+      const signed = JSON.parse(
+        core.sign_call(seedHex, BigInt(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee))
+      );
+      const outcome = await this.submit(signed.tx_hex);
+      return { signed, outcome };
+    }
+
+    async contractNonce(contract, signerHex) {
+      const resp = await this._call('get_storage', core.storageBody(contract));
+      return BigInt(core.storageValue(JSON.stringify(resp), core.nonceSlotKey(signerHex)));
+    }
+
+    async contractScalar(contract, slot) {
+      const resp = await this._call('get_storage', core.storageBody(contract));
+      return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
+    }
+
