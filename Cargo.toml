@@ -1,0 +1,16 @@
+[package]
+name = "qcore-js"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "The JavaScript binding for the Quantova client core, generated over QCore with wasm-bindgen. The core does the key derivation, the post quantum signing, and the wire, the page does the fetch."
+repository = "https://github.com/Quantova/QCore-JS"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# The one core. Its pure part, no input or output, is what compiles to WebAssembly, so
+# the client feature is off and the browser does the transport.
+qcore = { path = "../QCore.rs", default-features = false }
+wasm-bindgen = "0.2"
