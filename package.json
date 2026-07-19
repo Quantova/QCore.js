@@ -1,0 +1,55 @@
+{
+  "name": "@qunatovainc/qcore",
+  "version": "0.1.1",
+  "description": "Quantova's post quantum client core for JavaScript and WebAssembly. Signs with ML-DSA-65 and builds Q1 addresses, generated over the Rust core QCore.rs.",
+  "keywords": [
+    "post-quantum",
+    "quantum-resistant",
+    "quantum-safe",
+    "blockchain",
+    "wallet",
+    "sdk",
+    "cryptography",
+    "ml-dsa",
+    "fips-204",
+    "webassembly",
+    "quantova",
+    "web3"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "node": {
+        "types": "./index.d.ts",
+        "require": "./index.js",
+        "import": "./index.js",
+        "default": "./index.js"
+      },
+      "browser": {
+        "types": "./index.d.ts",
+        "import": "./browser.mjs",
+        "default": "./browser.mjs"
+      },
+      "import": {
+        "types": "./index.d.ts",
+        "default": "./browser.mjs"
+      },
+      "require": {
+        "types": "./index.d.ts",
+        "default": "./index.js"
+      },
+      "default": "./index.js"
+    },
+    "./pkg": "./pkg/qcore_js.js",
+    "./pkg-node": "./pkg-node/qcore_js.js",
+    "./package.json": "./package.json"
+  },
+  "license": "(Apache-2.0 OR MIT)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Quantova/QCore.js.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
