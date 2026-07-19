@@ -53,3 +53,58 @@ export interface QCore {
   mnemonicFromSeed(seed_hex: string): string;
   nonceSlotKey(signer_hex: string): string;
   orderSigner(seed_hex: string, index: bigint): string;
+  parseEvents(response: string): string;
+  scalarSlotKey(slot: bigint): string;
+  seedFromMnemonic(phrase: string): string;
+  signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string): string;
+  sign_call(
+    seed_hex: string,
+    index: bigint,
+    target: string,
+    args_hex: string,
+    nonce: bigint,
+    meter_limit: bigint,
+    fee: string,
+  ): string;
+  sign_transfer(
+    seed_hex: string,
+    index: bigint,
+    to: string,
+    amount: string,
+    nonce: bigint,
+    fee: string,
+  ): string;
+  storageBody(contract: string): string;
+  storageValue(response: string, slot_key_hex: string): string;
+  submit_body(tx_hex: string): string;
+  transaction_body(tx_id: string): string;
+  valid_address(address: string): boolean;
+  vmDeployAddress(): string;
+}
+
+export class Client {
+  constructor(base: string);
+  nodeInfo(): Promise<any>;
+  head(): Promise<any>;
+  account(address: string): Promise<any>;
+  transaction(txId: string): Promise<any>;
+  block(height: number | bigint): Promise<any>;
+  submit(txHex: string): Promise<any>;
+  container(address: string): Promise<any>;
+  storage(address: string): Promise<any>;
+  events(height: number | bigint): Promise<any>;
+  address(seedHex: string, index: number): string;
+  transfer(
+    seedHex: string,
+    index: number,
+    to: string,
+    amount: string | bigint,
+    maxFeeQuon: string | bigint,
+  ): Promise<TransferResult>;
+  register(
+    seedHex: string,
+    index: number,
+    maxFeeQuon: string | bigint,
+  ): Promise<TransferResult>;
+  call(
+    seedHex: string,
