@@ -200,3 +200,39 @@ function makeClient(core) {
       return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
     }
 
+    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, layout, fields, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon) {
+      if (!core.valid_address(contract)) throw new Error('the contract is not a q1 address');
+      const ceiling = feeCeiling(maxFeeQuon);
+      const signer = core.orderSigner(ownerSeedHex, BigInt(ownerIndex));
+      const nonce = await this.contractNonce(contract, signer);
+      const order = JSON.parse(core.buildSignedOrderCall(
+        contract,
+        selectorHex,
+        BigInt(layout.schemeOff),
+        BigInt(layout.ptrOff),
+        (layout.fieldOffs || []).join(','),
+        (fields || []).map(String).join(','),
+        BigInt(layout.regionOff || 0),
+        ownerSeedHex,
+        BigInt(ownerIndex),
+        nonce,
+      ));
+      const info = await this.nodeInfo();
+      const fee = info && info.fee && info.fee.transfer_quon;
+      if (fee == null) throw new Error('the gateway did not report a transfer fee');
+      if (BigInt(fee) > ceiling) {
+        throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
+      }
+      const from = core.address(callerSeedHex, BigInt(callerIndex));
+      const acct = await this.account(from);
+      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
+      const signed = JSON.parse(
+        core.sign_call(callerSeedHex, BigInt(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee))
+      );
+      const outcome = await this.submit(signed.tx_hex);
+      return { order, signed, outcome };
+    }
+  };
+}
+
+module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport };
