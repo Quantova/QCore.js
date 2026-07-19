@@ -108,3 +108,28 @@ export class Client {
   ): Promise<TransferResult>;
   call(
     seedHex: string,
+    index: number,
+    target: string,
+    argsHex: string,
+    meterLimit: number | bigint,
+    maxFeeQuon: string | bigint,
+  ): Promise<TransferResult>;
+  contractNonce(contract: string, signerHex: string): Promise<bigint>;
+  contractScalar(contract: string, slot: number | bigint): Promise<bigint>;
+  callSignedOrder(
+    callerSeedHex: string,
+    callerIndex: number,
+    contract: string,
+    selectorHex: string,
+    layout: OrderLayout,
+    fields: ReadonlyArray<number | bigint | string>,
+    ownerSeedHex: string,
+    ownerIndex: number,
+    meterLimit: number | bigint,
+    maxFeeQuon: string | bigint,
+  ): Promise<SignedOrderResult>;
+}
+
+export const core: QCore;
+
+export function generateSeed(): string;
