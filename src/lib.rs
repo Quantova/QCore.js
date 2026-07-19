@@ -85,3 +85,57 @@ pub fn sign_register(seed_hex: &str, index: u64, nonce: u64, fee: &str) -> Resul
     .render())
 }
 
+#[wasm_bindgen]
+pub fn sign_call(
+    seed_hex: &str,
+    index: u64,
+    target: &str,
+    args_hex: &str,
+    nonce: u64,
+    meter_limit: u64,
+    fee: &str,
+) -> Result<String, JsError> {
+    if !qcore::valid_address(target) {
+        return Err(JsError::new("the target is not a q1 address"));
+    }
+    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+    let fee: u128 = fee
+        .parse()
+        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let signed = qcore::sign_call(&seed(seed_hex)?, index, target, args, nonce, meter_limit, fee);
+    Ok(qcore::json::object(vec![
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
+        ),
+    ])
+    .render())
+}
+
+fn addr32(hex: &str) -> Result<[u8; 32], JsError> {
+    let bytes = qcore::json::from_hex(hex).map_err(|e| JsError::new(&e))?;
+    bytes
+        .try_into()
+        .map_err(|_| JsError::new("expected 32 bytes of hex"))
+}
+
+fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
+    if csv.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    csv.split(',')
+        .map(|part| {
+            part.trim()
+                .parse::<u64>()
+                .map_err(|_| JsError::new("a list entry is not a whole number"))
+        })
+        .collect()
+}
+
+#[wasm_bindgen(js_name = orderSigner)]
+pub fn order_signer(seed_hex: &str, index: u64) -> Result<String, JsError> {
+    Ok(qcore::json::to_hex(&qcore::contract::order_signer(&seed(seed_hex)?, index)))
+}
+
