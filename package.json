@@ -53,3 +53,26 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "index.js",
+    "browser.mjs",
+    "shared.js",
+    "index.d.ts",
+    "pkg-node/qcore_js.js",
+    "pkg-node/qcore_js_bg.wasm",
+    "pkg-node/qcore_js.d.ts",
+    "pkg-node/package.json",
+    "pkg/qcore_js.js",
+    "pkg/qcore_js_bg.js",
+    "pkg/qcore_js_bg.wasm",
+    "pkg/qcore_js.d.ts",
+    "pkg/qcore_js_bg.wasm.d.ts",
+    "pkg/package.json",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
