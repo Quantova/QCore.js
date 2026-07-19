@@ -51,3 +51,55 @@ core.sign_transfer, take the actual fee that goes on the wire as their last argu
 do no gateway comparison at all. A developer who calls core.* directly has no fee cap, so reach for the
 Client whenever a gateway you do not control reports the fee.
 
+```js
+const { Client } = require('@qunatovainc/qcore');
+
+const client = new Client('http://127.0.0.1:8645');
+const seed = '0b'.repeat(32);
+const to = client.address(seed, 1);
+
+// A fixed ceiling your app is willing to pay, chosen here and never read back from the gateway.
+const MAX_FEE_QUON = '2000';
+
+// The amount is a decimal string or a BigInt, never a JavaScript number.
+const { signed, outcome } = await client.transfer(seed, 0, to, '1000', MAX_FEE_QUON);
+const status = await client.transaction(signed.tx_id);
+```
+
+An account funded by a transfer, such as a faucet claim, arrives with a balance but no key on the
+chain, so it registers its key once before its first send. After that it sends as above.
+
+```js
+// Once, after the account is funded and before its first send.
+await client.register(seed, 0, MAX_FEE_QUON);
+```
+
+## Builds
+
+The package ships one guarded surface, the Client with the fee cap and the amount guard, over two
+WebAssembly builds of the one core, and every default entry hands you that same Client. Node resolves to
+the node entry, which loads the nodejs build from `pkg-node`, reads its WebAssembly from disk, needs no
+experimental flag, works on every supported Node for both require and import, and is the build the tests
+run against. A browser, or a bundler such as webpack or Vite, resolves through the exports map to the
+browser entry, which wraps the bundler build in `pkg` in the identical Client, so a browser wallet gets
+the fee cap and the amount guard and never the bare signing functions.
+
+The raw builds are still reachable on their own subpaths, `@qunatovainc/qcore/pkg` for the bundler build
+and `@qunatovainc/qcore/pkg-node` for the nodejs build. Those export only the core.* functions, with no
+Client, no fee cap, and no amount guard, and are for an advanced caller who assembles the fee comparison
+alone. The default browser, import, node, and require resolutions never reach them.
+
+To build both from source.
+
+```
+wasm-pack build --target bundler --out-dir pkg
+wasm-pack build --target nodejs --out-dir pkg-node
+```
+
+## A note on releases
+
+Nothing here is published to a registry without an explicit release. This package handles a user's keys and a published version cannot be taken back.
+
+## Ownership and license
+
+QCore.js is built and owned by Quantova Inc and is generated over the Rust core QCore.rs, so the signing lives in one place and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
