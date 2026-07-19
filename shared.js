@@ -103,3 +103,55 @@ function makeClient(core) {
       this.base = requireSafeTransport(String(base)).replace(/\/$/, '');
     }
 
+    async _call(method, body) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const res = await fetch(this.base + '/v1/' + method, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body || '{}',
+          signal: controller.signal,
+        });
+        const text = await readBounded(res);
+        let data;
+        try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
+        if (!res.ok) throw new Error(data.message || data.error || ('status ' + res.status));
+        return data;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    nodeInfo() { return this._call('node_info', '{}'); }
+    head() { return this._call('head', '{}'); }
+    account(address) { return this._call('get_account', core.account_body(address)); }
+    transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
+    block(height) { return this._call('get_block', core.block_by_height_body(BigInt(height))); }
+    submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex)); }
+    container(address) { return this._call('get_container', JSON.stringify({ address })); }
+    storage(address) { return this._call('get_storage', JSON.stringify({ address })); }
+    events(height) { return this._call('get_events', JSON.stringify({ height: Number(BigInt(height)) })); }
+
+    address(seedHex, index) { return core.address(seedHex, BigInt(index)); }
+
+    async transfer(seedHex, index, to, amount, maxFeeQuon) {
+      if (!core.valid_address(to)) throw new Error('the recipient is not a q1 address');
+      checkAmount(amount);
+      const ceiling = feeCeiling(maxFeeQuon);
+      const info = await this.nodeInfo();
+      const fee = info && info.fee && info.fee.transfer_quon;
+      if (fee == null) throw new Error('the gateway did not report a transfer fee');
+      if (BigInt(fee) > ceiling) {
+        throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
+      }
+      const from = core.address(seedHex, BigInt(index));
+      const acct = await this.account(from);
+      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
+      const signed = JSON.parse(
+        core.sign_transfer(seedHex, BigInt(index), to, String(amount), BigInt(acct.nonce), String(fee))
+      );
+      const outcome = await this.submit(signed.tx_hex);
+      return { signed, outcome };
+    }
+
