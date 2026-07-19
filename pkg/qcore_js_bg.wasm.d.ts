@@ -1,0 +1,31 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const account_body: (a: number, b: number) => [number, number];
+export const address: (a: number, b: number, c: bigint) => [number, number, number, number];
+export const block_by_height_body: (a: bigint) => [number, number];
+export const buildSignedOrderCall: (a: number, b: number, c: number, d: number, e: bigint, f: bigint, g: number, h: number, i: number, j: number, k: bigint, l: number, m: number, n: bigint, o: bigint) => [number, number, number, number];
+export const contractAddress: (a: number, b: number, c: bigint) => [number, number];
+export const eventsBody: (a: bigint) => [number, number];
+export const mapSlotKey: (a: bigint, b: number, c: number) => [number, number, number, number];
+export const mnemonicFromSeed: (a: number, b: number) => [number, number, number, number];
+export const nonceSlotKey: (a: number, b: number) => [number, number, number, number];
+export const orderSigner: (a: number, b: number, c: bigint) => [number, number, number, number];
+export const parseEvents: (a: number, b: number) => [number, number, number, number];
+export const scalarSlotKey: (a: bigint) => [number, number];
+export const seedFromMnemonic: (a: number, b: number) => [number, number, number, number];
+export const signRegister: (a: number, b: number, c: bigint, d: bigint, e: number, f: number) => [number, number, number, number];
+export const sign_call: (a: number, b: number, c: bigint, d: number, e: number, f: number, g: number, h: bigint, i: bigint, j: number, k: number) => [number, number, number, number];
+export const sign_transfer: (a: number, b: number, c: bigint, d: number, e: number, f: number, g: number, h: bigint, i: number, j: number) => [number, number, number, number];
+export const storageBody: (a: number, b: number) => [number, number];
+export const storageValue: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const submit_body: (a: number, b: number) => [number, number, number, number];
+export const transaction_body: (a: number, b: number) => [number, number];
+export const valid_address: (a: number, b: number) => number;
+export const vmDeployAddress: () => [number, number];
+export const __wbindgen_externrefs: WebAssembly.Table;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __externref_table_dealloc: (a: number) => void;
+export const __wbindgen_start: () => void;
