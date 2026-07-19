@@ -1,0 +1,19 @@
+{
+  "name": "qcore-js",
+  "description": "The JavaScript binding for the Quantova client core, generated over QCore with wasm-bindgen. The core does the key derivation, the post quantum signing, and the wire, the page does the fetch.",
+  "version": "0.1.0",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quantova/QCore-JS"
+  },
+  "files": [
+    "qcore_js_bg.wasm",
+    "qcore_js.js",
+    "qcore_js.d.ts",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "main": "qcore_js.js",
+  "types": "qcore_js.d.ts"
+}
