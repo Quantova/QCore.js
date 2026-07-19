@@ -249,3 +249,12 @@ pub fn account_body(address: &str) -> String {
     qcore::account_body(address)
 }
 
+#[wasm_bindgen]
+pub fn transaction_body(tx_id: &str) -> String {
+    qcore::transaction_body(tx_id)
+}
+
+#[wasm_bindgen]
+pub fn block_by_height_body(height: u64) -> String {
+    qcore::block_by_height_body(height)
+}
