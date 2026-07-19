@@ -105,3 +105,6 @@ wasm-pack build --target nodejs --out-dir pkg-node
 
 Nothing here is published to a registry without an explicit release. This package handles a user's keys and a published version cannot be taken back.
 
+## Ownership and license
+
+QCore.js is built and owned by Quantova Inc and is generated over the Rust core QCore.rs, so the signing lives in one place and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
