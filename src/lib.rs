@@ -194,3 +194,58 @@ pub fn build_signed_order_call(
         ("call_args", qcore::json::Json::str(qcore::json::to_hex(&order.call_args))),
         ("message", qcore::json::Json::str(qcore::json::to_hex(&order.message))),
         ("signature", qcore::json::Json::str(qcore::json::to_hex(&order.signature))),
+        ("public_key", qcore::json::Json::str(qcore::json::to_hex(&order.public_key))),
+        ("signer", qcore::json::Json::str(qcore::json::to_hex(&order.signer))),
+        ("nonce", qcore::json::Json::Int(order.nonce)),
+    ])
+    .render())
+}
+
+#[wasm_bindgen(js_name = storageBody)]
+pub fn storage_body(contract: &str) -> String {
+    qcore::contract::storage_body(contract)
+}
+
+#[wasm_bindgen(js_name = eventsBody)]
+pub fn events_body(height: u64) -> String {
+    qcore::contract::events_body(height)
+}
+
+#[wasm_bindgen(js_name = storageValue)]
+pub fn storage_value(response: &str, slot_key_hex: &str) -> Result<String, JsError> {
+    let slots = qcore::contract::parse_storage(response).map_err(|e| JsError::new(&e))?;
+    let key = addr32(slot_key_hex)?;
+    Ok(qcore::contract::storage_value(&slots, &key).to_string())
+}
+
+#[wasm_bindgen(js_name = parseEvents)]
+pub fn parse_events(response: &str) -> Result<String, JsError> {
+    let events = qcore::contract::parse_events(response).map_err(|e| JsError::new(&e))?;
+    let items: Vec<qcore::json::Json> = events
+        .iter()
+        .map(|event| {
+            let mut fields = vec![
+                ("contract", qcore::json::Json::str(event.contract.clone())),
+                ("selector", qcore::json::Json::str(qcore::json::to_hex(&event.selector))),
+                ("data", qcore::json::Json::str(qcore::json::to_hex(&event.data))),
+            ];
+            if let Some(word) = qcore::contract::event_word(&event.data) {
+                fields.push(("value", qcore::json::Json::str(word.to_string())));
+            }
+            qcore::json::object(fields)
+        })
+        .collect();
+    Ok(qcore::json::Json::Array(items).render())
+}
+
+#[wasm_bindgen]
+pub fn submit_body(tx_hex: &str) -> Result<String, JsError> {
+    let bytes = qcore::json::from_hex(tx_hex).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::submit_body(&bytes))
+}
+
+#[wasm_bindgen]
+pub fn account_body(address: &str) -> String {
+    qcore::account_body(address)
+}
+
