@@ -47,3 +47,42 @@ function fail(msg) {
   if (a.outcome.verdict !== 'accepted') fail('a fee below the ceiling should be accepted');
   if (submitted !== 1) fail('an allowed transfer submits exactly once');
 
+  // A fee above the ceiling is refused and never submits.
+  feeQuon = '5000';
+  let refused = false;
+  try { await client.transfer(seed, 0, to, '1000', '1000'); }
+  catch (e) { refused = true; if (!/above the maximum/.test(e.message)) fail('wrong refusal message: ' + e.message); }
+  if (!refused) fail('a fee above the ceiling must be refused');
+  if (submitted !== 1) fail('a refused transfer must never submit');
+
+  // The ceiling is inclusive at the boundary, and a BigInt ceiling is accepted.
+  feeQuon = '1000';
+  const c = await client.transfer(seed, 0, to, '1000', 1000n);
+  if (c.outcome.verdict !== 'accepted' || submitted !== 2) fail('a fee equal to the ceiling is allowed');
+
+  // A missing, malformed, or negative ceiling fails before any network call.
+  for (const bad of [undefined, null, 'abc', '-1', -1n]) {
+    let threw = false;
+    try { await client.transfer(seed, 0, to, '1000', bad); }
+    catch (e) { threw = true; if (!/maximum fee/.test(e.message)) fail('unclear ceiling error: ' + e.message); }
+    if (!threw) fail('a bad ceiling must be rejected: ' + String(bad));
+  }
+  if (submitted !== 2) fail('a bad ceiling must fail before submitting');
+
+  // A ceiling passed as a JavaScript number is refused before any network call.
+  let numCeil = false;
+  try { await client.transfer(seed, 0, to, '1000', 1000); }
+  catch (e) { numCeil = true; if (!/maximum fee/.test(e.message) || !/JavaScript number/.test(e.message)) fail('unclear number ceiling error: ' + e.message); }
+  if (!numCeil) fail('a number fee ceiling must be refused');
+  if (submitted !== 2) fail('a refused ceiling must never submit');
+
+  // An amount passed as a JavaScript number is refused before any network call.
+  let numRefused = false;
+  try { await client.transfer(seed, 0, to, 1000, '1000'); }
+  catch (e) { numRefused = true; if (!/decimal string or a BigInt/.test(e.message)) fail('unclear amount error: ' + e.message); }
+  if (!numRefused) fail('a number amount must be refused');
+  if (submitted !== 2) fail('a refused amount must never submit');
+
+  server.close();
+  console.log('fee ceiling: all cases passed');
+})();
