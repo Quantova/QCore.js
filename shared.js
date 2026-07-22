@@ -87,6 +87,51 @@ function requireSafeTransport(base) {
   return base;
 }
 
+const DENOMINATION = 'Quon';
+const DECIMALS = 6;
+
+class Network {
+  constructor(fields) {
+    this.name = fields.name;
+    this.chainId = fields.chainId;
+    this.rpcUrl = fields.rpcUrl || null;
+    this.explorerUrl = fields.explorerUrl || null;
+    this.denomination = fields.denomination || DENOMINATION;
+    this.decimals = fields.decimals == null ? DECIMALS : fields.decimals;
+    this.isMainnet = fields.isMainnet === true;
+    Object.freeze(this);
+  }
+
+  static testnet() {
+    return new Network({
+      name: 'testnet',
+      chainId: 'Q-test-net-1',
+      rpcUrl: 'https://rpc-testnet.quantova.org',
+      explorerUrl: 'https://qvmscan.io',
+      isMainnet: false,
+    });
+  }
+
+  static mainnet() {
+    return new Network({
+      name: 'mainnet',
+      chainId: 'Q-main-net-1',
+      rpcUrl: null,
+      explorerUrl: 'https://qvmscan.io',
+      isMainnet: true,
+    });
+  }
+
+  static forUrl(base) {
+    return new Network({ name: 'custom', chainId: null, rpcUrl: base, isMainnet: false });
+  }
+}
+
+function chainIdLooksLikeMainnet(chainId) {
+  if (!chainId) return false;
+  return !/test|dev|local/i.test(String(chainId));
+}
+
 function generateSeed() {
   const source = (typeof globalThis !== 'undefined' && globalThis.crypto) || (typeof crypto !== 'undefined' ? crypto : null);
   if (!source || typeof source.getRandomValues !== 'function') {
@@ -99,8 +144,31 @@ function generateSeed() {
 
 function makeClient(core) {
   return class Client {
-    constructor(base) {
-      this.base = requireSafeTransport(String(base)).replace(/\/$/, '');
+    constructor(target, options) {
+      const opts = options || {};
+      this.acknowledgeMainnet = opts.acknowledgeMainnet === true;
+      let base;
+      if (target instanceof Network) {
+        this.network = target;
+        base = target.rpcUrl;
+        if (!base) {
+          throw new Error(`the ${target.name} network has no rpc endpoint yet, pass the endpoint explicitly with new Client(url)`);
+        }
+        if (target.isMainnet && !this.acknowledgeMainnet) {
+          throw new Error('refusing to open a mainnet client without acknowledgeMainnet true, a mainnet transaction moves real value so the network must be chosen on purpose');
+        }
+      } else {
+        base = String(target);
+        this.network = opts.network instanceof Network ? opts.network : Network.forUrl(base);
+      }
+      this.base = requireSafeTransport(base).replace(/\/$/, '');
+    }
+
+    _guardMainnet(chainId) {
+      const onMainnet = (this.network && this.network.isMainnet) || chainIdLooksLikeMainnet(chainId);
+      if (onMainnet && !this.acknowledgeMainnet) {
+        throw new Error(`refusing to sign for the mainnet chain ${chainId || this.network.chainId} without acknowledgeMainnet true, pass it when you mean to move real value`);
+      }
     }
 
     async _call(method, body) {
@@ -140,6 +208,7 @@ function makeClient(core) {
       checkAmount(amount);
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
+      this._guardMainnet(info && info.chain_id);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -158,6 +227,7 @@ function makeClient(core) {
     async register(seedHex, index, maxFeeQuon) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
+      this._guardMainnet(info && info.chain_id);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -175,6 +245,7 @@ function makeClient(core) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
+      this._guardMainnet(info && info.chain_id);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -218,6 +289,7 @@ function makeClient(core) {
         nonce,
       ));
       const info = await this.nodeInfo();
+      this._guardMainnet(info && info.chain_id);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -235,4 +307,4 @@ function makeClient(core) {
   };
 }
 
-module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport };
+module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, Network };

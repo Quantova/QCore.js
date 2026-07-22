@@ -1,6 +1,6 @@
 const core = require('./pkg-node/qcore_js.js');
-const { makeClient, generateSeed } = require('./shared.js');
+const { makeClient, generateSeed, Network } = require('./shared.js');
 
 const Client = makeClient(core);
 
-module.exports = { Client, core, generateSeed };
+module.exports = { Client, core, generateSeed, Network };
