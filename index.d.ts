@@ -49,6 +49,8 @@ export interface QCore {
   ): string;
   contractAddress(deployer: string, nonce: bigint): string | undefined;
   eventsBody(height: bigint): string;
+  localChainId(): bigint;
+  mainnetChainId(): bigint;
   mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
   mnemonicFromSeed(seed_hex: string): string;
   nonceSlotKey(signer_hex: string): string;
@@ -56,6 +58,17 @@ export interface QCore {
   parseEvents(response: string): string;
   scalarSlotKey(slot: bigint): string;
   seedFromMnemonic(phrase: string): string;
+  signPayableCall(
+    seed_hex: string,
+    index: bigint,
+    target: string,
+    args_hex: string,
+    nonce: bigint,
+    meter_limit: bigint,
+    fee: string,
+    value: string,
+    chain_id: bigint,
+  ): string;
   signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string): string;
   sign_call(
     seed_hex: string,
@@ -77,13 +90,33 @@ export interface QCore {
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
   submit_body(tx_hex: string): string;
+  testnetChainId(): bigint;
   transaction_body(tx_id: string): string;
   valid_address(address: string): boolean;
   vmDeployAddress(): string;
 }
 
+export class Network {
+  readonly name: string;
+  readonly chainId: string | null;
+  readonly rpcUrl: string | null;
+  readonly explorerUrl: string | null;
+  readonly denomination: string;
+  readonly decimals: number;
+  readonly isMainnet: boolean;
+  static testnet(): Network;
+  static mainnet(): Network;
+  static forUrl(base: string): Network;
+}
+
+export interface ClientOptions {
+  acknowledgeMainnet?: boolean;
+  network?: Network;
+}
+
 export class Client {
-  constructor(base: string);
+  constructor(target: string | Network, options?: ClientOptions);
+  readonly network: Network;
   nodeInfo(): Promise<any>;
   head(): Promise<any>;
   account(address: string): Promise<any>;

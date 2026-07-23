@@ -258,3 +258,140 @@ pub fn transaction_body(tx_id: &str) -> String {
 pub fn block_by_height_body(height: u64) -> String {
     qcore::block_by_height_body(height)
 }
+
+fn addr_payload(address: &str) -> Result<[u8; 32], JsError> {
+    let bytes = qtv_idfmt::parse_address(address).map_err(|e| JsError::new(&e.to_string()))?;
+    bytes
+        .try_into()
+        .map_err(|_| JsError::new("an address payload is 32 bytes"))
+}
+
+#[wasm_bindgen(js_name = localChainId)]
+pub fn local_chain_id() -> u64 {
+    qtv_tx::LOCAL_CHAIN_ID
+}
+
+#[wasm_bindgen(js_name = mainnetChainId)]
+pub fn mainnet_chain_id() -> u64 {
+    qtv_tx::MAINNET_CHAIN_ID
+}
+
+#[wasm_bindgen(js_name = testnetChainId)]
+pub fn testnet_chain_id() -> u64 {
+    qtv_tx::TESTNET_CHAIN_ID
+}
+
+#[wasm_bindgen(js_name = signPayableCall)]
+#[allow(clippy::too_many_arguments)]
+pub fn sign_payable_call(
+    seed_hex: &str,
+    index: u64,
+    target: &str,
+    args_hex: &str,
+    nonce: u64,
+    meter_limit: u64,
+    fee: &str,
+    value: &str,
+    chain_id: u64,
+) -> Result<String, JsError> {
+    if !qcore::valid_address(target) {
+        return Err(JsError::new("the target is not a q1 address"));
+    }
+    let account = qtv_account::derive(&seed(seed_hex)?, index);
+    let sender_payload = addr_payload(&account.address())?;
+    let target_payload = addr_payload(target)?;
+    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+    let fee: u128 = fee
+        .parse()
+        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let value: u64 = value
+        .parse()
+        .map_err(|_| JsError::new("value is a whole number string"))?;
+
+    let mut body = qtv_codec::Encoder::new();
+    body.put_bytes(&sender_payload);
+    body.put_u64(nonce);
+    body.put_u64(meter_limit);
+    body.put_u128(fee);
+    body.put_bytes(&target_payload);
+    body.put_bytes(&args);
+    body.put_u64(value);
+    body.put_u64(chain_id);
+    let body_bytes = body.into_bytes();
+
+    let mut preimage = body_bytes.clone();
+    preimage.extend_from_slice(qtv_tx::DOMAIN_TX);
+    let digest = qtv_crypto::sha3::sha3_256(&preimage);
+
+    let (_public, secret) = qtv_crypto::ml_dsa::keygen(account.seed());
+    let signature = qtv_crypto::ml_dsa::sign(&secret, &digest, &[], &[0u8; 32])
+        .expect("an empty context stays within the length bound")
+        .to_vec();
+
+    let mut wire = qtv_codec::Encoder::with_buffer(body_bytes);
+    wire.put_u8(qtv_account::SCHEME_LATTICE);
+    wire.put_bytes(&signature);
+    let tx_bytes = wire.into_bytes();
+
+    let tx_hash = qtv_crypto::sha3::sha3_256(&tx_bytes);
+    let tx_id =
+        qtv_idfmt::render_tx(&tx_hash).expect("a sha3 256 hash is the fixed digest length");
+
+    Ok(qcore::json::object(vec![
+        ("from", qcore::json::Json::str(account.address())),
+        ("tx_id", qcore::json::Json::str(tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&tx_bytes)),
+        ),
+    ])
+    .render())
+}
+
+#[cfg(test)]
+mod payable_tests {
+    use super::*;
+
+    fn seed_hex() -> String {
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f".to_string()
+    }
+
+    #[test]
+    fn signing_is_deterministic() {
+        let target = address(&seed_hex(), 8).unwrap();
+        let first =
+            sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let second =
+            sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn the_signature_binds_the_raw_address_payload_not_the_rendered_string() {
+        let target = address(&seed_hex(), 8).unwrap();
+        let lower = target.to_ascii_lowercase();
+        let upper = target.to_ascii_uppercase();
+        assert_ne!(lower, upper, "the two variants must differ only in case");
+        let signed_lower =
+            sign_payable_call(&seed_hex(), 7, &lower, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let signed_upper =
+            sign_payable_call(&seed_hex(), 7, &upper, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        assert_eq!(signed_lower, signed_upper);
+    }
+
+    #[test]
+    fn the_value_is_bound_into_the_signature() {
+        let target = address(&seed_hex(), 8).unwrap();
+        let a = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let b = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250001", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn the_chain_id_is_bound_into_the_signature() {
+        let target = address(&seed_hex(), 8).unwrap();
+        let a = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let b = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::MAINNET_CHAIN_ID).unwrap();
+        assert_ne!(a, b);
+    }
+}

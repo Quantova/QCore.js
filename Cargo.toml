@@ -14,3 +14,8 @@ crate-type = ["cdylib"]
 # the client feature is off and the browser does the transport.
 qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
+qtv-tx = { path = "../Quantova-Chain/crates/qtv-tx" }
+qtv-account = { path = "../Quantova-Chain/crates/qtv-account" }
+qtv-codec = { path = "../Quantova-Chain/crates/qtv-codec" }
+qtv-idfmt = { path = "../Quantova-Chain/crates/qtv-idfmt" }
+qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", tag = "v0.3.0" }

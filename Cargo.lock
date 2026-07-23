@@ -46,6 +46,11 @@ name = "qcore-js"
 version = "0.1.0"
 dependencies = [
  "qcore",
+ "qtv-account",
+ "qtv-codec",
+ "qtv-crypto 0.2.0 (git+https://github.com/Quantova/Q-Crypto.git?tag=v0.3.0)",
+ "qtv-idfmt",
+ "qtv-tx",
  "wasm-bindgen",
 ]
 
