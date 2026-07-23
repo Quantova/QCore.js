@@ -1,7 +1,7 @@
 {
   "name": "@qunatovainc/qcore",
-  "version": "0.1.1",
-  "description": "Quantova's post quantum client core for JavaScript and WebAssembly. Signs with ML-DSA-65 and builds Q1 addresses, generated over the Rust core QCore.rs.",
+  "version": "0.1.2",
+  "description": "Quantova's post quantum client core for JavaScript and WebAssembly. Signs with ML-DSA-65 and builds Q1 addresses.",
   "keywords": [
     "post-quantum",
     "quantum-resistant",

@@ -1,8 +1,10 @@
 # QCore.js
 
-The Quantova post quantum client core for JavaScript and WebAssembly. It is the Rust core QCore.rs compiled to WebAssembly, so the key derivation, the post quantum signing, and every RPC request body are the core's and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+**This npm account and this package belong to Quantova Inc. It is the official Quantova client SDK. Any similarly named package published under a different account is not this one and is not from Quantova.**
 
-One core with one binding for each language. QCore.rs is the Rust core. QCore.js is this JavaScript and WebAssembly binding over it. QCore.py is the Python binding over it. On npm this package installs as @qunatovainc/qcore.
+QCore.js is the official Quantova client core for JavaScript and WebAssembly, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled WebAssembly core and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+
+This is the official Quantova Inc package. On npm it installs as @qunatovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
 
 ## What this library is for
 
@@ -19,6 +21,8 @@ Quantova is post quantum from the ground. There is no elliptic curve anywhere in
 3. The address. A Quantova address is the Bech32m Q1 string that renders the SHA3 256 hash of the scheme byte together with the whole module lattice public key of one thousand nine hundred fifty two bytes. The entire public key is bound into the address. Nothing is truncated to a twenty byte hash and there is no key recovery from a signature, so one address names exactly one post quantum key.
 
 4. The transaction. A transaction body carries the sender, the nonce, the meter limit, the fee, and the call. The bytes a signature stands over are the SHA3 256 hash of the canonical body followed by a fixed Quantova transaction domain tag, so a transaction signature can never be replayed as another kind of signed message. QCore.js assembles the body, signs the digest inside the WebAssembly core, and returns the wrapper bytes and the transaction id ready for the gateway.
+
+5. The payable call. `core.signPayableCall` carries a native value and an explicit chain id alongside the sender, the nonce, the meter limit, the fee, and the call, so a call to a contract can move value in the same signed body a transfer does, and the same signature can be pinned to one network. The sender and the target never enter that signature as the rendered Q1 string, since a display convention can change over time. Each is parsed back to its raw thirty two byte payload first, and that payload, never the string, is what the preimage carries, so the signature stays bound to the account and never to how an address happened to be printed.
 
 ## How it is customised to Quantova and inherits nothing from the industry
 
@@ -79,6 +83,19 @@ chain, so it registers its key once before its first send. After that it sends a
 await client.register(seed, 0, MAX_FEE_QUON);
 ```
 
+A call that also moves value, such as a payable contract call, reaches for `core.signPayableCall`
+directly. It takes the value and the chain id as explicit arguments, the value as a decimal string or a
+BigInt for the same reason as an amount, and the chain id from `core.localChainId()`,
+`core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number.
+
+```js
+const { core } = require('@qunatovainc/qcore');
+
+const signed = JSON.parse(
+  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId()),
+);
+```
+
 ## Builds
 
 The package ships one guarded surface, the Client with the fee cap and the amount guard, over two
@@ -107,4 +124,4 @@ Nothing here is published to a registry without an explicit release. This packag
 
 ## Ownership and license
 
-QCore.js is built and owned by Quantova Inc and is generated over the Rust core QCore.rs, so the signing lives in one place and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
+QCore.js is built and owned by Quantova Inc, and the signing lives in one compiled core and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.

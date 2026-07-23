@@ -1,8 +1,10 @@
 # QCore.js
 
-The Quantova post quantum client core for JavaScript and WebAssembly. It is the Rust core QCore.rs compiled to WebAssembly, so the key derivation, the post quantum signing, and every RPC request body are the core's and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+**This npm account and this package belong to Quantova Inc. It is the official Quantova client SDK. Any similarly named package published under a different account is not this one and is not from Quantova.**
 
-One core with one binding for each language. QCore.rs is the Rust core. QCore.js is this JavaScript and WebAssembly binding over it. QCore.py is the Python binding over it. On npm this package installs as @qunatovainc/qcore.
+QCore.js is the official Quantova client core for JavaScript and WebAssembly, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled WebAssembly core and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+
+This is the official Quantova Inc package. On npm it installs as @qunatovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
 
 ## What this library is for
 
@@ -122,4 +124,4 @@ Nothing here is published to a registry without an explicit release. This packag
 
 ## Ownership and license
 
-QCore.js is built and owned by Quantova Inc and is generated over the Rust core QCore.rs, so the signing lives in one place and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
+QCore.js is built and owned by Quantova Inc, and the signing lives in one compiled core and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
