@@ -145,6 +145,24 @@ function eventsBody(height) {
 exports.eventsBody = eventsBody;
 
 /**
+ * @returns {bigint}
+ */
+function localChainId() {
+    const ret = wasm.localChainId();
+    return BigInt.asUintN(64, ret);
+}
+exports.localChainId = localChainId;
+
+/**
+ * @returns {bigint}
+ */
+function mainnetChainId() {
+    const ret = wasm.mainnetChainId();
+    return BigInt.asUintN(64, ret);
+}
+exports.mainnetChainId = mainnetChainId;
+
+/**
  * @param {bigint} map_domain_tag
  * @param {string} key_address_hex
  * @returns {string}
@@ -319,6 +337,48 @@ function seedFromMnemonic(phrase) {
     }
 }
 exports.seedFromMnemonic = seedFromMnemonic;
+
+/**
+ * @param {string} seed_hex
+ * @param {bigint} index
+ * @param {string} target
+ * @param {string} args_hex
+ * @param {bigint} nonce
+ * @param {bigint} meter_limit
+ * @param {string} fee
+ * @param {string} value
+ * @param {bigint} chain_id
+ * @returns {string}
+ */
+function signPayableCall(seed_hex, index, target, args_hex, nonce, meter_limit, fee, value, chain_id) {
+    let deferred7_0;
+    let deferred7_1;
+    try {
+        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(args_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.signPayableCall(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, ptr4, len4, chain_id);
+        var ptr6 = ret[0];
+        var len6 = ret[1];
+        if (ret[3]) {
+            ptr6 = 0; len6 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred7_0 = ptr6;
+        deferred7_1 = len6;
+        return getStringFromWasm0(ptr6, len6);
+    } finally {
+        wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
+    }
+}
+exports.signPayableCall = signPayableCall;
 
 /**
  * @param {string} seed_hex
@@ -500,6 +560,15 @@ function submit_body(tx_hex) {
     }
 }
 exports.submit_body = submit_body;
+
+/**
+ * @returns {bigint}
+ */
+function testnetChainId() {
+    const ret = wasm.testnetChainId();
+    return BigInt.asUintN(64, ret);
+}
+exports.testnetChainId = testnetChainId;
 
 /**
  * @param {string} tx_id
