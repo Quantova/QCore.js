@@ -13,6 +13,10 @@ export function contractAddress(deployer: string, nonce: bigint): string | undef
 
 export function eventsBody(height: bigint): string;
 
+export function localChainId(): bigint;
+
+export function mainnetChainId(): bigint;
+
 export function mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
 
 export function mnemonicFromSeed(seed_hex: string): string;
@@ -27,6 +31,8 @@ export function scalarSlotKey(slot: bigint): string;
 
 export function seedFromMnemonic(phrase: string): string;
 
+export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint): string;
+
 export function signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string): string;
 
 export function sign_call(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string): string;
@@ -38,6 +44,8 @@ export function storageBody(contract: string): string;
 export function storageValue(response: string, slot_key_hex: string): string;
 
 export function submit_body(tx_hex: string): string;
+
+export function testnetChainId(): bigint;
 
 export function transaction_body(tx_id: string): string;
 

@@ -66,6 +66,11 @@ const { signed, outcome } = await client.transfer(seed, 0, to, '1000', MAX_FEE_Q
 const status = await client.transaction(signed.tx_id);
 ```
 
+The Client insists on a safe transport. A remote gateway must be reached over https, and plaintext
+http is allowed only to a loopback node such as `127.0.0.1`, `localhost`, or `[::1]`. A base that points
+plaintext http at any other host is refused when the Client is built, because a fee and a nonce read
+back over plaintext are unauthenticated and rewritable on the wire and could be turned to drain funds.
+
 An account funded by a transfer, such as a faucet claim, arrives with a balance but no key on the
 chain, so it registers its key once before its first send. After that it sends as above.
 
