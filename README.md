@@ -20,6 +20,8 @@ Quantova is post quantum from the ground. There is no elliptic curve anywhere in
 
 4. The transaction. A transaction body carries the sender, the nonce, the meter limit, the fee, and the call. The bytes a signature stands over are the SHA3 256 hash of the canonical body followed by a fixed Quantova transaction domain tag, so a transaction signature can never be replayed as another kind of signed message. QCore.js assembles the body, signs the digest inside the WebAssembly core, and returns the wrapper bytes and the transaction id ready for the gateway.
 
+5. The payable call. `core.signPayableCall` carries a native value and an explicit chain id alongside the sender, the nonce, the meter limit, the fee, and the call, so a call to a contract can move value in the same signed body a transfer does, and the same signature can be pinned to one network. The sender and the target never enter that signature as the rendered Q1 string, since a display convention can change over time. Each is parsed back to its raw thirty two byte payload first, and that payload, never the string, is what the preimage carries, so the signature stays bound to the account and never to how an address happened to be printed.
+
 ## How it is customised to Quantova and inherits nothing from the industry
 
 Quantova shares no wire, no address, and no unit with any other chain, and QCore.js speaks only Quantova. The address is a Q1 Bech32m string over a full post quantum key, never a hex twenty byte address and never an SS58 string. Money is counted in Quon, the smallest unit, at one million Quon to one QTOV, and it always crosses the wire as a decimal string. You pass an amount as a decimal string or a BigInt and never as a JavaScript number, because a number silently rounds above 2^53 and would sign a wrong amount. The wire is the Quantova gateway, an HTTP POST to a named method under a version prefix with a flat JSON body, not Ethereum JSON RPC and not a Substrate WebSocket. The transaction encoding is Quantova's own canonical codec, not RLP and not SCALE. The signatures come from Q Crypto, Quantova's own implementation of the lattice and hash standards written from scratch, not a borrowed library. There is no ethers, no web3, and no polkadot here.
@@ -77,6 +79,19 @@ chain, so it registers its key once before its first send. After that it sends a
 ```js
 // Once, after the account is funded and before its first send.
 await client.register(seed, 0, MAX_FEE_QUON);
+```
+
+A call that also moves value, such as a payable contract call, reaches for `core.signPayableCall`
+directly. It takes the value and the chain id as explicit arguments, the value as a decimal string or a
+BigInt for the same reason as an amount, and the chain id from `core.localChainId()`,
+`core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number.
+
+```js
+const { core } = require('@qunatovainc/qcore');
+
+const signed = JSON.parse(
+  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId()),
+);
 ```
 
 ## Builds
