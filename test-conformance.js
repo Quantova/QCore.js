@@ -145,7 +145,7 @@ function transactionVector() {
   check('target derives to the vector target', bech32Equal(target, v.target), true);
 
   const signed = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.gas_limit), String(v.fee)),
+    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.gas_limit), String(v.fee), core.localChainId()),
   );
   check('the signer address is the vector sender', bech32Equal(signed.from, v.sender), true);
 
@@ -164,7 +164,7 @@ function transactionVector() {
   check('an unset chain id defaults to the local chain', got.chainId === core.localChainId(), true);
 
   const again = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.gas_limit), String(v.fee)),
+    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.gas_limit), String(v.fee), core.localChainId()),
   );
   check('signing is deterministic', again.tx_hex === signed.tx_hex, true);
   check('the transaction id is a qtx identifier', /^qtx1[0-9a-z]+$/i.test(signed.tx_id), true);
