@@ -2,7 +2,7 @@
 
 **This npm account and this package belong to Quantova Inc. It is the official Quantova client SDK. Any similarly named package published under a different account is not this one and is not from Quantova.**
 
-QCore.js is the official Quantova client core for JavaScript and WebAssembly, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled WebAssembly core and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+QCore.js is the official Quantova client core for JavaScript, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled core module and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
 
 This is the official Quantova Inc package. On npm it installs as @qunatovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
 
@@ -12,7 +12,7 @@ Any browser app, extension, or Node service that holds a Quantova account, reads
 
 ## The post quantum cryptography it handles
 
-Quantova is post quantum from the ground. There is no elliptic curve anywhere in it, no secp256k1, no ECDSA, no Ethereum address, and no Substrate envelope. Every primitive below is Quantova's own from scratch implementation in the Q Crypto library, carrying no third party cryptography dependency, compiled into the WebAssembly module that ships with this package.
+Quantova is post quantum from the ground. There is no elliptic curve anywhere in it, no secp256k1, no ECDSA, no Ethereum address, and no Substrate envelope. Every primitive below is Quantova's own from scratch implementation in the Q Crypto library, carrying no third party cryptography dependency, compiled into the core module that ships with this package.
 
 1. Key derivation. Your app holds one master seed of thirty two bytes. QCore.js grows a per account seed from it with SHAKE256 over the master seed, the scheme byte, and the account index, then derives a module lattice key pair from that seed. The node runs the identical derivation, so the account a key signs from is the account that holds the funds.
 
@@ -20,7 +20,7 @@ Quantova is post quantum from the ground. There is no elliptic curve anywhere in
 
 3. The address. A Quantova address is the Bech32m Q1 string that renders the SHA3 256 hash of the scheme byte together with the whole module lattice public key of one thousand nine hundred fifty two bytes. The entire public key is bound into the address. Nothing is truncated to a twenty byte hash and there is no key recovery from a signature, so one address names exactly one post quantum key.
 
-4. The transaction. A transaction body carries the sender, the nonce, the meter limit, the fee, and the call. The bytes a signature stands over are the SHA3 256 hash of the canonical body followed by a fixed Quantova transaction domain tag, so a transaction signature can never be replayed as another kind of signed message. QCore.js assembles the body, signs the digest inside the WebAssembly core, and returns the wrapper bytes and the transaction id ready for the gateway.
+4. The transaction. A transaction body carries the sender, the nonce, the meter limit, the fee, and the call. The bytes a signature stands over are the SHA3 256 hash of the canonical body followed by a fixed Quantova transaction domain tag, so a transaction signature can never be replayed as another kind of signed message. QCore.js assembles the body, signs the digest inside the compiled core, and returns the wrapper bytes and the transaction id ready for the gateway.
 
 5. The payable call. `core.signPayableCall` carries a native value and an explicit chain id alongside the sender, the nonce, the meter limit, the fee, and the call, so a call to a contract can move value in the same signed body a transfer does, and the same signature can be pinned to one network. The sender and the target never enter that signature as the rendered Q1 string, since a display convention can change over time. Each is parsed back to its raw thirty two byte payload first, and that payload, never the string, is what the preimage carries, so the signature stays bound to the account and never to how an address happened to be printed.
 
@@ -96,15 +96,15 @@ const signed = JSON.parse(
 );
 ```
 
-## The WebAssembly here
+## The compiled core
 
-The WebAssembly in this package is only the compiled shipping form of the one Rust core, built so the same key derivation, signing, and wire code runs in a browser and in Node. It is not a virtual machine and it is not what the chain runs. The Quantova chain executes only the QVM, the container machine that runs contracts, and it never runs WebAssembly. The WebAssembly here is a client side build target and nothing more.
+The compiled core in this package is only the shipping form of the one Rust core, built so the same key derivation, signing, and wire code runs in a browser and in Node. It is not a virtual machine and it is not what the chain runs. The Quantova chain executes only the QVM, the container machine that runs contracts. The compiled core here is a client side build artifact and nothing more.
 
 ## Builds
 
 The package ships one guarded surface, the Client with the fee cap and the amount guard, over two
-WebAssembly builds of the one core, and every default entry hands you that same Client. Node resolves to
-the node entry, which loads the nodejs build from `pkg-node`, reads its WebAssembly from disk, needs no
+builds of the one core, and every default entry hands you that same Client. Node resolves to
+the node entry, which loads the nodejs build from `pkg-node`, reads it from disk, needs no
 experimental flag, works on every supported Node for both require and import, and is the build the tests
 run against. A browser, or a bundler such as webpack or Vite, resolves through the exports map to the
 browser entry, which wraps the bundler build in `pkg` in the identical Client, so a browser wallet gets
