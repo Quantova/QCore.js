@@ -29,10 +29,11 @@ try { acked = new Client(liveMainnet, { acknowledgeMainnet: true }); } catch { a
 ok('mainnet client opens with acknowledgement', acked !== null);
 
 const overUrl = new Client('https://rpc-testnet.quantova.org');
-throws('a mainnet chain id is refused when not acknowledged', () => overUrl._guardMainnet('Q-main-net-1'));
-ok('a testnet chain id passes the guard', overUrl._guardMainnet('Q-test-net-1') === undefined);
-const overUrlAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet: true });
-ok('an acknowledged client passes the guard', overUrlAcked._guardMainnet('Q-main-net-1') === undefined);
+ok('a plain url client is not forced to acknowledge mainnet by any gateway string', overUrl._guardMainnet() === undefined);
+const hostileMainnet = new Client('https://rpc.quantova.org', { network: Network.mainnet() });
+throws('a configured mainnet network is refused when not acknowledged, whatever the gateway reports', () => hostileMainnet._guardMainnet());
+const overUrlAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet: true, network: Network.mainnet() });
+ok('an acknowledged mainnet client passes the guard', overUrlAcked._guardMainnet() === undefined);
 
 if (failures > 0) { console.error('\nnetwork: ' + failures + ' checks failed'); process.exit(1); }
 console.log('\nnetwork: the safety gate holds');
