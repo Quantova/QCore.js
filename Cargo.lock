@@ -48,7 +48,7 @@ dependencies = [
  "qcore",
  "qtv-account",
  "qtv-codec",
- "qtv-crypto 0.2.0 (git+https://github.com/Quantova/Q-Crypto.git?tag=v0.3.0)",
+ "qtv-crypto 0.2.0 (git+https://github.com/Quantova/Q-Crypto.git?rev=98860273eb291c211fa2dc24f9b63f18936f562c)",
  "qtv-idfmt",
  "qtv-tx",
  "wasm-bindgen",
@@ -60,6 +60,7 @@ version = "0.1.0"
 dependencies = [
  "qtv-crypto 0.2.0 (git+https://github.com/Quantova/Q-Crypto.git?tag=v0.3.0)",
  "qtv-idfmt",
+ "zeroize",
 ]
 
 [[package]]
@@ -173,3 +174,9 @@ checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
