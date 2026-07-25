@@ -127,11 +127,6 @@ class Network {
   }
 }
 
-function chainIdLooksLikeMainnet(chainId) {
-  if (!chainId) return false;
-  return !/test|dev|local/i.test(String(chainId));
-}
-
 function generateSeed() {
   const source = (typeof globalThis !== 'undefined' && globalThis.crypto) || (typeof crypto !== 'undefined' ? crypto : null);
   if (!source || typeof source.getRandomValues !== 'function') {
@@ -143,6 +138,14 @@ function generateSeed() {
 }
 
 function makeClient(core) {
+  // The signature binds the chain the gateway says it serves, computed from the reported network
+  // name with the same hash the node uses, so a transaction is valid only on that network and a
+  // renamed network is followed without a code change.
+  function signingChainId(info) {
+    const name = info && info.chain_id;
+    if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
+    return BigInt(core.chainIdFromName(name));
+  }
   return class Client {
     constructor(target, options) {
       const opts = options || {};
@@ -164,10 +167,13 @@ function makeClient(core) {
       this.base = requireSafeTransport(base).replace(/\/$/, '');
     }
 
-    _guardMainnet(chainId) {
-      const onMainnet = (this.network && this.network.isMainnet) || chainIdLooksLikeMainnet(chainId);
+    _guardMainnet() {
+      // The mainnet decision comes from the network this Client was configured with, never from
+      // the gateway's self reported chain id, so a hostile gateway cannot suppress the prompt by
+      // claiming to be a testnet.
+      const onMainnet = this.network && this.network.isMainnet === true;
       if (onMainnet && !this.acknowledgeMainnet) {
-        throw new Error(`refusing to sign for the mainnet chain ${chainId || this.network.chainId} without acknowledgeMainnet true, pass it when you mean to move real value`);
+        throw new Error(`refusing to sign for the mainnet network ${this.network.chainId || ''} without acknowledgeMainnet true, pass it when you mean to move real value`);
       }
     }
 
@@ -208,7 +214,8 @@ function makeClient(core) {
       checkAmount(amount);
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
-      this._guardMainnet(info && info.chain_id);
+      this._guardMainnet();
+      const chainId = signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -218,7 +225,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, BigInt(index), to, String(amount), BigInt(acct.nonce), String(fee))
+        core.sign_transfer(seedHex, BigInt(index), to, String(amount), BigInt(acct.nonce), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -227,7 +234,8 @@ function makeClient(core) {
     async register(seedHex, index, maxFeeQuon) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
-      this._guardMainnet(info && info.chain_id);
+      this._guardMainnet();
+      const chainId = signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -236,7 +244,7 @@ function makeClient(core) {
       const from = core.address(seedHex, BigInt(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const signed = JSON.parse(core.signRegister(seedHex, BigInt(index), BigInt(acct.nonce), String(fee)));
+      const signed = JSON.parse(core.signRegister(seedHex, BigInt(index), BigInt(acct.nonce), String(fee), chainId));
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
@@ -245,7 +253,8 @@ function makeClient(core) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
-      this._guardMainnet(info && info.chain_id);
+      this._guardMainnet();
+      const chainId = signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -255,7 +264,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(seedHex, BigInt(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee))
+        core.sign_call(seedHex, BigInt(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -289,7 +298,8 @@ function makeClient(core) {
         nonce,
       ));
       const info = await this.nodeInfo();
-      this._guardMainnet(info && info.chain_id);
+      this._guardMainnet();
+      const chainId = signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -299,7 +309,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, BigInt(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee))
+        core.sign_call(callerSeedHex, BigInt(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { order, signed, outcome };
