@@ -96,6 +96,10 @@ const signed = JSON.parse(
 );
 ```
 
+## The WebAssembly here
+
+The WebAssembly in this package is only the compiled shipping form of the one Rust core, built so the same key derivation, signing, and wire code runs in a browser and in Node. It is not a virtual machine and it is not what the chain runs. The Quantova chain executes only the QVM, the container machine that runs contracts, and it never runs WebAssembly. The WebAssembly here is a client side build target and nothing more.
+
 ## Builds
 
 The package ships one guarded surface, the Client with the fee cap and the amount guard, over two
