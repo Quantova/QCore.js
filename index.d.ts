@@ -48,6 +48,7 @@ export interface QCore {
     nonce: bigint,
   ): string;
   contractAddress(deployer: string, nonce: bigint): string | undefined;
+  chainIdFromName(name: string): bigint;
   eventsBody(height: bigint): string;
   localChainId(): bigint;
   mainnetChainId(): bigint;
@@ -69,7 +70,7 @@ export interface QCore {
     value: string,
     chain_id: bigint,
   ): string;
-  signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string): string;
+  signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint): string;
   sign_call(
     seed_hex: string,
     index: bigint,
@@ -78,6 +79,7 @@ export interface QCore {
     nonce: bigint,
     meter_limit: bigint,
     fee: string,
+    chain_id: bigint,
   ): string;
   sign_transfer(
     seed_hex: string,
@@ -86,6 +88,7 @@ export interface QCore {
     amount: string,
     nonce: bigint,
     fee: string,
+    chain_id: bigint,
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
