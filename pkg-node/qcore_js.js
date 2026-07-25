@@ -109,6 +109,18 @@ function buildSignedOrderCall(contract, selector_hex, scheme_off, ptr_off, field
 exports.buildSignedOrderCall = buildSignedOrderCall;
 
 /**
+ * @param {string} name
+ * @returns {bigint}
+ */
+function chainIdFromName(name) {
+    const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.chainIdFromName(ptr0, len0);
+    return BigInt.asUintN(64, ret);
+}
+exports.chainIdFromName = chainIdFromName;
+
+/**
  * @param {string} deployer
  * @param {bigint} nonce
  * @returns {string | undefined}
@@ -385,9 +397,10 @@ exports.signPayableCall = signPayableCall;
  * @param {bigint} index
  * @param {bigint} nonce
  * @param {string} fee
+ * @param {bigint} chain_id
  * @returns {string}
  */
-function signRegister(seed_hex, index, nonce, fee) {
+function signRegister(seed_hex, index, nonce, fee, chain_id) {
     let deferred4_0;
     let deferred4_1;
     try {
@@ -395,7 +408,7 @@ function signRegister(seed_hex, index, nonce, fee) {
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.signRegister(ptr0, len0, index, nonce, ptr1, len1);
+        const ret = wasm.signRegister(ptr0, len0, index, nonce, ptr1, len1, chain_id);
         var ptr3 = ret[0];
         var len3 = ret[1];
         if (ret[3]) {
@@ -419,9 +432,10 @@ exports.signRegister = signRegister;
  * @param {bigint} nonce
  * @param {bigint} meter_limit
  * @param {string} fee
+ * @param {bigint} chain_id
  * @returns {string}
  */
-function sign_call(seed_hex, index, target, args_hex, nonce, meter_limit, fee) {
+function sign_call(seed_hex, index, target, args_hex, nonce, meter_limit, fee, chain_id) {
     let deferred6_0;
     let deferred6_1;
     try {
@@ -433,7 +447,7 @@ function sign_call(seed_hex, index, target, args_hex, nonce, meter_limit, fee) {
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.sign_call(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3);
+        const ret = wasm.sign_call(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, chain_id);
         var ptr5 = ret[0];
         var len5 = ret[1];
         if (ret[3]) {
@@ -456,9 +470,10 @@ exports.sign_call = sign_call;
  * @param {string} amount
  * @param {bigint} nonce
  * @param {string} fee
+ * @param {bigint} chain_id
  * @returns {string}
  */
-function sign_transfer(seed_hex, index, to, amount, nonce, fee) {
+function sign_transfer(seed_hex, index, to, amount, nonce, fee, chain_id) {
     let deferred6_0;
     let deferred6_1;
     try {
@@ -470,7 +485,7 @@ function sign_transfer(seed_hex, index, to, amount, nonce, fee) {
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.sign_transfer(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, ptr3, len3);
+        const ret = wasm.sign_transfer(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, ptr3, len3, chain_id);
         var ptr5 = ret[0];
         var len5 = ret[1];
         if (ret[3]) {
