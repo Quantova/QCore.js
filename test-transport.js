@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Prove the transport guard with no running gateway, so this runs anywhere. The Client must
 // refuse to be built on a base that would send a signed request or a key operation over
 // plaintext http to a non loopback host, and must accept https anywhere and http on a loopback

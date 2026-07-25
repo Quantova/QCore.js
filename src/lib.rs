@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use wasm_bindgen::prelude::*;
 
 fn seed(seed_hex: &str) -> Result<[u8; 32], JsError> {

@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Prove the browser entry is the guarded one. A bundler resolving @quantova/qcore for the
 // browser must reach the guarded Client, never the raw wasm build, and that Client must reject
 // a JavaScript number amount and a JavaScript number fee ceiling before any network call. The

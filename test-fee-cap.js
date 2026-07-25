@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Prove the fee ceiling with no running gateway, so this runs anywhere. A small mock gateway
 // reports a fee, and the client must submit only when the fee is at or below the ceiling the
 // caller allowed, must refuse and never submit when the fee is above it, and must reject a

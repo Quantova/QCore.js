@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 const MAX_RESPONSE = 8 * 1024 * 1024;
 const TIMEOUT_MS = 20000;
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Prove the JavaScript binding end to end against a running gateway. The core signs and
 // builds every request, this test only does the fetch and reads the documented fields.
 

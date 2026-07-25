@@ -1,3 +1,6 @@
+// Copyright 2026 Quantova Inc
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // Prove the exported low level signers guard the target address themselves, not only the high
 // level Client, and that a token amount is carried at full width with no JavaScript number
 // rounding. No network is needed. Run with: node test-sign-validate.js
