@@ -44,9 +44,14 @@
     "./package.json": "./package.json"
   },
   "license": "(Apache-2.0 OR MIT)",
+  "author": "Quantova Inc",
+  "homepage": "https://github.com/Quantova/QCore.js#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Quantova/QCore.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Quantova/QCore.js/issues"
   },
   "publishConfig": {
     "access": "public"
