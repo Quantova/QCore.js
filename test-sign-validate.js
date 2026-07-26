@@ -36,7 +36,7 @@ for (const b of bad) {
 
 // The exported order call signer guards the contract address too.
 let orderThrew = false;
-try { core.buildSignedOrderCall('not an address', '00000000', 0n, 0n, '', '', 0n, seed, 0n, 0n); }
+try { core.buildSignedOrderCall(core.localChainId(), 'not an address', '00000000', 0n, 0n, '', '', 0n, seed, 0n, 0n); }
 catch { orderThrew = true; }
 if (!orderThrew) fail('buildSignedOrderCall built an order for a bad contract');
 

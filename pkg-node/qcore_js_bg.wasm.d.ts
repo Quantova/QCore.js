@@ -4,7 +4,7 @@ export const memory: WebAssembly.Memory;
 export const account_body: (a: number, b: number) => [number, number];
 export const address: (a: number, b: number, c: bigint) => [number, number, number, number];
 export const block_by_height_body: (a: bigint) => [number, number];
-export const buildSignedOrderCall: (a: number, b: number, c: number, d: number, e: bigint, f: bigint, g: number, h: number, i: number, j: number, k: bigint, l: number, m: number, n: bigint, o: bigint) => [number, number, number, number];
+export const buildSignedOrderCall: (a: bigint, b: number, c: number, d: number, e: number, f: bigint, g: bigint, h: number, i: number, j: number, k: number, l: bigint, m: number, n: number, o: bigint, p: bigint) => [number, number, number, number];
 export const chainIdFromName: (a: number, b: number) => bigint;
 export const contractAddress: (a: number, b: number, c: bigint) => [number, number];
 export const eventsBody: (a: bigint) => [number, number];
