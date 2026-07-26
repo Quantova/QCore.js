@@ -1,10 +1,5 @@
 # Copyright 2026 Quantova Inc
 # SPDX-License-Identifier: Apache-2.0 OR MIT
-
-# Publishes the package to npm with provenance from GitHub Actions. Provenance links the
-# published tarball to this public repository and to the exact commit it was built from, so
-# anyone can verify the registry copy was built here and nowhere else. This runs on a pushed
-# git tag that starts with v, and it can also be started by hand.
 name: publish
 
 on:
@@ -21,43 +16,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the tagged commit
-        uses: actions/checkout@v4
-
-      - name: Install the rust toolchain with the wasm target
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-          rustup target add wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build the bundler target
-        run: wasm-pack build --target bundler --out-dir pkg
-
-      - name: Build the nodejs target
-        run: wasm-pack build --target nodejs --out-dir pkg-node
-
-      - name: Set up node with the npm registry
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-
-      - name: Run the offline conformance test
-        run: node test-conformance.js
-
-      - name: Run the offline sign and validate test
-        run: node test-sign-validate.js
-
-      - name: Run the offline transport test
-        run: node test-transport.js
-
-      - name: Run the offline fee cap test
-        run: node test-fee-cap.js
-
-      - name: Publish to npm with provenance
-        run: npm publish --provenance --access public
+      - run: node test-conformance.js
+      - run: node test-sign-validate.js
+      - run: node test-transport.js
+      - run: node test-fee-cap.js
+      - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

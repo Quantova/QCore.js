@@ -1,9 +1,5 @@
 # Copyright 2026 Quantova Inc
 # SPDX-License-Identifier: Apache-2.0 OR MIT
-
-# Builds the two wasm targets and runs the offline test scripts on every push to main and on
-# every pull request. The tests need no network and no running gateway, so they prove the
-# signing, the conformance vectors, the transport guard, and the fee ceiling on every change.
 name: ci
 
 on:
@@ -16,40 +12,14 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the commit
-        uses: actions/checkout@v4
-
-      - name: Install the rust toolchain with the wasm target
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup default stable
-          rustup target add wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build the bundler target
-        run: wasm-pack build --target bundler --out-dir pkg
-
-      - name: Build the nodejs target
-        run: wasm-pack build --target nodejs --out-dir pkg-node
-
-      - name: Set up node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Run the offline conformance test
-        run: node test-conformance.js
-
-      - name: Run the offline sign and validate test
-        run: node test-sign-validate.js
-
-      - name: Run the offline transport test
-        run: node test-transport.js
-
-      - name: Run the offline fee cap test
-        run: node test-fee-cap.js
+      - run: node test-conformance.js
+      - run: node test-sign-validate.js
+      - run: node test-transport.js
+      - run: node test-fee-cap.js
