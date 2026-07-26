@@ -4,7 +4,7 @@
 
 QCore.js is the official Quantova client core for JavaScript, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled core module and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
 
-This is the official Quantova Inc package. On npm it installs as @qunatovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
+This is the official Quantova Inc package. On npm it installs as @quantovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
 
 ## What this library is for
 
@@ -31,7 +31,7 @@ Quantova shares no wire, no address, and no unit with any other chain, and QCore
 ## Creating a wallet
 
 ```js
-const { generateSeed, core } = require('@qunatovainc/qcore');
+const { generateSeed, core } = require('@quantovainc/qcore');
 
 const seed = generateSeed();                 // thirty two random bytes as hex from the platform source
 const phrase = core.mnemonicFromSeed(seed);  // the only backup, shown once and kept on the device
@@ -56,7 +56,7 @@ do no gateway comparison at all. A developer who calls core.* directly has no fe
 Client whenever a gateway you do not control reports the fee.
 
 ```js
-const { Client } = require('@qunatovainc/qcore');
+const { Client } = require('@quantovainc/qcore');
 
 const client = new Client('http://127.0.0.1:8645');
 const seed = '0b'.repeat(32);
@@ -89,7 +89,7 @@ BigInt for the same reason as an amount, and the chain id from `core.localChainI
 `core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number.
 
 ```js
-const { core } = require('@qunatovainc/qcore');
+const { core } = require('@quantovainc/qcore');
 
 const signed = JSON.parse(
   core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId()),
@@ -110,8 +110,8 @@ run against. A browser, or a bundler such as webpack or Vite, resolves through t
 browser entry, which wraps the bundler build in `pkg` in the identical Client, so a browser wallet gets
 the fee cap and the amount guard and never the bare signing functions.
 
-The raw builds are still reachable on their own subpaths, `@qunatovainc/qcore/pkg` for the bundler build
-and `@qunatovainc/qcore/pkg-node` for the nodejs build. Those export only the core.* functions, with no
+The raw builds are still reachable on their own subpaths, `@quantovainc/qcore/pkg` for the bundler build
+and `@quantovainc/qcore/pkg-node` for the nodejs build. Those export only the core.* functions, with no
 Client, no fee cap, and no amount guard, and are for an advanced caller who assembles the fee comparison
 alone. The default browser, import, node, and require resolutions never reach them.
 
