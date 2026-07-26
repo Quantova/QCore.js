@@ -177,6 +177,7 @@ pub fn map_slot_key(map_domain_tag: u64, key_address_hex: &str) -> Result<String
 #[wasm_bindgen(js_name = buildSignedOrderCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn build_signed_order_call(
+    chain_id: u64,
     contract: &str,
     selector_hex: &str,
     scheme_off: u64,
@@ -198,6 +199,7 @@ pub fn build_signed_order_call(
     }
     let fields = u64_list(fields_csv)?;
     let order = qcore::contract::build_signed_order_call(
+        chain_id,
         contract,
         selector,
         &layout,

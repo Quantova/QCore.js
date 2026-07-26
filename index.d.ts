@@ -39,6 +39,7 @@ export interface QCore {
   address(seed_hex: string, index: bigint): string;
   block_by_height_body(height: bigint): string;
   buildSignedOrderCall(
+    chain_id: bigint,
     contract: string,
     selector_hex: string,
     scheme_off: bigint,

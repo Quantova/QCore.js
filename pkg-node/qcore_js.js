@@ -66,6 +66,7 @@ function block_by_height_body(height) {
 exports.block_by_height_body = block_by_height_body;
 
 /**
+ * @param {bigint} chain_id
  * @param {string} contract
  * @param {string} selector_hex
  * @param {bigint} scheme_off
@@ -78,7 +79,7 @@ exports.block_by_height_body = block_by_height_body;
  * @param {bigint} nonce
  * @returns {string}
  */
-function buildSignedOrderCall(contract, selector_hex, scheme_off, ptr_off, field_offs_csv, fields_csv, region_off, owner_seed_hex, owner_index, nonce) {
+function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, field_offs_csv, fields_csv, region_off, owner_seed_hex, owner_index, nonce) {
     let deferred7_0;
     let deferred7_1;
     try {
@@ -92,7 +93,7 @@ function buildSignedOrderCall(contract, selector_hex, scheme_off, ptr_off, field
         const len3 = WASM_VECTOR_LEN;
         const ptr4 = passStringToWasm0(owner_seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len4 = WASM_VECTOR_LEN;
-        const ret = wasm.buildSignedOrderCall(ptr0, len0, ptr1, len1, scheme_off, ptr_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce);
+        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce);
         var ptr6 = ret[0];
         var len6 = ret[1];
         if (ret[3]) {
