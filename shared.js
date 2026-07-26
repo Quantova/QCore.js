@@ -208,7 +208,7 @@ function makeClient(core) {
     submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex)); }
     container(address) { return this._call('get_container', JSON.stringify({ address })); }
     storage(address) { return this._call('get_storage', JSON.stringify({ address })); }
-    events(height) { return this._call('get_events', JSON.stringify({ height: Number(BigInt(height)) })); }
+    events(height) { return this._call('get_events', core.eventsBody(BigInt(height))); }
 
     address(seedHex, index) { return core.address(seedHex, BigInt(index)); }
 
