@@ -1,14 +1,56 @@
 # QCore.js
 
+[![ci](https://github.com/Quantova/QCore.js/actions/workflows/ci.yml/badge.svg)](https://github.com/Quantova/QCore.js/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@quantovainc/qcore)](https://www.npmjs.com/package/@quantovainc/qcore)
+
+The post quantum client core for Quantova. It signs with ML-DSA-65, builds Q1 addresses, and runs the same compiled core in the browser and in Node.
+
 **This npm account and this package belong to Quantova Inc. It is the official Quantova client SDK. Any similarly named package published under a different account is not this one and is not from Quantova.**
 
-QCore.js is the official Quantova client core for JavaScript, built and published by Quantova Inc. The key derivation, the post quantum signing, and every RPC request body are handled by a single compiled core module and are never rewritten in JavaScript. The page does the fetch and the core does everything that has to be exactly right. That matters because a second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
+## Install
 
-This is the official Quantova Inc package. On npm it installs as @quantovainc/qcore, which is the Quantova Inc account. Any package under a different scope or publisher, however close the name looks, is not this one and is not from Quantova.
+```
+npm install @quantovainc/qcore
+```
+
+## Quickstart
+
+```js
+const { Client, core, generateSeed } = require('@quantovainc/qcore');
+
+async function main() {
+  // Create an account. The seed is the only backup and it never leaves the device.
+  const seed = generateSeed();
+  const phrase = core.mnemonicFromSeed(seed);
+
+  // Derive the Q1 address for account index zero, and a recipient at index one.
+  const from = core.address(seed, 0n);
+  const to = core.address(seed, 1n);
+  console.log('from', from);
+
+  // Open a client against a node you trust. Plaintext http is allowed only to a loopback node.
+  const client = new Client('http://127.0.0.1:8645');
+
+  // A fixed ceiling your app is willing to pay in fees, chosen here and never read back from the gateway.
+  const MAX_FEE_QUON = '2000';
+
+  // Amounts and the ceiling are decimal strings or BigInt values, never JavaScript numbers.
+  const { signed, outcome } = await client.transfer(seed, 0, to, '1000', MAX_FEE_QUON);
+  console.log('submitted', signed.tx_id, outcome.verdict);
+}
+
+main().catch((err) => { console.error(err.message); process.exit(1); });
+```
+
+A runnable copy of this lives in [examples/quickstart.js](examples/quickstart.js).
+
+## Security posture
+
+Every signature is ML-DSA-65 as standardised in FIPS 204, and addresses and transaction digests are built with SHA-3. There is no elliptic curve anywhere in this package, no secp256k1 and no ECDSA. When you send through the Client you pass a maximum fee that you choose yourself, and the Client refuses to sign when the gateway reports a fee above it, so a hostile gateway cannot inflate the fee and drain the balance. The Client also refuses an unsafe transport. A remote gateway must be reached over https, and plaintext http is allowed only to a loopback node, because a fee and a nonce read back over plaintext could be rewritten on the wire. This package is at the testnet and pre audit stage, so please do not read it as audited.
 
 ## What this library is for
 
-Any browser app, extension, or Node service that holds a Quantova account, reads the chain, and sends signed transactions. A wallet, a dApp, a block explorer front end, or a faucet page. Your code does the network fetch it prefers and QCore.js derives the key, signs the transaction, and builds the request body, so nothing about the cryptography or the byte layout of a transaction is written in JavaScript.
+Any browser app, extension, or Node service that holds a Quantova account, reads the chain, and sends signed transactions. A wallet, a dApp, a block explorer front end, or a faucet page. Your code does the network fetch it prefers and QCore.js derives the key, signs the transaction, and builds the request body, so nothing about the cryptography or the byte layout of a transaction is written in JavaScript. A second implementation of the signing would be a second chance to be wrong with a user's money, so there is only ever the one.
 
 ## The post quantum cryptography it handles
 
@@ -100,6 +142,10 @@ const signed = JSON.parse(
 
 The compiled core in this package is only the shipping form of the one Rust core, built so the same key derivation, signing, and wire code runs in a browser and in Node. It is not a virtual machine and it is not what the chain runs. The Quantova chain executes only the QVM, the container machine that runs contracts. The compiled core here is a client side build artifact and nothing more.
 
+## TypeScript
+
+The package ships TypeScript types in `index.d.ts`, so the Client, the core functions, and the Network helpers are all typed with no extra install.
+
 ## Builds
 
 The package ships one guarded surface, the Client with the fee cap and the amount guard, over two
@@ -115,17 +161,33 @@ and `@quantovainc/qcore/pkg-node` for the nodejs build. Those export only the co
 Client, no fee cap, and no amount guard, and are for an advanced caller who assembles the fee comparison
 alone. The default browser, import, node, and require resolutions never reach them.
 
-To build both from source.
+To build both from source, run the two documented builds or `npm run build`.
 
 ```
 wasm-pack build --target bundler --out-dir pkg
 wasm-pack build --target nodejs --out-dir pkg-node
 ```
 
-## A note on releases
+The offline test scripts run with `npm test`, and they need no network and no running gateway.
 
-Nothing here is published to a registry without an explicit release. This package handles a user's keys and a published version cannot be taken back.
+## Conformance vectors
+
+The frozen conformance vectors live in the [conformance](conformance) folder of this repository. The address derivation is in `conformance/address.derivation.json`, the transfer in `conformance/transaction.transfer.json`, and the payable call in `conformance/transaction.payable.json`. The offline test `test-conformance.js` signs from these vectors and checks the binding matches them byte for byte, so a change that would move a signed transaction fails the test.
+
+## Examples
+
+The [examples](examples) folder holds a runnable quickstart that mirrors the one above. For fuller starters, see the Q-Scaffold and the Q-Forge repositories under the Quantova org, at https://github.com/Quantova/Q-Scaffold and https://github.com/Quantova/Q-Forge.
+
+## Releases and provenance
+
+Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It builds the two wasm targets, runs the offline tests, and publishes with npm provenance, so the copy of the package on the registry carries a verified provenance badge that ties it to this exact public commit. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
+
+For the provenance publish to run, the maintainer adds an `NPM_TOKEN` automation secret to the repository, or configures npm trusted publishing for the package so the workflow authenticates over OIDC with no stored token.
+
+## Security
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md). Please report privately and not through a public issue.
 
 ## Ownership and license
 
-QCore.js is built and owned by Quantova Inc, and the signing lives in one compiled core and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is released under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
+QCore.js is built and owned by Quantova Inc, and the signing lives in one compiled core and is never rewritten in JavaScript. It carries none of the industry stack and inherits nothing from it. It is dual licensed under the Apache 2.0 and MIT licenses so any wallet, explorer, or service may build on it, and the copyright stays with Quantova Inc.
