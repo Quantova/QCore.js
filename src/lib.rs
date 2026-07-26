@@ -61,7 +61,8 @@ pub fn sign_transfer(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_transfer(&seed(seed_hex)?, index, to, amount, nonce, fee, chain_id);
+    let signed = qcore::sign_transfer(&seed(seed_hex)?, index, to, amount, nonce, fee, chain_id)
+        .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
         ("tx_id", qcore::json::Json::str(signed.tx_id)),
@@ -84,7 +85,8 @@ pub fn sign_register(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_register(&seed(seed_hex)?, index, nonce, fee, chain_id);
+    let signed = qcore::sign_register(&seed(seed_hex)?, index, nonce, fee, chain_id)
+        .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
         ("tx_id", qcore::json::Json::str(signed.tx_id)),
@@ -116,7 +118,8 @@ pub fn sign_call(
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
     let signed =
-        qcore::sign_call(&seed(seed_hex)?, index, target, args, nonce, meter_limit, fee, chain_id);
+        qcore::sign_call(&seed(seed_hex)?, index, target, args, nonce, meter_limit, fee, chain_id)
+            .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
         ("tx_id", qcore::json::Json::str(signed.tx_id)),

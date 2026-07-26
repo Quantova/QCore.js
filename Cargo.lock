@@ -39,6 +39,7 @@ dependencies = [
  "qtv-idfmt",
  "qtv-tx",
  "qtv-vm",
+ "zeroize",
 ]
 
 [[package]]
@@ -84,6 +85,7 @@ dependencies = [
  "qtv-codec",
  "qtv-crypto",
  "qtv-idfmt",
+ "zeroize",
 ]
 
 [[package]]
