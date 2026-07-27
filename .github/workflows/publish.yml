@@ -21,10 +21,9 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
       - run: node test-conformance.js
       - run: node test-sign-validate.js
       - run: node test-transport.js
       - run: node test-fee-cap.js
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
