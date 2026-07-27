@@ -44,7 +44,9 @@
       "default": "./index.js"
     },
     "./pkg": "./pkg/qcore_js.js",
+    "./pkg/*": "./pkg/*",
     "./pkg-node": "./pkg-node/qcore_js.js",
+    "./pkg-node/*": "./pkg-node/*",
     "./package.json": "./package.json"
   },
   "license": "(Apache-2.0 OR MIT)",
