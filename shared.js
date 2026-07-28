@@ -141,14 +141,6 @@ function generateSeed() {
 }
 
 function makeClient(core) {
-  // The signature binds the chain the gateway says it serves, computed from the reported network
-  // name with the same hash the node uses, so a transaction is valid only on that network and a
-  // renamed network is followed without a code change.
-  function signingChainId(info) {
-    const name = info && info.chain_id;
-    if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
-    return BigInt(core.chainIdFromName(name));
-  }
   return class Client {
     constructor(target, options) {
       const opts = options || {};
@@ -180,6 +172,21 @@ function makeClient(core) {
       }
     }
 
+    // The signature binds the chain the gateway says it serves, computed from the reported network
+    // name with the same hash the node uses, so a transaction is valid only on that network and a
+    // renamed network is followed without a code change. When this Client was configured with a
+    // known chain id, the reported name must match it: a hostile gateway must not be able to bind a
+    // signature to a network the caller did not choose and then replay it there.
+    _signingChainId(info) {
+      const name = info && info.chain_id;
+      if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
+      const configured = this.network && this.network.chainId;
+      if (configured && name !== configured) {
+        throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
+      }
+      return BigInt(core.chainIdFromName(name));
+    }
+
     async _call(method, body) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -189,6 +196,11 @@ function makeClient(core) {
           headers: { 'Content-Type': 'application/json' },
           body: body || '{}',
           signal: controller.signal,
+          // Never follow a redirect. The base passed the transport guard, but fetch follows a 30x
+          // automatically, and a gateway that answers with a redirect to http on a public host would
+          // downgrade the very hop the guard protects. An RPC endpoint has no reason to redirect, so
+          // a redirect is refused rather than silently followed to an unchecked target.
+          redirect: 'error',
         });
         const text = await readBounded(res);
         let data;
@@ -218,7 +230,7 @@ function makeClient(core) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
       this._guardMainnet();
-      const chainId = signingChainId(info);
+      const chainId = this._signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -238,7 +250,7 @@ function makeClient(core) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
       this._guardMainnet();
-      const chainId = signingChainId(info);
+      const chainId = this._signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -257,7 +269,7 @@ function makeClient(core) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
       this._guardMainnet();
-      const chainId = signingChainId(info);
+      const chainId = this._signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
@@ -288,7 +300,7 @@ function makeClient(core) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
       this._guardMainnet();
-      const chainId = signingChainId(info);
+      const chainId = this._signingChainId(info);
       const fee = info && info.fee && info.fee.transfer_quon;
       if (fee == null) throw new Error('the gateway did not report a transfer fee');
       if (BigInt(fee) > ceiling) {
