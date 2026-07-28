@@ -5,7 +5,7 @@
   "sender_index": 7,
   "target_index": 8,
   "nonce": 3,
-  "gas_limit": 21000,
+  "meter_limit": 21000,
   "fee": 1000000,
   "value": 250000,
   "chain_id": "4032652574364075694",

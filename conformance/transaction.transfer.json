@@ -5,7 +5,7 @@
   "sender_index": 7,
   "target_index": 8,
   "nonce": 3,
-  "gas_limit": 21000,
+  "meter_limit": 21000,
   "fee": 1000000,
   "args": "deadbeef",
   "sender": "Q133C9CYVYZNQ7X25H0JJWUDHU8U5G3DN7CQC4J64LFTRSUH66ZNCQWDRA8R",
