@@ -1,6 +1,6 @@
 {
   "name": "@quantovainc/qcore",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Quantova's post quantum client core for JavaScript. Signs with ML-DSA-65 and builds Q1 addresses.",
   "scripts": {
     "build": "wasm-pack build --target bundler --out-dir pkg && wasm-pack build --target nodejs --out-dir pkg-node",
