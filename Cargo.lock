@@ -53,6 +53,7 @@ dependencies = [
  "qtv-idfmt",
  "qtv-tx",
  "wasm-bindgen",
+ "zeroize",
 ]
 
 [[package]]

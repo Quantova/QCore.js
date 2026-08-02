@@ -2,17 +2,23 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use wasm_bindgen::prelude::*;
+use zeroize::{Zeroize, Zeroizing};
 
-fn seed(seed_hex: &str) -> Result<[u8; 32], JsError> {
-    let bytes = qcore::json::from_hex(seed_hex).map_err(|e| JsError::new(&e))?;
-    bytes
-        .try_into()
-        .map_err(|_| JsError::new("a seed is 32 bytes of hex"))
+fn seed(seed_hex: &str) -> Result<Zeroizing<[u8; 32]>, JsError> {
+    let mut bytes = qcore::json::from_hex(seed_hex).map_err(|e| JsError::new(&e))?;
+    if bytes.len() != 32 {
+        bytes.zeroize();
+        return Err(JsError::new("a seed is 32 bytes of hex"));
+    }
+    let mut seed = Zeroizing::new([0u8; 32]);
+    seed.copy_from_slice(&bytes);
+    bytes.zeroize();
+    Ok(seed)
 }
 
 #[wasm_bindgen]
 pub fn address(seed_hex: &str, index: u64) -> Result<String, JsError> {
-    Ok(qcore::account_address(&seed(seed_hex)?, index))
+    Ok(qcore::account_address(&*seed(seed_hex)?, index))
 }
 
 #[wasm_bindgen]
@@ -32,7 +38,7 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
 pub fn mnemonic_from_seed(seed_hex: &str) -> Result<String, JsError> {
-    Ok(qcore::mnemonic_from_seed(&seed(seed_hex)?))
+    Ok(qcore::mnemonic_from_seed(&*seed(seed_hex)?))
 }
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
@@ -61,7 +67,7 @@ pub fn sign_transfer(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_transfer(&seed(seed_hex)?, index, to, amount, nonce, fee, chain_id)
+    let signed = qcore::sign_transfer(&*seed(seed_hex)?, index, to, amount, nonce, fee, chain_id)
         .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
@@ -85,7 +91,7 @@ pub fn sign_register(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_register(&seed(seed_hex)?, index, nonce, fee, chain_id)
+    let signed = qcore::sign_register(&*seed(seed_hex)?, index, nonce, fee, chain_id)
         .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
@@ -118,7 +124,7 @@ pub fn sign_call(
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
     let signed =
-        qcore::sign_call(&seed(seed_hex)?, index, target, args, nonce, meter_limit, fee, chain_id)
+        qcore::sign_call(&*seed(seed_hex)?, index, target, args, nonce, meter_limit, fee, chain_id)
             .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
@@ -153,7 +159,7 @@ fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
 
 #[wasm_bindgen(js_name = orderSigner)]
 pub fn order_signer(seed_hex: &str, index: u64) -> Result<String, JsError> {
-    Ok(qcore::json::to_hex(&qcore::contract::order_signer(&seed(seed_hex)?, index)))
+    Ok(qcore::json::to_hex(&qcore::contract::order_signer(&*seed(seed_hex)?, index)))
 }
 
 #[wasm_bindgen(js_name = nonceSlotKey)]
@@ -204,7 +210,7 @@ pub fn build_signed_order_call(
         selector,
         &layout,
         &fields,
-        &seed(owner_seed_hex)?,
+        &*seed(owner_seed_hex)?,
         owner_index,
         nonce,
     )
@@ -324,7 +330,7 @@ pub fn sign_payable_call(
 
     // The body and the signature come from the one canonical signer in qtv-tx, the same path
     // QCore.rs and QCore.py sign through, so the wire is never hand assembled a second time here.
-    let sender = qtv_account::derive(&seed(seed_hex)?, index);
+    let sender = qtv_account::derive(&*seed(seed_hex)?, index);
     let call = qtv_tx::Call::new(target.to_string(), args);
     let body = qtv_tx::Body::with_context(
         sender.address(),
@@ -355,6 +361,21 @@ mod payable_tests {
 
     fn seed_hex() -> String {
         "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f".to_string()
+    }
+
+    #[test]
+    fn the_seed_helper_decodes_into_a_zeroizing_handle() {
+        let handle = seed(&seed_hex()).unwrap();
+        let mut expected = [0u8; 32];
+        for (i, slot) in expected.iter_mut().enumerate() {
+            *slot = i as u8;
+        }
+        assert_eq!(*handle, expected, "the seed decodes to the canonical bytes through the zeroizing scratch");
+        assert_eq!(
+            address(&seed_hex(), 0).unwrap(),
+            qcore::account_address(&expected, 0),
+            "an address over the zeroizing handle matches one over the raw seed"
+        );
     }
 
     #[test]
