@@ -183,6 +183,8 @@ function makeClient(core) {
       const configured = this.network && this.network.chainId;
       if (configured && name !== configured) {
         throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
+      } else if (!configured && name === 'Q-main-net-1' && !this.acknowledgeMainnet) {
+        throw new Error(`the gateway reports the mainnet chain ${name} but this client did not choose a network; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
       return BigInt(core.chainIdFromName(name));
     }

@@ -38,5 +38,8 @@ throws('a configured mainnet network is refused when not acknowledged, whatever 
 const overUrlAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet: true, network: Network.mainnet() });
 ok('an acknowledged mainnet client passes the guard', overUrlAcked._guardMainnet() === undefined);
 
+throws('a plain url client refuses a gateway that reports mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-1' }));
+ok('a plain url client still binds a testnet reporting gateway', typeof overUrl._signingChainId({ chain_id: 'Q-test-net-1' }) === 'bigint');
+
 if (failures > 0) { console.error('\nnetwork: ' + failures + ' checks failed'); process.exit(1); }
 console.log('\nnetwork: the safety gate holds');
