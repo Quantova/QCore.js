@@ -44,7 +44,7 @@ pub fn mnemonic_from_seed(seed_hex: &str) -> Result<String, JsError> {
 #[wasm_bindgen(js_name = seedFromMnemonic)]
 pub fn seed_from_mnemonic(phrase: &str) -> Result<String, JsError> {
     let seed = qcore::seed_from_mnemonic(phrase).map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::to_hex(&seed))
+    Ok(qcore::json::to_hex(&seed[..]))
 }
 
 #[wasm_bindgen]
