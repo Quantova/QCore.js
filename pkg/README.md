@@ -180,13 +180,13 @@ The [examples](examples) folder holds a runnable quickstart that mirrors the one
 
 ## Releases and provenance
 
-Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It builds the two wasm targets, runs the offline tests, and publishes with npm provenance, so the copy of the package on the registry carries a verified provenance badge that ties it to this exact public commit. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
+Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It runs the offline tests and publishes with npm provenance, so the published tarball carries a provenance badge that ties it to this exact public commit. The wasm is built from the Rust core and committed to the repository, so confirming that the shipped wasm matches the source means rebuilding it from this commit and comparing the bytes. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
 
 For the provenance publish to run, the maintainer adds an `NPM_TOKEN` automation secret to the repository, or configures npm trusted publishing for the package so the workflow authenticates over OIDC with no stored token.
 
 ## Security
 
-To report a vulnerability, see [SECURITY.md](SECURITY.md). Please report privately and not through a public issue.
+To report a vulnerability, please disclose it privately to the Quantova team rather than through a public issue.
 
 ## Ownership and license
 
