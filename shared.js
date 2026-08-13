@@ -314,8 +314,6 @@ function makeClient(core) {
       }
       const signer = core.orderSigner(ownerSeedHex, BigInt(ownerIndex));
       const nonce = await this.contractNonce(contract, signer);
-      // orderSpec.fields are the signed fields in message order, each { offset, width, value } read
-      // from the interface descriptor, so a wide amount or an address is signed at its true width.
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,

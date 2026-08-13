@@ -1,10 +1,6 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// A signed order with a wide u128 field and a whole address must build the same preimage the contract
-// reconstructs: eighty eight context bytes, then the amount as two words, then the address. Packing the
-// amount as one word would sign a shorter message than the contract rebuilds and the order would fail.
-
 const { core } = require('./index.js');
 
 let failures = 0;
@@ -18,7 +14,7 @@ const deployer = core.address(seedHex, 0n);
 const contract = core.contractAddress(deployer, 0n);
 const to = 'ab'.repeat(32);
 const fields = JSON.stringify([
-  { offset: 128, width: 16, value: '18446744073709551716' }, // 2^64 + 100
+  { offset: 128, width: 16, value: '18446744073709551716' },
   { offset: 80, width: 32, value: to },
 ]);
 
