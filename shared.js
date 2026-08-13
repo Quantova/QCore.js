@@ -183,10 +183,16 @@ function makeClient(core) {
       const configured = this.network && this.network.chainId;
       if (configured && name !== configured) {
         throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
-      } else if (!configured && name === 'Q-main-net-1' && !this.acknowledgeMainnet) {
+      } else if (!configured && !this.acknowledgeMainnet && this._isMainnetId(BigInt(core.chainIdFromName(name)))) {
         throw new Error(`the gateway reports the mainnet chain ${name} but this client did not choose a network; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
       return BigInt(core.chainIdFromName(name));
+    }
+
+    // The canonical mainnet name is still an open convention (the chain crate's id vs the "Q-main-net-1"
+    // preset), so until it is settled the gate prompts for either candidate rather than miss the real one.
+    _isMainnetId(id) {
+      return id === BigInt(core.mainnetChainId()) || id === BigInt(core.chainIdFromName('Q-main-net-1'));
     }
 
     async _call(method, body) {
