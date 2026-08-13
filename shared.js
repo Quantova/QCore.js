@@ -297,7 +297,7 @@ function makeClient(core) {
       return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
     }
 
-    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, layout, fields, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon) {
+    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon) {
       if (!core.valid_address(contract)) throw new Error('the contract is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
@@ -310,15 +310,16 @@ function makeClient(core) {
       }
       const signer = core.orderSigner(ownerSeedHex, BigInt(ownerIndex));
       const nonce = await this.contractNonce(contract, signer);
-      const order = JSON.parse(core.buildSignedOrderCall(
+      // orderSpec.fields are the signed fields in message order, each { offset, width, value } read
+      // from the interface descriptor, so a wide amount or an address is signed at its true width.
+      const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,
         selectorHex,
-        BigInt(layout.schemeOff),
-        BigInt(layout.ptrOff),
-        (layout.fieldOffs || []).join(','),
-        (fields || []).map(String).join(','),
-        BigInt(layout.regionOff || 0),
+        BigInt(orderSpec.schemeOff),
+        BigInt(orderSpec.ptrOff),
+        BigInt(orderSpec.regionOff || 0),
+        JSON.stringify(orderSpec.fields || []),
         ownerSeedHex,
         BigInt(ownerIndex),
         nonce,

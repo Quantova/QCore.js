@@ -110,6 +110,47 @@ function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_
 exports.buildSignedOrderCall = buildSignedOrderCall;
 
 /**
+ * @param {bigint} chain_id
+ * @param {string} contract
+ * @param {string} selector_hex
+ * @param {bigint} scheme_off
+ * @param {bigint} ptr_off
+ * @param {bigint} region_off
+ * @param {string} fields_json
+ * @param {string} owner_seed_hex
+ * @param {bigint} owner_index
+ * @param {bigint} nonce
+ * @returns {string}
+ */
+function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, region_off, fields_json, owner_seed_hex, owner_index, nonce) {
+    let deferred6_0;
+    let deferred6_1;
+    try {
+        const ptr0 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(owner_seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, region_off, ptr2, len2, ptr3, len3, owner_index, nonce);
+        var ptr5 = ret[0];
+        var len5 = ret[1];
+        if (ret[3]) {
+            ptr5 = 0; len5 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred6_0 = ptr5;
+        deferred6_1 = len5;
+        return getStringFromWasm0(ptr5, len5);
+    } finally {
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
+    }
+}
+exports.buildTypedOrderCall = buildTypedOrderCall;
+
+/**
  * @param {string} name
  * @returns {bigint}
  */

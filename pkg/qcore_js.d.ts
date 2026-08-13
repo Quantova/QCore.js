@@ -9,6 +9,8 @@ export function block_by_height_body(height: bigint): string;
 
 export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, scheme_off: bigint, ptr_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_hex: string, owner_index: bigint, nonce: bigint): string;
 
+export function buildTypedOrderCall(chain_id: bigint, contract: string, selector_hex: string, scheme_off: bigint, ptr_off: bigint, region_off: bigint, fields_json: string, owner_seed_hex: string, owner_index: bigint, nonce: bigint): string;
+
 export function chainIdFromName(name: string): bigint;
 
 export function contractAddress(deployer: string, nonce: bigint): string | undefined;

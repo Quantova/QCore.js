@@ -5,6 +5,7 @@ export const account_body: (a: number, b: number) => [number, number];
 export const address: (a: number, b: number, c: bigint) => [number, number, number, number];
 export const block_by_height_body: (a: bigint) => [number, number];
 export const buildSignedOrderCall: (a: bigint, b: number, c: number, d: number, e: number, f: bigint, g: bigint, h: number, i: number, j: number, k: number, l: bigint, m: number, n: number, o: bigint, p: bigint) => [number, number, number, number];
+export const buildTypedOrderCall: (a: bigint, b: number, c: number, d: number, e: number, f: bigint, g: bigint, h: bigint, i: number, j: number, k: number, l: number, m: bigint, n: bigint) => [number, number, number, number];
 export const chainIdFromName: (a: number, b: number) => bigint;
 export const contractAddress: (a: number, b: number, c: bigint) => [number, number];
 export const eventsBody: (a: bigint) => [number, number];

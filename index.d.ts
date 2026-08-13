@@ -23,6 +23,19 @@ export interface OrderLayout {
   regionOff?: number | bigint;
 }
 
+export interface SignedOrderField {
+  offset: number | bigint;
+  width: number | bigint;
+  value: string;
+}
+
+export interface SignedOrderSpec {
+  schemeOff: number | bigint;
+  ptrOff: number | bigint;
+  regionOff?: number | bigint;
+  fields: ReadonlyArray<SignedOrderField>;
+}
+
 export interface TransferResult {
   signed: SignedTx;
   outcome: any;
@@ -47,6 +60,18 @@ export interface QCore {
     field_offs_csv: string,
     fields_csv: string,
     region_off: bigint,
+    owner_seed_hex: string,
+    owner_index: bigint,
+    nonce: bigint,
+  ): string;
+  buildTypedOrderCall(
+    chain_id: bigint,
+    contract: string,
+    selector_hex: string,
+    scheme_off: bigint,
+    ptr_off: bigint,
+    region_off: bigint,
+    fields_json: string,
     owner_seed_hex: string,
     owner_index: bigint,
     nonce: bigint,
@@ -161,8 +186,7 @@ export class Client {
     callerIndex: number,
     contract: string,
     selectorHex: string,
-    layout: OrderLayout,
-    fields: ReadonlyArray<number | bigint | string>,
+    orderSpec: SignedOrderSpec,
     ownerSeedHex: string,
     ownerIndex: number,
     meterLimit: number | bigint,

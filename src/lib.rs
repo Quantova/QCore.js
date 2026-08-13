@@ -226,6 +226,75 @@ pub fn build_signed_order_call(
     .render())
 }
 
+#[wasm_bindgen(js_name = buildTypedOrderCall)]
+#[allow(clippy::too_many_arguments)]
+pub fn build_typed_order_call(
+    chain_id: u64,
+    contract: &str,
+    selector_hex: &str,
+    scheme_off: u64,
+    ptr_off: u64,
+    region_off: u64,
+    fields_json: &str,
+    owner_seed_hex: &str,
+    owner_index: u64,
+    nonce: u64,
+) -> Result<String, JsError> {
+    let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+    let fields = parse_typed_fields(fields_json)?;
+    let order = qcore::contract::build_order_from_typed(
+        chain_id,
+        contract,
+        selector,
+        scheme_off,
+        ptr_off,
+        region_off,
+        &fields,
+        &*seed(owner_seed_hex)?,
+        owner_index,
+        nonce,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    Ok(qcore::json::object(vec![
+        ("call_args", qcore::json::Json::str(qcore::json::to_hex(&order.call_args))),
+        ("message", qcore::json::Json::str(qcore::json::to_hex(&order.message))),
+        ("signature", qcore::json::Json::str(qcore::json::to_hex(&order.signature))),
+        ("public_key", qcore::json::Json::str(qcore::json::to_hex(&order.public_key))),
+        ("signer", qcore::json::Json::str(qcore::json::to_hex(&order.signer))),
+        ("nonce", qcore::json::Json::Int(order.nonce)),
+    ])
+    .render())
+}
+
+fn parse_typed_fields(fields_json: &str) -> Result<Vec<qcore::contract::TypedField>, JsError> {
+    let parsed = qcore::json::parse(fields_json).map_err(|e| JsError::new(&e))?;
+    let items = match &parsed {
+        qcore::json::Json::Array(items) => items,
+        _ => return Err(JsError::new("the signed order fields must be a JSON array")),
+    };
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        let offset = item
+            .get("offset")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| JsError::new("a signed order field needs a numeric offset"))?;
+        let width = item
+            .get("width")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| JsError::new("a signed order field needs a numeric width"))?;
+        let value = item
+            .get("value")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| JsError::new("a signed order field needs a string value"))?
+            .to_string();
+        out.push(qcore::contract::TypedField { offset, width, value });
+    }
+    Ok(out)
+}
+
 #[wasm_bindgen(js_name = storageBody)]
 pub fn storage_body(contract: &str) -> String {
     qcore::contract::storage_body(contract)
