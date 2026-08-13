@@ -189,10 +189,8 @@ function makeClient(core) {
       return BigInt(core.chainIdFromName(name));
     }
 
-    // The canonical mainnet name is still an open convention (the chain crate's id vs the "Q-main-net-1"
-    // preset), so until it is settled the gate prompts for either candidate rather than miss the real one.
     _isMainnetId(id) {
-      return id === BigInt(core.mainnetChainId()) || id === BigInt(core.chainIdFromName('Q-main-net-1'));
+      return id === BigInt(core.mainnetChainId());
     }
 
     async _call(method, body) {
@@ -316,8 +314,6 @@ function makeClient(core) {
       }
       const signer = core.orderSigner(ownerSeedHex, BigInt(ownerIndex));
       const nonce = await this.contractNonce(contract, signer);
-      // orderSpec.fields are the signed fields in message order, each { offset, width, value } read
-      // from the interface descriptor, so a wide amount or an address is signed at its true width.
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,
