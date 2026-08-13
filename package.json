@@ -1,6 +1,6 @@
 {
   "name": "@quantovainc/qcore",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Quantova's post quantum client core for JavaScript. Signs with ML-DSA-65 and builds Q1 addresses.",
   "scripts": {
     "build": "RUSTFLAGS=\"--remap-path-prefix=$HOME/quantova-stack=/qcore --remap-path-prefix=$HOME/.cargo=/cargo --remap-path-prefix=$HOME/.rustup=/rustup\" wasm-pack build --target bundler --out-dir pkg && RUSTFLAGS=\"--remap-path-prefix=$HOME/quantova-stack=/qcore --remap-path-prefix=$HOME/.cargo=/cargo --remap-path-prefix=$HOME/.rustup=/rustup\" wasm-pack build --target nodejs --out-dir pkg-node",

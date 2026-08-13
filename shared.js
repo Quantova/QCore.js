@@ -189,10 +189,8 @@ function makeClient(core) {
       return BigInt(core.chainIdFromName(name));
     }
 
-    // The canonical mainnet name is still an open convention (the chain crate's id vs the "Q-main-net-1"
-    // preset), so until it is settled the gate prompts for either candidate rather than miss the real one.
     _isMainnetId(id) {
-      return id === BigInt(core.mainnetChainId()) || id === BigInt(core.chainIdFromName('Q-main-net-1'));
+      return id === BigInt(core.mainnetChainId());
     }
 
     async _call(method, body) {
