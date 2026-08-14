@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use wasm_bindgen::prelude::*;
-use zeroize::{Zeroize, Zeroizing};
+use qtv_wipe::{Zeroize, Zeroizing};
 
 fn seed(seed_hex: &str) -> Result<Zeroizing<[u8; 32]>, JsError> {
     let mut bytes = qcore::json::from_hex(seed_hex).map_err(|e| JsError::new(&e))?;
