@@ -39,7 +39,7 @@ dependencies = [
  "qtv-idfmt",
  "qtv-tx",
  "qtv-vm",
- "zeroize",
+ "qtv-wipe",
 ]
 
 [[package]]
@@ -52,8 +52,8 @@ dependencies = [
  "qtv-crypto",
  "qtv-idfmt",
  "qtv-tx",
+ "qtv-wipe",
  "wasm-bindgen",
- "zeroize",
 ]
 
 [[package]]
@@ -62,7 +62,7 @@ version = "0.1.0"
 dependencies = [
  "qtv-crypto",
  "qtv-idfmt",
- "zeroize",
+ "qtv-wipe",
 ]
 
 [[package]]
@@ -86,7 +86,7 @@ dependencies = [
  "qtv-codec",
  "qtv-crypto",
  "qtv-idfmt",
- "zeroize",
+ "qtv-wipe",
 ]
 
 [[package]]
@@ -95,6 +95,10 @@ version = "0.2.0"
 dependencies = [
  "qtv-crypto",
 ]
+
+[[package]]
+name = "qtv-wipe"
+version = "0.1.0"
 
 [[package]]
 name = "quote"
@@ -172,9 +176,3 @@ checksum = "dc1b4cb0cc549fcf58d7dfc081778139b3d283a081644e833e84682ad71cea24"
 dependencies = [
  "unicode-ident",
 ]
-
-[[package]]
-name = "zeroize"
-version = "1.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
