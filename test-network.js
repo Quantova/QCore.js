@@ -41,5 +41,10 @@ ok('an acknowledged mainnet client passes the guard', overUrlAcked._guardMainnet
 throws('a plain url client refuses a gateway that reports mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-1' }));
 ok('a plain url client still binds a testnet reporting gateway', typeof overUrl._signingChainId({ chain_id: 'Q-test-net-1' }) === 'bigint');
 
+const inconsistentMainnet = new Client('https://rpc.quantova.org', { network: new Network({ name: 'custom', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: false }) });
+throws('a configured mainnet id is refused even with the isMainnet flag off and no acknowledgement', () => inconsistentMainnet._signingChainId({ chain_id: 'Q-main-net-1' }));
+const inconsistentAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet: true, network: new Network({ name: 'custom', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: false }) });
+ok('acknowledging lets the configured mainnet-id client sign', typeof inconsistentAcked._signingChainId({ chain_id: 'Q-main-net-1' }) === 'bigint');
+
 if (failures > 0) { console.error('\nnetwork: ' + failures + ' checks failed'); process.exit(1); }
 console.log('\nnetwork: the safety gate holds');

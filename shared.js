@@ -188,13 +188,15 @@ function makeClient(core) {
     _signingChainId(info) {
       const name = info && info.chain_id;
       if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
+      const id = BigInt(core.chainIdFromName(name));
       const configured = this.network && this.network.chainId;
       if (configured && name !== configured) {
         throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
-      } else if (!configured && !this.acknowledgeMainnet && this._isMainnetId(BigInt(core.chainIdFromName(name)))) {
-        throw new Error(`the gateway reports the mainnet chain ${name} but this client did not choose a network; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
-      return BigInt(core.chainIdFromName(name));
+      if (!this.acknowledgeMainnet && this._isMainnetId(id)) {
+        throw new Error(`the gateway reports the mainnet chain ${name}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
+      }
+      return id;
     }
 
     _isMainnetId(id) {
@@ -320,7 +322,7 @@ function makeClient(core) {
       if (BigInt(fee) > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      const signer = core.orderSigner(ownerSeedHex, BigInt(ownerIndex));
+      const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
       const nonce = await this.contractNonce(contract, signer);
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
@@ -331,14 +333,14 @@ function makeClient(core) {
         BigInt(orderSpec.regionOff || 0),
         JSON.stringify(orderSpec.fields || []),
         ownerSeedHex,
-        BigInt(ownerIndex),
+        accountIndex(ownerIndex),
         nonce,
       ));
-      const from = core.address(callerSeedHex, BigInt(callerIndex));
+      const from = core.address(callerSeedHex, accountIndex(callerIndex));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, BigInt(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { order, signed, outcome };
