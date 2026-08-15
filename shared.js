@@ -221,7 +221,10 @@ function makeClient(core) {
         const text = await readBounded(res);
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
-        if (!res.ok) throw new Error(data.message || data.error || ('status ' + res.status));
+        if (!res.ok) {
+          const detail = data && typeof data === 'object' ? (data.message || data.error) : null;
+          throw new Error(detail || ('status ' + res.status));
+        }
         return data;
       } finally {
         clearTimeout(timer);
