@@ -27,6 +27,14 @@ function checkAmount(amount) {
   }
 }
 
+function accountIndex(index) {
+  const i = BigInt(index);
+  if (i < 0n || i > 0xffffffffffffffffn) {
+    throw new Error('the account index must fit in an unsigned 64 bit integer');
+  }
+  return i;
+}
+
 async function readBounded(res) {
   if (!res.body || typeof res.body.getReader !== 'function') {
     const header = res.headers.get('content-length');
@@ -228,7 +236,7 @@ function makeClient(core) {
     storage(address) { return this._call('get_storage', JSON.stringify({ address })); }
     events(height) { return this._call('get_events', core.eventsBody(BigInt(height))); }
 
-    address(seedHex, index) { return core.address(seedHex, BigInt(index)); }
+    address(seedHex, index) { return core.address(seedHex, accountIndex(index)); }
 
     async transfer(seedHex, index, to, amount, maxFeeQuon) {
       if (!core.valid_address(to)) throw new Error('the recipient is not a q1 address');
@@ -242,11 +250,11 @@ function makeClient(core) {
       if (BigInt(fee) > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      const from = core.address(seedHex, BigInt(index));
+      const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, BigInt(index), to, String(amount), BigInt(acct.nonce), String(fee), chainId)
+        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), BigInt(acct.nonce), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -262,10 +270,10 @@ function makeClient(core) {
       if (BigInt(fee) > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      const from = core.address(seedHex, BigInt(index));
+      const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const signed = JSON.parse(core.signRegister(seedHex, BigInt(index), BigInt(acct.nonce), String(fee), chainId));
+      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), BigInt(acct.nonce), String(fee), chainId));
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
@@ -281,11 +289,11 @@ function makeClient(core) {
       if (BigInt(fee) > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      const from = core.address(seedHex, BigInt(index));
+      const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(seedHex, BigInt(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(seedHex, accountIndex(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
