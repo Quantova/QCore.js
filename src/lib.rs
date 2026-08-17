@@ -424,6 +424,51 @@ pub fn sign_payable_call(
     .render())
 }
 
+#[wasm_bindgen(js_name = signAssetCall)]
+#[allow(clippy::too_many_arguments)]
+pub fn sign_asset_call(
+    seed_hex: &str,
+    index: u64,
+    target: &str,
+    args_hex: &str,
+    asset_issuer: &str,
+    amount: &str,
+    nonce: u64,
+    meter_limit: u64,
+    fee: &str,
+    chain_id: u64,
+) -> Result<String, JsError> {
+    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+    let fee: u128 = fee
+        .parse()
+        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let amount: u64 = amount
+        .parse()
+        .map_err(|_| JsError::new("amount is a whole number string"))?;
+    let signed = qcore::sign_asset_call(
+        &*seed(seed_hex)?,
+        index,
+        target,
+        args,
+        asset_issuer,
+        amount,
+        nonce,
+        meter_limit,
+        fee,
+        chain_id,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    Ok(qcore::json::object(vec![
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
+        ),
+    ])
+    .render())
+}
+
 #[cfg(test)]
 mod payable_tests {
     use super::*;

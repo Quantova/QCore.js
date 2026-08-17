@@ -99,6 +99,18 @@ export interface QCore {
     value: string,
     chain_id: bigint,
   ): string;
+  signAssetCall(
+    seed_hex: string,
+    index: bigint,
+    target: string,
+    args_hex: string,
+    asset_issuer: string,
+    amount: string,
+    nonce: bigint,
+    meter_limit: bigint,
+    fee: string,
+    chain_id: bigint,
+  ): string;
   signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint): string;
   sign_call(
     seed_hex: string,
