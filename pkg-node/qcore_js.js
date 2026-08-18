@@ -48,6 +48,49 @@ function address(seed_hex, index) {
 exports.address = address;
 
 /**
+ * @param {string} issuer
+ * @param {string} holder
+ * @returns {string}
+ */
+function assetBalanceBody(issuer, holder) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(issuer, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(holder, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.assetBalanceBody(ptr0, len0, ptr1, len1);
+        deferred3_0 = ret[0];
+        deferred3_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.assetBalanceBody = assetBalanceBody;
+
+/**
+ * @param {string} issuer
+ * @returns {string}
+ */
+function assetSupplyBody(issuer) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passStringToWasm0(issuer, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.assetSupplyBody(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+exports.assetSupplyBody = assetSupplyBody;
+
+/**
  * @param {bigint} height
  * @returns {string}
  */
@@ -323,6 +366,18 @@ function orderSigner(seed_hex, index) {
 exports.orderSigner = orderSigner;
 
 /**
+ * @param {string} symbol
+ * @returns {bigint}
+ */
+function packSymbol(symbol) {
+    const ptr0 = passStringToWasm0(symbol, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.packSymbol(ptr0, len0);
+    return BigInt.asUintN(64, ret);
+}
+exports.packSymbol = packSymbol;
+
+/**
  * @param {string} response
  * @returns {string}
  */
@@ -391,6 +446,51 @@ function seedFromMnemonic(phrase) {
     }
 }
 exports.seedFromMnemonic = seedFromMnemonic;
+
+/**
+ * @param {string} seed_hex
+ * @param {bigint} index
+ * @param {string} target
+ * @param {string} args_hex
+ * @param {string} asset_issuer
+ * @param {string} amount
+ * @param {bigint} nonce
+ * @param {bigint} meter_limit
+ * @param {string} fee
+ * @param {bigint} chain_id
+ * @returns {string}
+ */
+function signAssetCall(seed_hex, index, target, args_hex, asset_issuer, amount, nonce, meter_limit, fee, chain_id) {
+    let deferred8_0;
+    let deferred8_1;
+    try {
+        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(args_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(asset_issuer, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(amount, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.signAssetCall(ptr0, len0, index, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, nonce, meter_limit, ptr5, len5, chain_id);
+        var ptr7 = ret[0];
+        var len7 = ret[1];
+        if (ret[3]) {
+            ptr7 = 0; len7 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred8_0 = ptr7;
+        deferred8_1 = len7;
+        return getStringFromWasm0(ptr7, len7);
+    } finally {
+        wasm.__wbindgen_free(deferred8_0, deferred8_1, 1);
+    }
+}
+exports.signAssetCall = signAssetCall;
 
 /**
  * @param {string} seed_hex
@@ -628,6 +728,24 @@ function testnetChainId() {
 exports.testnetChainId = testnetChainId;
 
 /**
+ * @returns {bigint}
+ */
+function tokenDecimalsSlot() {
+    const ret = wasm.tokenDecimalsSlot();
+    return BigInt.asUintN(64, ret);
+}
+exports.tokenDecimalsSlot = tokenDecimalsSlot;
+
+/**
+ * @returns {bigint}
+ */
+function tokenSymbolSlot() {
+    const ret = wasm.tokenSymbolSlot();
+    return BigInt.asUintN(64, ret);
+}
+exports.tokenSymbolSlot = tokenSymbolSlot;
+
+/**
  * @param {string} tx_id
  * @returns {string}
  */
@@ -646,6 +764,24 @@ function transaction_body(tx_id) {
     }
 }
 exports.transaction_body = transaction_body;
+
+/**
+ * @param {bigint} word
+ * @returns {string}
+ */
+function unpackSymbol(word) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.unpackSymbol(word);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+exports.unpackSymbol = unpackSymbol;
 
 /**
  * @param {string} address
