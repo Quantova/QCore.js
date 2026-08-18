@@ -172,6 +172,36 @@ pub fn scalar_slot_key(slot: u64) -> String {
     qcore::json::to_hex(&qcore::contract::scalar_slot_key(slot))
 }
 
+#[wasm_bindgen(js_name = tokenDecimalsSlot)]
+pub fn token_decimals_slot() -> u64 {
+    qcore::contract::TOKEN_DECIMALS_SLOT
+}
+
+#[wasm_bindgen(js_name = tokenSymbolSlot)]
+pub fn token_symbol_slot() -> u64 {
+    qcore::contract::TOKEN_SYMBOL_SLOT
+}
+
+#[wasm_bindgen(js_name = packSymbol)]
+pub fn pack_symbol(symbol: &str) -> u64 {
+    qcore::contract::pack_symbol(symbol)
+}
+
+#[wasm_bindgen(js_name = unpackSymbol)]
+pub fn unpack_symbol(word: u64) -> String {
+    qcore::contract::unpack_symbol(word)
+}
+
+#[wasm_bindgen(js_name = assetBalanceBody)]
+pub fn asset_balance_body(issuer: &str, holder: &str) -> String {
+    qcore::contract::asset_balance_body(issuer, holder)
+}
+
+#[wasm_bindgen(js_name = assetSupplyBody)]
+pub fn asset_supply_body(issuer: &str) -> String {
+    qcore::contract::asset_supply_body(issuer)
+}
+
 #[wasm_bindgen(js_name = mapSlotKey)]
 pub fn map_slot_key(map_domain_tag: u64, key_address_hex: &str) -> Result<String, JsError> {
     Ok(qcore::json::to_hex(&qcore::contract::map_slot_key(
