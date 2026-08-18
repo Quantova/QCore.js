@@ -161,12 +161,8 @@ and `@quantovainc/qcore/pkg-node` for the nodejs build. Those export only the co
 Client, no fee cap, and no amount guard, and are for an advanced caller who assembles the fee comparison
 alone. The default browser, import, node, and require resolutions never reach them.
 
-To build both from source, run the two documented builds or `npm run build`.
-
-```
-wasm-pack build --target bundler --out-dir pkg
-wasm-pack build --target nodejs --out-dir pkg-node
-```
+To build both from source, run `npm run build`, which produces the bundler build in `pkg` and the node
+build in `pkg-node`.
 
 The offline test scripts run with `npm test`, and they need no network and no running gateway.
 
@@ -180,7 +176,7 @@ The [examples](examples) folder holds a runnable quickstart that mirrors the one
 
 ## Releases and provenance
 
-Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It runs the offline tests and publishes with npm provenance, so the published tarball carries a provenance badge that ties it to this exact public commit. The wasm is built from the Rust core and committed to the repository, so confirming that the shipped wasm matches the source means rebuilding it from this commit and comparing the bytes. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
+Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It runs the offline tests and publishes with npm provenance, so the published tarball carries a provenance badge that ties it to this exact public commit. The compiled client core is built from the Rust source and committed to the repository, so confirming that the shipped build matches the source means rebuilding it from this commit and comparing the bytes. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
 
 For the provenance publish to run, the maintainer adds an `NPM_TOKEN` automation secret to the repository, or configures npm trusted publishing for the package so the workflow authenticates over OIDC with no stored token.
 

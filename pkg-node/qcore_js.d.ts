@@ -5,6 +5,10 @@ export function account_body(address: string): string;
 
 export function address(seed_hex: string, index: bigint): string;
 
+export function assetBalanceBody(issuer: string, holder: string): string;
+
+export function assetSupplyBody(issuer: string): string;
+
 export function block_by_height_body(height: bigint): string;
 
 export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, scheme_off: bigint, ptr_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_hex: string, owner_index: bigint, nonce: bigint): string;
@@ -29,11 +33,15 @@ export function nonceSlotKey(signer_hex: string): string;
 
 export function orderSigner(seed_hex: string, index: bigint): string;
 
+export function packSymbol(symbol: string): bigint;
+
 export function parseEvents(response: string): string;
 
 export function scalarSlotKey(slot: bigint): string;
 
 export function seedFromMnemonic(phrase: string): string;
+
+export function signAssetCall(seed_hex: string, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint): string;
 
 export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint): string;
 
@@ -51,7 +59,13 @@ export function submit_body(tx_hex: string): string;
 
 export function testnetChainId(): bigint;
 
+export function tokenDecimalsSlot(): bigint;
+
+export function tokenSymbolSlot(): bigint;
+
 export function transaction_body(tx_id: string): string;
+
+export function unpackSymbol(word: bigint): string;
 
 export function valid_address(address: string): boolean;
 
