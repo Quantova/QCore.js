@@ -25,9 +25,13 @@ export function localChainId(): bigint;
 
 export function mainnetChainId(): bigint;
 
+export function mapAddrWordKey(map_domain_tag: bigint, key32_hex: string, word: bigint): string;
+
 export function mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
 
 export function mnemonicFromSeed(seed_hex: string): string;
+
+export function nameKey(label: string): string;
 
 export function nonceSlotKey(signer_hex: string): string;
 

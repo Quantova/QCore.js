@@ -210,6 +210,20 @@ pub fn map_slot_key(map_domain_tag: u64, key_address_hex: &str) -> Result<String
     )))
 }
 
+#[wasm_bindgen(js_name = mapAddrWordKey)]
+pub fn map_addr_word_key(map_domain_tag: u64, key32_hex: &str, word: u64) -> Result<String, JsError> {
+    Ok(qcore::json::to_hex(&qcore::contract::map_addr_word_key(
+        map_domain_tag,
+        &addr32(key32_hex)?,
+        word,
+    )))
+}
+
+#[wasm_bindgen(js_name = nameKey)]
+pub fn name_key(label: &str) -> String {
+    qcore::json::to_hex(&qcore::contract::name_key(label))
+}
+
 #[wasm_bindgen(js_name = buildSignedOrderCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn build_signed_order_call(
