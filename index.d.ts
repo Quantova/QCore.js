@@ -87,6 +87,12 @@ export interface QCore {
   orderSigner(seed_hex: string, index: bigint): string;
   parseEvents(response: string): string;
   scalarSlotKey(slot: bigint): string;
+  tokenDecimalsSlot(): bigint;
+  tokenSymbolSlot(): bigint;
+  packSymbol(symbol: string): bigint;
+  unpackSymbol(word: bigint): string;
+  assetBalanceBody(issuer: string, holder: string): string;
+  assetSupplyBody(issuer: string): string;
   seedFromMnemonic(phrase: string): string;
   signPayableCall(
     seed_hex: string,
