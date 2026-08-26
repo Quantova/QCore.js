@@ -27,4 +27,5 @@ jobs:
       - run: node test-sign-validate.js
       - run: node test-transport.js
       - run: node test-fee-cap.js
+      - run: node test-asset-guards.js
       - run: npm publish --provenance --access public
