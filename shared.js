@@ -35,6 +35,25 @@ function accountIndex(index) {
   return i;
 }
 
+// The nonce is the one signing input that comes from the gateway. A number above 2^53 has already
+// lost precision when read, and a negative or oversized value would wrap into a different unsigned
+// 64 bit nonce at the signer, so each is refused before it is bound into a signature.
+function accountNonce(nonce) {
+  if (typeof nonce === 'number' && !Number.isSafeInteger(nonce)) {
+    throw new Error('the gateway reported a nonce outside the safe integer range, a number that large silently rounds and would sign a different nonce');
+  }
+  let n;
+  try {
+    n = BigInt(nonce);
+  } catch {
+    throw new Error('the gateway reported a nonce that is not a whole number');
+  }
+  if (n < 0n || n > 0xffffffffffffffffn) {
+    throw new Error('the gateway reported a nonce outside the unsigned 64 bit range');
+  }
+  return n;
+}
+
 async function readBounded(res) {
   if (!res.body || typeof res.body.getReader !== 'function') {
     const header = res.headers.get('content-length');
@@ -188,6 +207,7 @@ function makeClient(core) {
     _signingChainId(info) {
       const name = info && info.chain_id;
       if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
+      if (typeof name !== 'string') throw new Error('the gateway reported a chain id that is not a string, refusing to bind a signature to it');
       const id = BigInt(core.chainIdFromName(name));
       const configured = this.network && this.network.chainId;
       if (configured && name !== configured) {
@@ -259,7 +279,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), BigInt(acct.nonce), String(fee), chainId)
+        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), accountNonce(acct.nonce), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -278,7 +298,7 @@ function makeClient(core) {
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), BigInt(acct.nonce), String(fee), chainId));
+      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), accountNonce(acct.nonce), String(fee), chainId));
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
@@ -298,7 +318,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(seedHex, accountIndex(index), target, argsHex, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(seedHex, accountIndex(index), target, argsHex, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -343,7 +363,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, BigInt(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { order, signed, outcome };
