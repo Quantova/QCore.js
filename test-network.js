@@ -46,5 +46,13 @@ throws('a configured mainnet id is refused even with the isMainnet flag off and 
 const inconsistentAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet: true, network: new Network({ name: 'custom', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: false }) });
 ok('acknowledging lets the configured mainnet-id client sign', typeof inconsistentAcked._signingChainId({ chain_id: 'Q-main-net-1' }) === 'bigint');
 
+// A gateway that reports a chain id that is not a string is refused with a clear error, never a
+// raw wasm trap from handing a non string to the chain id hash.
+throws('a numeric chain id is refused', () => overUrl._signingChainId({ chain_id: 123 }));
+throws('an object chain id is refused', () => overUrl._signingChainId({ chain_id: {} }));
+let chainIdMsg = '';
+try { overUrl._signingChainId({ chain_id: 123 }); } catch (e) { chainIdMsg = e.message; }
+ok('the non string chain id error names the cause', /not a string/.test(chainIdMsg));
+
 if (failures > 0) { console.error('\nnetwork: ' + failures + ' checks failed'); process.exit(1); }
 console.log('\nnetwork: the safety gate holds');
