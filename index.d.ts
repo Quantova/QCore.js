@@ -197,6 +197,25 @@ export class Client {
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
   ): Promise<TransferResult>;
+  assetCall(
+    seedHex: string,
+    index: number,
+    target: string,
+    argsHex: string,
+    assetIssuer: string,
+    amount: string | bigint,
+    meterLimit: number | bigint,
+    maxFeeQuon: string | bigint,
+  ): Promise<TransferResult>;
+  payableCall(
+    seedHex: string,
+    index: number,
+    target: string,
+    argsHex: string,
+    value: string | bigint,
+    meterLimit: number | bigint,
+    maxFeeQuon: string | bigint,
+  ): Promise<TransferResult>;
   contractNonce(contract: string, signerHex: string): Promise<bigint>;
   contractScalar(contract: string, slot: number | bigint): Promise<bigint>;
   callSignedOrder(
