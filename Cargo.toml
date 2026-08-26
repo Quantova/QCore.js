@@ -3,7 +3,7 @@
 
 [package]
 name = "qcore-js"
-version = "0.1.23"
+version = "0.1.25"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "The JavaScript binding for the Quantova client core, generated over QCore with wasm-bindgen. The core does the key derivation, the post quantum signing, and the wire, the page does the fetch."
