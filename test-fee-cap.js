@@ -18,6 +18,7 @@ function fail(msg) {
 (async () => {
   let submitted = 0;
   let feeQuon = '100';
+  let nonceValue = 0;
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
@@ -29,7 +30,7 @@ function fail(msg) {
           fee: { transfer_quon: feeQuon, quon_per_qtov: '1000000' }, version: 'test',
         }));
       } else if (req.url === '/v1/get_account') {
-        res.end(JSON.stringify({ address: JSON.parse(body).address, nonce: 0, balance: '0', scheme: 1, has_key: true }));
+        res.end(JSON.stringify({ address: JSON.parse(body).address, nonce: nonceValue, balance: '0', scheme: 1, has_key: true }));
       } else if (req.url === '/v1/submit_transaction') {
         submitted++;
         res.end(JSON.stringify({ verdict: 'accepted', state: 'fresh', tx_id: 'Qtxabc' }));
@@ -85,6 +86,25 @@ function fail(msg) {
   catch (e) { numRefused = true; if (!/decimal string or a BigInt/.test(e.message)) fail('unclear amount error: ' + e.message); }
   if (!numRefused) fail('a number amount must be refused');
   if (submitted !== 2) fail('a refused amount must never submit');
+
+  // A hostile nonce from the gateway is refused before signing and never submits. A negative or an
+  // oversized nonce would otherwise wrap into a different unsigned 64 bit nonce at the signer, and a
+  // number beyond the safe integer range has already lost precision by the time it is read.
+  feeQuon = '100';
+  const held = submitted;
+  for (const badNonce of [-1, 9007199254740993, '-1', '18446744073709551616']) {
+    nonceValue = badNonce;
+    let nonceRefused = false;
+    try { await client.transfer(seed, 0, to, '1000', '1000000'); }
+    catch (e) { nonceRefused = true; if (!/nonce/.test(e.message)) fail('unclear nonce error: ' + e.message); }
+    if (!nonceRefused) fail('a hostile nonce must be refused: ' + String(badNonce));
+  }
+  if (submitted !== held) fail('a refused nonce must never submit');
+
+  // A normal nonce still signs and submits, so the guard does not block the honest path.
+  nonceValue = 0;
+  const okNonce = await client.transfer(seed, 0, to, '1000', '1000000');
+  if (okNonce.outcome.verdict !== 'accepted' || submitted !== held + 1) fail('a normal nonce must still submit');
 
   server.close();
   console.log('fee ceiling: all cases passed');
