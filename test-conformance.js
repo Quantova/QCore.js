@@ -172,6 +172,7 @@ function transactionVector() {
   check('signing is deterministic', again.tx_hex === signed.tx_hex, true);
   check('the transaction id is a qtx identifier', /^qtx1[0-9a-z]+$/i.test(signed.tx_id), true);
   check('the transaction id is rendered uppercase Q1', signed.tx_id === signed.tx_id.toUpperCase(), true);
+  check('the transfer helper matches the frozen tx id', signed.tx_id === v.tx_id, true);
 }
 
 function payableVector() {
