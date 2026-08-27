@@ -1,11 +1,6 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// The guarded asset and payable call paths must enforce the same gateway guards as transfer, so a
-// hostile gateway fee, a float nonce, and a non string chain id are all refused before signing, and
-// an honest path submits exactly once.
-// node test-asset-guards.js
-
 const http = require('node:http');
 const { Client, core } = require('./index.js');
 

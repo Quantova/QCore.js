@@ -35,9 +35,6 @@ function accountIndex(index) {
   return i;
 }
 
-// The nonce is the one signing input that comes from the gateway. A number above 2^53 has already
-// lost precision when read, and a negative or oversized value would wrap into a different unsigned
-// 64 bit nonce at the signer, so each is refused before it is bound into a signature.
 function accountNonce(nonce) {
   if (typeof nonce === 'number' && !Number.isSafeInteger(nonce)) {
     throw new Error('the gateway reported a nonce outside the safe integer range, a number that large silently rounds and would sign a different nonce');
@@ -204,20 +201,12 @@ function makeClient(core) {
     }
 
     _guardMainnet() {
-      // The mainnet decision comes from the network this Client was configured with, never from
-      // the gateway's self reported chain id, so a hostile gateway cannot suppress the prompt by
-      // claiming to be a testnet.
       const onMainnet = this.network && this.network.isMainnet === true;
       if (onMainnet && !this.acknowledgeMainnet) {
         throw new Error(`refusing to sign for the mainnet network ${this.network.chainId || ''} without acknowledgeMainnet true, pass it when you mean to move real value`);
       }
     }
 
-    // The signature binds the chain the gateway says it serves, computed from the reported network
-    // name with the same hash the node uses, so a transaction is valid only on that network and a
-    // renamed network is followed without a code change. When this Client was configured with a
-    // known chain id, the reported name must match it: a hostile gateway must not be able to bind a
-    // signature to a network the caller did not choose and then replay it there.
     _signingChainId(info) {
       const name = info && info.chain_id;
       if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
@@ -246,10 +235,6 @@ function makeClient(core) {
           headers: { 'Content-Type': 'application/json' },
           body: body || '{}',
           signal: controller.signal,
-          // Never follow a redirect. The base passed the transport guard, but fetch follows a 30x
-          // automatically, and a gateway that answers with a redirect to http on a public host would
-          // downgrade the very hop the guard protects. An RPC endpoint has no reason to redirect, so
-          // a redirect is refused rather than silently followed to an unchecked target.
           redirect: 'error',
         });
         const text = await readBounded(res);

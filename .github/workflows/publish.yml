@@ -16,26 +16,49 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # This package's crate depends on sibling repos by relative path, so the wasm can only be
+      # rebuilt from source when those siblings are present. Checking them out at pinned commits
+      # lets the trusted runner build the ml-dsa crypto wasm from the reviewed Rust source rather
+      # than shipping the committed qcore_js_bg.wasm blob, closing the path where a tampered binary
+      # committed without touching the .rs source would be published under valid provenance.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          path: QCore.js
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/QCore.rs
+          ref: 51cd8850844a67bd7eefd1908aa21076441b6f32
+          path: QCore.rs
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/Quantova-Chain
+          ref: 8c0417e8d248399f4c6a4ed567230dac4cde43e8
+          path: Quantova-Chain
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/QVM
+          ref: cf3226afb6a5f586e86348b3ee3cefa7bc91ce98
+          path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-      # Rebuild the ml-dsa crypto wasm from the Rust source in this trusted runner rather than
-      # shipping the committed binary. Without this the published package would carry whatever
-      # qcore_js_bg.wasm sits in the tree, so a tampered blob committed without touching the
-      # reviewed .rs source would be published under valid provenance. Building from source and
-      # publishing the fresh output closes that supply chain path.
       - name: rebuild wasm from source
+        working-directory: QCore.js
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
-      - run: node test-conformance.js
-      - run: node test-sign-validate.js
-      - run: node test-transport.js
-      - run: node test-fee-cap.js
-      - run: node test-asset-guards.js
-      - run: npm publish --provenance --access public
+      - name: test and publish
+        working-directory: QCore.js
+        run: |
+          node test-conformance.js
+          node test-sign-validate.js
+          node test-transport.js
+          node test-fee-cap.js
+          node test-asset-guards.js
+          npm publish --provenance --access public

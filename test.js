@@ -1,9 +1,6 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Prove the JavaScript binding end to end against a running gateway. The core signs and
-// builds every request, this test only does the fetch and reads the documented fields.
-
 const { Client, core } = require('./index.js');
 
 (async () => {
@@ -15,7 +12,6 @@ const { Client, core } = require('./index.js');
   console.log('network', info.chain_id, 'fee', info.fee.transfer_quon, info.denomination);
 
   const to = client.address(seed, 1);
-  // A fixed ceiling this test is willing to pay, chosen here and not read back from the gateway.
   const maxFeeQuon = '1000000';
   const { signed, outcome } = await client.transfer(seed, 0, to, '1000', maxFeeQuon);
   console.log('submitted', signed.tx_id, outcome.verdict, outcome.state || outcome.reason || '');

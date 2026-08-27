@@ -15,20 +15,46 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # Build the wasm from the Rust source, which lives across sibling repos, so the tests exercise
+      # what the source produces rather than a committed binary. A blob that leaks a key or signs a
+      # foreign payload but still passes the javascript conformance tests would otherwise slip past
+      # review and reach a release.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          path: QCore.js
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/QCore.rs
+          ref: 51cd8850844a67bd7eefd1908aa21076441b6f32
+          path: QCore.rs
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/Quantova-Chain
+          ref: 8c0417e8d248399f4c6a4ed567230dac4cde43e8
+          path: Quantova-Chain
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: Quantova/QVM
+          ref: cf3226afb6a5f586e86348b3ee3cefa7bc91ce98
+          path: QVM
+          persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
-      # Build the wasm from the Rust source so the tests exercise what the source produces, not a
-      # committed binary. A blob that leaks a key or signs a foreign payload but still passes the
-      # javascript conformance tests would otherwise slip through review and reach a release.
       - name: rebuild wasm from source
+        working-directory: QCore.js
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
-      - run: node test-conformance.js
-      - run: node test-sign-validate.js
-      - run: node test-transport.js
-      - run: node test-fee-cap.js
-      - run: node test-network.js
+      - name: test
+        working-directory: QCore.js
+        run: |
+          node test-conformance.js
+          node test-sign-validate.js
+          node test-transport.js
+          node test-fee-cap.js
+          node test-network.js

@@ -1,12 +1,6 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Prove the fee ceiling with no running gateway, so this runs anywhere. A small mock gateway
-// reports a fee, and the client must submit only when the fee is at or below the ceiling the
-// caller allowed, must refuse and never submit when the fee is above it, and must reject a
-// missing, malformed, or number ceiling before it ever touches the network. Run with:
-// node test-fee-cap.js
-
 const http = require('node:http');
 const { Client } = require('./index.js');
 
@@ -45,13 +39,11 @@ function fail(msg) {
   const seed = '0b'.repeat(32);
   const to = client.address(seed, 1);
 
-  // A fee at or below the ceiling signs and submits once.
   feeQuon = '100';
   const a = await client.transfer(seed, 0, to, '1000', '1000');
   if (a.outcome.verdict !== 'accepted') fail('a fee below the ceiling should be accepted');
   if (submitted !== 1) fail('an allowed transfer submits exactly once');
 
-  // A fee above the ceiling is refused and never submits.
   feeQuon = '5000';
   let refused = false;
   try { await client.transfer(seed, 0, to, '1000', '1000'); }
@@ -59,12 +51,10 @@ function fail(msg) {
   if (!refused) fail('a fee above the ceiling must be refused');
   if (submitted !== 1) fail('a refused transfer must never submit');
 
-  // The ceiling is inclusive at the boundary, and a BigInt ceiling is accepted.
   feeQuon = '1000';
   const c = await client.transfer(seed, 0, to, '1000', 1000n);
   if (c.outcome.verdict !== 'accepted' || submitted !== 2) fail('a fee equal to the ceiling is allowed');
 
-  // A missing, malformed, or negative ceiling fails before any network call.
   for (const bad of [undefined, null, 'abc', '-1', -1n]) {
     let threw = false;
     try { await client.transfer(seed, 0, to, '1000', bad); }
@@ -73,23 +63,18 @@ function fail(msg) {
   }
   if (submitted !== 2) fail('a bad ceiling must fail before submitting');
 
-  // A ceiling passed as a JavaScript number is refused before any network call.
   let numCeil = false;
   try { await client.transfer(seed, 0, to, '1000', 1000); }
   catch (e) { numCeil = true; if (!/maximum fee/.test(e.message) || !/JavaScript number/.test(e.message)) fail('unclear number ceiling error: ' + e.message); }
   if (!numCeil) fail('a number fee ceiling must be refused');
   if (submitted !== 2) fail('a refused ceiling must never submit');
 
-  // An amount passed as a JavaScript number is refused before any network call.
   let numRefused = false;
   try { await client.transfer(seed, 0, to, 1000, '1000'); }
   catch (e) { numRefused = true; if (!/decimal string or a BigInt/.test(e.message)) fail('unclear amount error: ' + e.message); }
   if (!numRefused) fail('a number amount must be refused');
   if (submitted !== 2) fail('a refused amount must never submit');
 
-  // A hostile nonce from the gateway is refused before signing and never submits. A negative or an
-  // oversized nonce would otherwise wrap into a different unsigned 64 bit nonce at the signer, and a
-  // number beyond the safe integer range has already lost precision by the time it is read.
   feeQuon = '100';
   const held = submitted;
   for (const badNonce of [-1, 9007199254740993, '-1', '18446744073709551616']) {
@@ -101,7 +86,6 @@ function fail(msg) {
   }
   if (submitted !== held) fail('a refused nonce must never submit');
 
-  // A normal nonce still signs and submits, so the guard does not block the honest path.
   nonceValue = 0;
   const okNonce = await client.transfer(seed, 0, to, '1000', '1000000');
   if (okNonce.outcome.verdict !== 'accepted' || submitted !== held + 1) fail('a normal nonce must still submit');

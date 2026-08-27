@@ -1,12 +1,6 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Prove the transport guard with no running gateway, so this runs anywhere. The Client must
-// refuse to be built on a base that would send a signed request or a key operation over
-// plaintext http to a non loopback host, and must accept https anywhere and http on a loopback
-// node. The guard lives in the shared Client, so this proves the node and the browser entry at
-// once. Run with: node test-transport.js
-
 const { Client } = require('./index.js');
 
 function fail(msg) {
@@ -36,7 +30,6 @@ if (!rejects('ftp://127.0.0.1:21')) fail('a non http scheme must be refused');
 if (!rejects('127.0.0.1:8080')) fail('a base with no scheme must be refused');
 if (!rejects('')) fail('an empty base must be refused');
 
-// The refusal message names the risk, not a network round trip, and it fires at construction.
 let msg = '';
 try { new Client('http://gateway.quantova.example'); } catch (e) { msg = e.message; }
 if (!/plaintext http/.test(msg) || !/drain funds/.test(msg)) fail('the refusal message is unclear: ' + msg);
