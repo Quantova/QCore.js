@@ -23,6 +23,16 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      # Rebuild the ml-dsa crypto wasm from the Rust source in this trusted runner rather than
+      # shipping the committed binary. Without this the published package would carry whatever
+      # qcore_js_bg.wasm sits in the tree, so a tampered blob committed without touching the
+      # reviewed .rs source would be published under valid provenance. Building from source and
+      # publishing the fresh output closes that supply chain path.
+      - name: rebuild wasm from source
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-pack --version 0.13.1 --locked
+          bash scripts/build.sh
       - run: node test-conformance.js
       - run: node test-sign-validate.js
       - run: node test-transport.js
