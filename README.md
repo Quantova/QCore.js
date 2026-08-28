@@ -98,10 +98,10 @@ do no gateway comparison at all. A developer who calls core.* directly has no fe
 Client whenever a gateway you do not control reports the fee.
 
 ```js
-const { Client } = require('@quantovainc/qcore');
+const { Client, generateSeed } = require('@quantovainc/qcore');
 
 const client = new Client('http://127.0.0.1:8645');
-const seed = '0b'.repeat(32);
+const seed = generateSeed();
 const to = client.address(seed, 1);
 
 // A fixed ceiling your app is willing to pay, chosen here and never read back from the gateway.
