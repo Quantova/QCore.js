@@ -16,11 +16,6 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # This package's crate depends on sibling repos by relative path, so the wasm can only be
-      # rebuilt from source when those siblings are present. Checking them out at pinned commits
-      # lets the trusted runner build the ml-dsa crypto wasm from the reviewed Rust source rather
-      # than shipping the committed qcore_js_bg.wasm blob, closing the path where a tampered binary
-      # committed without touching the .rs source would be published under valid provenance.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           path: QCore.js
@@ -28,19 +23,19 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QCore.rs
-          ref: 51cd8850844a67bd7eefd1908aa21076441b6f32
+          ref: 608658ee5c7c4c7e85933ac6b08243131016ba1c
           path: QCore.rs
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/Quantova-Chain
-          ref: 8c0417e8d248399f4c6a4ed567230dac4cde43e8
+          ref: 2ec106731300355424d873c7d666ac15e9ee5be4
           path: Quantova-Chain
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QVM
-          ref: cf3226afb6a5f586e86348b3ee3cefa7bc91ce98
+          ref: db3c3b557c13bd2389b024cca4a2f747e44db5f9
           path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
