@@ -53,7 +53,7 @@ jobs:
       - name: supply chain gate (cargo deny)
         working-directory: QCore.js
         run: |
-          cargo install cargo-deny --version 0.16.4 --locked
+          cargo install cargo-deny --version 0.19.9 --locked
           cargo deny --locked check bans sources advisories
       - name: test
         working-directory: QCore.js
