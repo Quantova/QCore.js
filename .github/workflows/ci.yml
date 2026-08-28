@@ -26,19 +26,19 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QCore.rs
-          ref: 51cd8850844a67bd7eefd1908aa21076441b6f32
+          ref: 3e1240d6651a6b0bb4104591161609b942711831
           path: QCore.rs
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/Quantova-Chain
-          ref: 8c0417e8d248399f4c6a4ed567230dac4cde43e8
+          ref: a0b946188b8473a69ec93ad2b146b70eef40213f
           path: Quantova-Chain
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QVM
-          ref: cf3226afb6a5f586e86348b3ee3cefa7bc91ce98
+          ref: 7a10d82f209013d543927ea4480ea097665c739b
           path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -50,6 +50,11 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
+      - name: supply chain gate (cargo deny)
+        working-directory: QCore.js
+        run: |
+          cargo install cargo-deny --version 0.16.4 --locked
+          cargo deny --locked check bans sources advisories
       - name: test
         working-directory: QCore.js
         run: |

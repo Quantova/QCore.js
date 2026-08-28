@@ -72,7 +72,7 @@ version = "0.1.0"
 [[package]]
 name = "qtv-crypto"
 version = "0.3.0"
-source = "git+https://github.com/Quantova/Q-Crypto.git?tag=v0.3.1#4d73a36c112b91a6a25a6a876f54cdccb729c7de"
+source = "git+https://github.com/Quantova/Q-Crypto.git?rev=4d73a36c112b91a6a25a6a876f54cdccb729c7de#4d73a36c112b91a6a25a6a876f54cdccb729c7de"
 
 [[package]]
 name = "qtv-idfmt"
