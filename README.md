@@ -18,6 +18,8 @@ npm install @quantovainc/qcore
 ```js
 const { Client, core, generateSeed } = require('@quantovainc/qcore');
 
+const GATEWAY = 'https://rpc-testnet.quantova.org';
+
 async function main() {
   // Create an account. The seed is the only backup and it never leaves the device.
   const seed = generateSeed();
@@ -28,11 +30,38 @@ async function main() {
   const to = core.address(seed, 1n);
   console.log('from', from);
 
-  // Open a client against a node you trust. Plaintext http is allowed only to a loopback node.
-  const client = new Client('http://127.0.0.1:8645');
+  // Open a client against a node you trust. The address above is the public testnet
+  // gateway. A remote gateway must be https, plaintext http is allowed only to a loopback node.
+  const client = new Client(GATEWAY);
 
   // A fixed ceiling your app is willing to pay in fees, chosen here and never read back from the gateway.
   const MAX_FEE_QUON = '2000';
+
+  // A new account holds nothing, so take testnet funds before anything else.
+  // The faucet sends 10, 50 or 100 TQTOV to one address at a time.
+  await fetch(GATEWAY + '/faucet/api/claim', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ address: from, amount: 10 }),
+  });
+
+  // The faucet pays you with a transaction, so wait for the balance to arrive before spending it.
+  for (let i = 0; i < 40; i += 1) {
+    const funded = await client.account(from).catch(() => null);
+    if (funded && BigInt(funded.balance || 0) > 0n) break;
+    await new Promise((wake) => setTimeout(wake, 1500));
+  }
+
+  // An account publishes its key once before it is allowed to send. This happens a single
+  // time for each account and it pays a fee like any other transaction.
+  await client.register(seed, 0, MAX_FEE_QUON);
+
+  // Registration is itself a transaction, so wait for the key to be on chain.
+  for (let i = 0; i < 30; i += 1) {
+    const ready = await client.account(from).catch(() => null);
+    if (ready && ready.has_key) break;
+    await new Promise((wake) => setTimeout(wake, 1500));
+  }
 
   // Amounts and the ceiling are decimal strings or BigInt values, never JavaScript numbers.
   const { signed, outcome } = await client.transfer(seed, 0, to, '1000', MAX_FEE_QUON);
