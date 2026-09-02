@@ -14,7 +14,7 @@ function throws(label, fn) {
 }
 
 const testnet = Network.testnet();
-ok('testnet chain id', testnet.chainId === 'Q-test-net-2');
+ok('testnet chain id', testnet.chainId === 'Q-test-net-3');
 ok('testnet rpc url', testnet.rpcUrl === 'https://rpc-testnet.quantova.org');
 ok('testnet denomination', testnet.denomination === 'Quon');
 ok('testnet decimals are six', testnet.decimals === 6);
@@ -23,7 +23,7 @@ ok('mainnet is flagged', Network.mainnet().isMainnet === true);
 ok('mainnet rpc is not the testnet url', Network.mainnet().rpcUrl !== testnet.rpcUrl);
 
 const client = new Client(testnet);
-ok('testnet client carries its network', client.network.chainId === 'Q-test-net-2');
+ok('testnet client carries its network', client.network.chainId === 'Q-test-net-3');
 
 const liveMainnet = new Network({ name: 'mainnet', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: true });
 throws('mainnet client without acknowledgement is refused', () => new Client(liveMainnet));
