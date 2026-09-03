@@ -4,7 +4,7 @@
   "description": "Quantova's post quantum client core for JavaScript. Signs with ML-DSA-65 and builds Q1 addresses.",
   "scripts": {
     "build": "bash scripts/build.sh",
-    "test": "node test-conformance.js && node test-sign-validate.js && node test-transport.js && node test-fee-cap.js && node test-network.js"
+    "test": "node test-conformance.js && node test-order-nonce.js && node test-sign-validate.js && node test-transport.js && node test-fee-cap.js && node test-network.js"
   },
   "keywords": [
     "post-quantum",

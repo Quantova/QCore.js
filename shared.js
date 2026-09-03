@@ -378,7 +378,7 @@ function makeClient(core) {
       return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
     }
 
-    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon) {
+    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce) {
       if (!core.valid_address(contract)) throw new Error('the contract is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
@@ -390,7 +390,18 @@ function makeClient(core) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
+      // The owner authorisation carries no deadline, so this nonce is the only thing
+      // that stops it being replayed. Reading it from the gateway hands the party the
+      // signature protects against the one term that expires it: answer with a future
+      // nonce and the reply is a valid order banked until the contract counter reaches
+      // it. Pass expectedOrderNonce to bind what you meant to sign; without it you are
+      // trusting the endpoint with the owner key.
       const nonce = await this.contractNonce(contract, signer);
+      if (expectedOrderNonce != null && BigInt(expectedOrderNonce) !== nonce) {
+        throw new Error(
+          `the gateway reported order nonce ${nonce} but you expected ${expectedOrderNonce}, refusing to sign`
+        );
+      }
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,
@@ -410,7 +421,7 @@ function makeClient(core) {
         core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
-      return { order, signed, outcome };
+      return { order, signed, outcome, orderNonce: nonce };
     }
   };
 }

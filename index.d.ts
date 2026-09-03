@@ -228,7 +228,8 @@ export class Client {
     ownerIndex: number,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
-  ): Promise<SignedOrderResult>;
+  ,
+    expectedOrderNonce?: bigint | number | string): Promise<SignedOrderResult>;
 }
 
 export const core: QCore;
