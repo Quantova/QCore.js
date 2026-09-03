@@ -198,6 +198,17 @@ function makeClient(core) {
         this.network = opts.network instanceof Network ? opts.network : Network.forUrl(base);
       }
       this.base = requireSafeTransport(base).replace(/\/$/, '');
+      // The chain name the gateway reports is hashed into the signature preimage of
+      // every signing path, so whoever names it decides which network a signature is
+      // valid on. `Network.forUrl` leaves chainId null, which is the default for
+      // `new Client(url)`, and the configured check is skipped when it is null, so by
+      // default the endpoint chose. Bind it with expectedChainId, or rely on the pin,
+      // which at least refuses a gateway that changes its mind mid session.
+      this.expectedChainId =
+        typeof opts.expectedChainId === 'string' && opts.expectedChainId.length > 0
+          ? opts.expectedChainId
+          : null;
+      this._pinnedChainName = null;
     }
 
     _guardMainnet() {
@@ -212,12 +223,24 @@ function makeClient(core) {
       if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
       if (typeof name !== 'string') throw new Error('the gateway reported a chain id that is not a string, refusing to bind a signature to it');
       const id = BigInt(core.chainIdFromName(name));
-      const configured = this.network && this.network.chainId;
+      const configured =
+        this.expectedChainId || (this.network && this.network.chainId) || null;
       if (configured && name !== configured) {
         throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
       }
       if (!this.acknowledgeMainnet && this._isMainnetId(id)) {
         throw new Error(`the gateway reports the mainnet chain ${name}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
+      }
+      // Pin on first ACCEPTED use, after every refusal above. With nothing configured
+      // the endpoint names the chain, and the least this can do is refuse one that
+      // answers differently later in the same session, which is how a signature ends
+      // up bound to a network the caller never chose while every earlier call looked
+      // entirely normal. Pinning a name we refused to sign for would be wrong: it was
+      // never a chain this client accepted.
+      if (this._pinnedChainName === null) {
+        this._pinnedChainName = name;
+      } else if (this._pinnedChainName !== name) {
+        throw new Error(`the gateway reported chain ${this._pinnedChainName} earlier and now reports ${name}; refusing to sign, the endpoint is not naming one network`);
       }
       return id;
     }
