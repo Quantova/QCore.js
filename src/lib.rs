@@ -1,11 +1,15 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use wasm_bindgen::prelude::*;
 use qtv_wipe::{Zeroize, Zeroizing};
+use wasm_bindgen::prelude::*;
 
-fn seed(seed_hex: &str) -> Result<Zeroizing<[u8; 32]>, JsError> {
-    let mut bytes = qcore::json::from_hex(seed_hex).map_err(|e| JsError::new(&e))?;
+/// Takes the hex BY VALUE so it can be wiped. A borrowed `&str` leaves the caller's
+/// seed sitting in wasm linear memory for the life of the page.
+fn seed(mut seed_hex: String) -> Result<Zeroizing<[u8; 32]>, JsError> {
+    let parsed = qcore::json::from_hex(&seed_hex);
+    seed_hex.zeroize();
+    let mut bytes = parsed.map_err(|e| JsError::new(&e))?;
     if bytes.len() != 32 {
         bytes.zeroize();
         return Err(JsError::new("a seed is 32 bytes of hex"));
@@ -17,7 +21,7 @@ fn seed(seed_hex: &str) -> Result<Zeroizing<[u8; 32]>, JsError> {
 }
 
 #[wasm_bindgen]
-pub fn address(seed_hex: &str, index: u64) -> Result<String, JsError> {
+pub fn address(seed_hex: String, index: u64) -> Result<String, JsError> {
     Ok(qcore::account_address(&*seed(seed_hex)?, index))
 }
 
@@ -37,20 +41,24 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 }
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
-pub fn mnemonic_from_seed(seed_hex: &str) -> Result<String, JsError> {
+pub fn mnemonic_from_seed(seed_hex: String) -> Result<String, JsError> {
     Ok(qcore::mnemonic_from_seed(&*seed(seed_hex)?))
 }
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
-pub fn seed_from_mnemonic(phrase: &str) -> Result<String, JsError> {
-    let seed = qcore::seed_from_mnemonic(phrase).map_err(|e| JsError::new(&e))?;
+pub fn seed_from_mnemonic(mut phrase: String) -> Result<String, JsError> {
+    // A recovery phrase is the seed in another form, so it is taken by value and wiped
+    // rather than left in wasm memory. The hex this returns is the caller's to hold.
+    let derived = qcore::seed_from_mnemonic(&phrase);
+    phrase.zeroize();
+    let seed = derived.map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::to_hex(&seed[..]))
 }
 
 #[wasm_bindgen]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_transfer(
-    seed_hex: &str,
+    seed_hex: String,
     index: u64,
     to: &str,
     amount: &str,
@@ -82,7 +90,7 @@ pub fn sign_transfer(
 
 #[wasm_bindgen(js_name = signRegister)]
 pub fn sign_register(
-    seed_hex: &str,
+    seed_hex: String,
     index: u64,
     nonce: u64,
     fee: &str,
@@ -107,7 +115,7 @@ pub fn sign_register(
 #[wasm_bindgen]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_call(
-    seed_hex: &str,
+    seed_hex: String,
     index: u64,
     target: &str,
     args_hex: &str,
@@ -123,9 +131,17 @@ pub fn sign_call(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed =
-        qcore::sign_call(&*seed(seed_hex)?, index, target, args, nonce, meter_limit, fee, chain_id)
-            .map_err(|e| JsError::new(&e))?;
+    let signed = qcore::sign_call(
+        &*seed(seed_hex)?,
+        index,
+        target,
+        args,
+        nonce,
+        meter_limit,
+        fee,
+        chain_id,
+    )
+    .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
         ("tx_id", qcore::json::Json::str(signed.tx_id)),
@@ -158,13 +174,18 @@ fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
 }
 
 #[wasm_bindgen(js_name = orderSigner)]
-pub fn order_signer(seed_hex: &str, index: u64) -> Result<String, JsError> {
-    Ok(qcore::json::to_hex(&qcore::contract::order_signer(&*seed(seed_hex)?, index)))
+pub fn order_signer(seed_hex: String, index: u64) -> Result<String, JsError> {
+    Ok(qcore::json::to_hex(&qcore::contract::order_signer(
+        &*seed(seed_hex)?,
+        index,
+    )))
 }
 
 #[wasm_bindgen(js_name = nonceSlotKey)]
 pub fn nonce_slot_key(signer_hex: &str) -> Result<String, JsError> {
-    Ok(qcore::json::to_hex(&qcore::contract::nonce_slot_key(&addr32(signer_hex)?)))
+    Ok(qcore::json::to_hex(&qcore::contract::nonce_slot_key(
+        &addr32(signer_hex)?,
+    )))
 }
 
 #[wasm_bindgen(js_name = scalarSlotKey)]
@@ -211,7 +232,11 @@ pub fn map_slot_key(map_domain_tag: u64, key_address_hex: &str) -> Result<String
 }
 
 #[wasm_bindgen(js_name = mapAddrWordKey)]
-pub fn map_addr_word_key(map_domain_tag: u64, key32_hex: &str, word: u64) -> Result<String, JsError> {
+pub fn map_addr_word_key(
+    map_domain_tag: u64,
+    key32_hex: &str,
+    word: u64,
+) -> Result<String, JsError> {
     Ok(qcore::json::to_hex(&qcore::contract::map_addr_word_key(
         map_domain_tag,
         &addr32(key32_hex)?,
@@ -235,7 +260,7 @@ pub fn build_signed_order_call(
     field_offs_csv: &str,
     fields_csv: &str,
     region_off: u64,
-    owner_seed_hex: &str,
+    owner_seed_hex: String,
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
@@ -243,7 +268,8 @@ pub fn build_signed_order_call(
         .map_err(|e| JsError::new(&e))?
         .try_into()
         .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
-    let mut layout = qcore::contract::OrderLayout::new(scheme_off, ptr_off, u64_list(field_offs_csv)?);
+    let mut layout =
+        qcore::contract::OrderLayout::new(scheme_off, ptr_off, u64_list(field_offs_csv)?);
     if region_off != 0 {
         layout.region_off = region_off;
     }
@@ -260,11 +286,26 @@ pub fn build_signed_order_call(
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
-        ("call_args", qcore::json::Json::str(qcore::json::to_hex(&order.call_args))),
-        ("message", qcore::json::Json::str(qcore::json::to_hex(&order.message))),
-        ("signature", qcore::json::Json::str(qcore::json::to_hex(&order.signature))),
-        ("public_key", qcore::json::Json::str(qcore::json::to_hex(&order.public_key))),
-        ("signer", qcore::json::Json::str(qcore::json::to_hex(&order.signer))),
+        (
+            "call_args",
+            qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
+        ),
+        (
+            "message",
+            qcore::json::Json::str(qcore::json::to_hex(&order.message)),
+        ),
+        (
+            "signature",
+            qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
+        ),
+        (
+            "public_key",
+            qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
+        ),
+        (
+            "signer",
+            qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
+        ),
         ("nonce", qcore::json::Json::Int(order.nonce)),
     ])
     .render())
@@ -280,7 +321,7 @@ pub fn build_typed_order_call(
     ptr_off: u64,
     region_off: u64,
     fields_json: &str,
-    owner_seed_hex: &str,
+    owner_seed_hex: String,
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
@@ -303,11 +344,26 @@ pub fn build_typed_order_call(
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
-        ("call_args", qcore::json::Json::str(qcore::json::to_hex(&order.call_args))),
-        ("message", qcore::json::Json::str(qcore::json::to_hex(&order.message))),
-        ("signature", qcore::json::Json::str(qcore::json::to_hex(&order.signature))),
-        ("public_key", qcore::json::Json::str(qcore::json::to_hex(&order.public_key))),
-        ("signer", qcore::json::Json::str(qcore::json::to_hex(&order.signer))),
+        (
+            "call_args",
+            qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
+        ),
+        (
+            "message",
+            qcore::json::Json::str(qcore::json::to_hex(&order.message)),
+        ),
+        (
+            "signature",
+            qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
+        ),
+        (
+            "public_key",
+            qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
+        ),
+        (
+            "signer",
+            qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
+        ),
         ("nonce", qcore::json::Json::Int(order.nonce)),
     ])
     .render())
@@ -334,7 +390,11 @@ fn parse_typed_fields(fields_json: &str) -> Result<Vec<qcore::contract::TypedFie
             .and_then(|v| v.as_str())
             .ok_or_else(|| JsError::new("a signed order field needs a string value"))?
             .to_string();
-        out.push(qcore::contract::TypedField { offset, width, value });
+        out.push(qcore::contract::TypedField {
+            offset,
+            width,
+            value,
+        });
     }
     Ok(out)
 }
@@ -364,8 +424,14 @@ pub fn parse_events(response: &str) -> Result<String, JsError> {
         .map(|event| {
             let mut fields = vec![
                 ("contract", qcore::json::Json::str(event.contract.clone())),
-                ("selector", qcore::json::Json::str(qcore::json::to_hex(&event.selector))),
-                ("data", qcore::json::Json::str(qcore::json::to_hex(&event.data))),
+                (
+                    "selector",
+                    qcore::json::Json::str(qcore::json::to_hex(&event.selector)),
+                ),
+                (
+                    "data",
+                    qcore::json::Json::str(qcore::json::to_hex(&event.data)),
+                ),
             ];
             if let Some(word) = qcore::contract::event_word(&event.data) {
                 fields.push(("value", qcore::json::Json::str(word.to_string())));
@@ -420,7 +486,7 @@ pub fn testnet_chain_id() -> u64 {
 #[wasm_bindgen(js_name = signPayableCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_payable_call(
-    seed_hex: &str,
+    seed_hex: String,
     index: u64,
     target: &str,
     args_hex: &str,
@@ -471,7 +537,7 @@ pub fn sign_payable_call(
 #[wasm_bindgen(js_name = signAssetCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_asset_call(
-    seed_hex: &str,
+    seed_hex: String,
     index: u64,
     target: &str,
     args_hex: &str,
@@ -523,14 +589,17 @@ mod payable_tests {
 
     #[test]
     fn the_seed_helper_decodes_into_a_zeroizing_handle() {
-        let handle = seed(&seed_hex()).unwrap();
+        let handle = seed(seed_hex()).unwrap();
         let mut expected = [0u8; 32];
         for (i, slot) in expected.iter_mut().enumerate() {
             *slot = i as u8;
         }
-        assert_eq!(*handle, expected, "the seed decodes to the canonical bytes through the zeroizing scratch");
         assert_eq!(
-            address(&seed_hex(), 0).unwrap(),
+            *handle, expected,
+            "the seed decodes to the canonical bytes through the zeroizing scratch"
+        );
+        assert_eq!(
+            address(seed_hex(), 0).unwrap(),
             qcore::account_address(&expected, 0),
             "an address over the zeroizing handle matches one over the raw seed"
         );
@@ -538,40 +607,124 @@ mod payable_tests {
 
     #[test]
     fn signing_is_deterministic() {
-        let target = address(&seed_hex(), 8).unwrap();
-        let first =
-            sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
-        let second =
-            sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let target = address(seed_hex(), 8).unwrap();
+        let first = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
+        let second = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
         assert_eq!(first, second);
     }
 
     #[test]
     fn the_signature_binds_the_raw_address_payload_not_the_rendered_string() {
-        let target = address(&seed_hex(), 8).unwrap();
+        let target = address(seed_hex(), 8).unwrap();
         let lower = target.to_ascii_lowercase();
         let upper = target.to_ascii_uppercase();
         assert_ne!(lower, upper, "the two variants must differ only in case");
-        let signed_lower =
-            sign_payable_call(&seed_hex(), 7, &lower, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
-        let signed_upper =
-            sign_payable_call(&seed_hex(), 7, &upper, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let signed_lower = sign_payable_call(
+            seed_hex(),
+            7,
+            &lower,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
+        let signed_upper = sign_payable_call(
+            seed_hex(),
+            7,
+            &upper,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
         assert_eq!(signed_lower, signed_upper);
     }
 
     #[test]
     fn the_value_is_bound_into_the_signature() {
-        let target = address(&seed_hex(), 8).unwrap();
-        let a = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
-        let b = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250001", qtv_tx::TESTNET_CHAIN_ID).unwrap();
+        let target = address(seed_hex(), 8).unwrap();
+        let a = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
+        let b = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250001",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
         assert_ne!(a, b);
     }
 
     #[test]
     fn the_chain_id_is_bound_into_the_signature() {
-        let target = address(&seed_hex(), 8).unwrap();
-        let a = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::TESTNET_CHAIN_ID).unwrap();
-        let b = sign_payable_call(&seed_hex(), 7, &target, "deadbeef", 3, 21_000, "1000000", "250000", qtv_tx::MAINNET_CHAIN_ID).unwrap();
+        let target = address(seed_hex(), 8).unwrap();
+        let a = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::TESTNET_CHAIN_ID,
+        )
+        .unwrap();
+        let b = sign_payable_call(
+            seed_hex(),
+            7,
+            &target,
+            "deadbeef",
+            3,
+            21_000,
+            "1000000",
+            "250000",
+            qtv_tx::MAINNET_CHAIN_ID,
+        )
+        .unwrap();
         assert_ne!(a, b);
     }
 }
