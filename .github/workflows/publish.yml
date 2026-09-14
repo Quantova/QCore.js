@@ -20,22 +20,37 @@ jobs:
         with:
           path: QCore.js
           persist-credentials: false
+      - name: resolve cross repo pins
+        id: pins
+        shell: bash
+        run: |
+          pin() { awk -v k="$1" '$1==k{print $2}' QCore.js/cross-repo-pins; }
+          for k in QCore.rs Quantova-Chain QVM; do
+            v=$(pin "$k")
+            case "$v" in
+              [0-9a-f]*) : ;;
+              *) echo "cross-repo-pins is missing a commit for $k" >&2; exit 1 ;;
+            esac
+          done
+          echo "qcore_rs=$(pin QCore.rs)" >> "$GITHUB_OUTPUT"
+          echo "quantova_chain=$(pin Quantova-Chain)" >> "$GITHUB_OUTPUT"
+          echo "qvm=$(pin QVM)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QCore.rs
-          ref: main
+          ref: ${{ steps.pins.outputs.qcore_rs }}
           path: QCore.rs
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/Quantova-Chain
-          ref: main
+          ref: ${{ steps.pins.outputs.quantova_chain }}
           path: Quantova-Chain
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Quantova/QVM
-          ref: main
+          ref: ${{ steps.pins.outputs.qvm }}
           path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
