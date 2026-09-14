@@ -5,7 +5,7 @@
 # cargo git dependency pinned in Cargo.lock at the same rev; the others enter by path
 # dependency and are checked out here. Keep these in step with Cargo.lock.
 
-Q-Crypto        292594d18080179e304576164f44703d410d919f
+Q-Crypto        bfee34d4b655d2e94a2615fd5005ed7253fa0028
 Quantova-Chain  2ec106731300355424d873c7d666ac15e9ee5be4
 QVM             db3c3b557c13bd2389b024cca4a2f747e44db5f9
 QCore.rs        691c323baf6573dcc31cbb7bb4fd63a29f231b0d

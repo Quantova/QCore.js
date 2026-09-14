@@ -277,8 +277,6 @@ function makeClient(core) {
     head() { return this._call('head', '{}'); }
     async account(address) {
       const acct = await this._call('get_account', core.account_body(address));
-      // The gateway echoes the address it answered for. A lying gateway that returns
-      // another account's nonce is caught here before we ever sign against it.
       if (acct && acct.address != null && acct.address !== address) {
         throw new Error(`the gateway answered for ${acct.address} when asked about ${address}, refusing to trust it`);
       }
@@ -302,10 +300,6 @@ function makeClient(core) {
 
     address(seedHex, index) { return core.address(seedHex, accountIndex(index)); }
 
-    // A signed transaction has no expiry, so a nonce the gateway invents at a future
-    // value is a standing authorization it can broadcast later for a second payment.
-    // Pass expectedNonce to make the SDK refuse a regression or a large forward jump
-    // rather than blindly signing whatever the gateway reports.
     async transfer(seedHex, index, to, amount, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(to)) throw new Error('the recipient is not a q1 address');
       checkAmount(amount);
