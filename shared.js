@@ -275,7 +275,24 @@ function makeClient(core) {
 
     nodeInfo() { return this._call('node_info', '{}'); }
     head() { return this._call('head', '{}'); }
-    account(address) { return this._call('get_account', core.account_body(address)); }
+    async account(address) {
+      const acct = await this._call('get_account', core.account_body(address));
+      // The gateway echoes the address it answered for. A lying gateway that returns
+      // another account's nonce is caught here before we ever sign against it.
+      if (acct && acct.address != null && acct.address !== address) {
+        throw new Error(`the gateway answered for ${acct.address} when asked about ${address}, refusing to trust it`);
+      }
+      return acct;
+    }
+    _checkedNonce(reported, expected) {
+      const n = accountNonce(reported);
+      if (expected != null) {
+        const e = BigInt(expected);
+        if (n < e) throw new Error(`the gateway reported nonce ${n} below the expected ${e}; refusing so a replayed lower nonce cannot force a second payment`);
+        if (n > e + 16n) throw new Error(`the gateway reported nonce ${n} far above the expected ${e}; refusing`);
+      }
+      return n;
+    }
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
     block(height) { return this._call('get_block', core.block_by_height_body(BigInt(height))); }
     submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex)); }
@@ -285,7 +302,11 @@ function makeClient(core) {
 
     address(seedHex, index) { return core.address(seedHex, accountIndex(index)); }
 
-    async transfer(seedHex, index, to, amount, maxFeeQuon) {
+    // A signed transaction has no expiry, so a nonce the gateway invents at a future
+    // value is a standing authorization it can broadcast later for a second payment.
+    // Pass expectedNonce to make the SDK refuse a regression or a large forward jump
+    // rather than blindly signing whatever the gateway reports.
+    async transfer(seedHex, index, to, amount, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(to)) throw new Error('the recipient is not a q1 address');
       checkAmount(amount);
       const ceiling = feeCeiling(maxFeeQuon);
@@ -300,8 +321,9 @@ function makeClient(core) {
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
+      const nonce = this._checkedNonce(acct.nonce, expectedNonce);
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), accountNonce(acct.nonce), String(fee), chainId)
+        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId)
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
