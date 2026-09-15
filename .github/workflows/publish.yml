@@ -32,6 +32,11 @@ jobs:
               *) echo "cross-repo-pins is missing a commit for $k" >&2; exit 1 ;;
             esac
           done
+          lock_qc=$(grep -oE "Q-Crypto\\.git\\?rev=[0-9a-f]+" QCore.js/Cargo.lock | head -1 | sed "s/.*rev=//")
+          pins_qc=$(pin Q-Crypto)
+          if [ -n "$lock_qc" ] && [ "$lock_qc" != "$pins_qc" ]; then
+            echo "cross-repo-pins Q-Crypto $pins_qc disagrees with Cargo.lock $lock_qc" >&2; exit 1
+          fi
           echo "qcore_rs=$(pin QCore.rs)" >> "$GITHUB_OUTPUT"
           echo "quantova_chain=$(pin Quantova-Chain)" >> "$GITHUB_OUTPUT"
           echo "qvm=$(pin QVM)" >> "$GITHUB_OUTPUT"
