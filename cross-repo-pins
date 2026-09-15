@@ -6,6 +6,6 @@
 # dependency and are checked out here. Keep these in step with Cargo.lock.
 
 Q-Crypto        bfee34d4b655d2e94a2615fd5005ed7253fa0028
-Quantova-Chain  f522b0ebbf352f0211046eed3e43dc5a2ab5e74e
+Quantova-Chain  e323acc4aa73a0b4e8a8bae29c08c54fcc590567
 QVM             99531ec3c23a694c249fa22a75e541a95c75e442
-QCore.rs        9e3f413115068e4f647aedbcd397c3cba177f20c
+QCore.rs        3b7a6b9c2c57dcc5cda4f59db59321926254799f
