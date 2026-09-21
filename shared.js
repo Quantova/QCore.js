@@ -277,7 +277,13 @@ function makeClient(core) {
     head() { return this._call('head', '{}'); }
     async account(address) {
       const acct = await this._call('get_account', core.account_body(address));
-      if (acct && acct.address != null && acct.address !== address) {
+      // The field must be PRESENT and match. Allowing it to be absent let a gateway skip
+      // the check entirely by omitting it, which is the one control that contains a
+      // remote gateway operator, and this transport permits any https host.
+      if (!acct || typeof acct.address !== 'string') {
+        throw new Error(`the gateway answered about ${address} without naming the account, refusing to trust it`);
+      }
+      if (acct.address !== address) {
         throw new Error(`the gateway answered for ${acct.address} when asked about ${address}, refusing to trust it`);
       }
       return acct;
