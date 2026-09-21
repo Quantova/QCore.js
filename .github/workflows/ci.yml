@@ -57,9 +57,4 @@ jobs:
           cargo deny --locked check bans sources advisories
       - name: test
         working-directory: QCore.js
-        run: |
-          node test-conformance.js
-          node test-sign-validate.js
-          node test-transport.js
-          node test-fee-cap.js
-          node test-network.js
+        run: npm test

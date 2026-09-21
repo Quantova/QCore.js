@@ -14,12 +14,12 @@ const deployer = core.address(seedHex, 0n);
 const contract = core.contractAddress(deployer, 0n);
 const to = 'ab'.repeat(32);
 const fields = JSON.stringify([
-  { offset: 128, width: 16, value: '18446744073709551716' },
-  { offset: 80, width: 32, value: to },
+  { offset: 136, width: 16, value: '18446744073709551716' },
+  { offset: 152, width: 32, value: to },
 ]);
 
 const res = JSON.parse(
-  core.buildTypedOrderCall(core.localChainId(), contract, '3eccb9bc', 112n, 120n, 0n, fields, seedHex, 0n, 0n)
+  core.buildTypedOrderCall(core.localChainId(), contract, '3eccb9bc', 120n, 128n, 0n, fields, seedHex, 0n, 0n)
 );
 const msg = Buffer.from(res.message, 'hex');
 

@@ -71,9 +71,5 @@ jobs:
       - name: test and publish
         working-directory: QCore.js
         run: |
-          node test-conformance.js
-          node test-sign-validate.js
-          node test-transport.js
-          node test-fee-cap.js
-          node test-asset-guards.js
+          npm test
           npm publish --provenance --access public
