@@ -46,5 +46,16 @@ async function sign(c, expected) {
     'the matching nonce must be allowed through');
   console.log('  ok   the expected nonce signs');
 
+  const local = client(0n);
+  local._remember('k', 4n, { verdict: 'accepted' });
+  assert.strictEqual(local._checkedNonce(4n, null, 'k'), 4n,
+    'a submission that never landed must not push the next one past the nonce the chain admits');
+  assert.strictEqual(local._checkedNonce(5n, null, 'k'), 5n);
+  threw = null;
+  try { local._checkedNonce(6n, null, 'k'); } catch (e) { threw = e.message; }
+  assert(threw && threw.includes('above the expected'),
+    'a gateway nonce above the local one must still be refused');
+  console.log('  ok   the local nonce bounds the gateway without outrunning the chain');
+
   console.log('\norder nonce: the caller can bind what the gateway may report');
 })();

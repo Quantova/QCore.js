@@ -326,7 +326,7 @@ function makeClient(core) {
       const e = expected != null ? BigInt(expected) : local;
       if (e == null) return n;
       if (n > e) throw new Error(`the gateway reported nonce ${n} above the expected ${e}; refusing so a signature cannot be banked for a nonce the account has not reached`);
-      return e;
+      return expected != null ? e : n;
     }
 
     _remember(key, used, outcome) {
