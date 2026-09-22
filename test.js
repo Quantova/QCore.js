@@ -6,7 +6,7 @@ const { Client, core } = require('./index.js');
 (async () => {
   const url = process.argv[2] || 'http://127.0.0.1:8645';
   const client = new Client(url);
-  const seed = '0b'.repeat(32); // the [11; 32] seed the proof accounts derive from
+  const seed = '0b'.repeat(32);
 
   const info = await client.nodeInfo();
   console.log('network', info.chain_id, 'fee', info.fee.transfer_quon, info.denomination);

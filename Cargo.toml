@@ -13,11 +13,9 @@ repository = "https://github.com/Quantova/QCore-JS"
 crate-type = ["cdylib"]
 
 [dependencies]
-# The one core. Its pure part, no input or output, is what compiles to WebAssembly, so
-# the client feature is off and the browser does the transport.
 qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
 qtv-wipe = { path = "../Quantova-Chain/crates/qtv-wipe" }
 qtv-tx = { path = "../Quantova-Chain/crates/qtv-tx" }
 qtv-idfmt = { path = "../Quantova-Chain/crates/qtv-idfmt" }
-qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "cf5ec8f2e884a7dda052fe04f38ef6a0c1dbd055" }
+qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "37a7a4963888a4bb0854d346583e26928659aa63" }

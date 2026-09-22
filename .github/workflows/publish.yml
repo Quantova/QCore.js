@@ -16,7 +16,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           path: QCore.js
           persist-credentials: false
@@ -40,25 +40,25 @@ jobs:
           echo "qcore_rs=$(pin QCore.rs)" >> "$GITHUB_OUTPUT"
           echo "quantova_chain=$(pin Quantova-Chain)" >> "$GITHUB_OUTPUT"
           echo "qvm=$(pin QVM)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QCore.rs
           ref: ${{ steps.pins.outputs.qcore_rs }}
           path: QCore.rs
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/Quantova-Chain
           ref: ${{ steps.pins.outputs.quantova_chain }}
           path: Quantova-Chain
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QVM
           ref: ${{ steps.pins.outputs.qvm }}
           path: QVM
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org

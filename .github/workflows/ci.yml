@@ -15,33 +15,29 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      # Build the wasm from the Rust source, which lives across sibling repos, so the tests exercise
-      # what the source produces rather than a committed binary. A blob that leaks a key or signs a
-      # foreign payload but still passes the javascript conformance tests would otherwise slip past
-      # review and reach a release.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           path: QCore.js
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QCore.rs
-          ref: main
+          ref: 9e1b3499367c7b3365825c507606538cd2d00c2b
           path: QCore.rs
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/Quantova-Chain
-          ref: main
+          ref: 4681364131c46c33e2c84d5fc501d5acc01b2be8
           path: Quantova-Chain
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QVM
-          ref: main
+          ref: 62fadd4ced98c4c4eb5042391aba54dabac51431
           path: QVM
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 20
       - name: rebuild wasm from source

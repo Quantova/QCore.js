@@ -1,10 +1,5 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-//
-// index.d.ts is named as `types` in package.json and ships in the published tarball,
-// so a syntax error in it breaks every TypeScript consumer of the package while every
-// JavaScript test still passes. One shipped that way: a stray comma left by an edit to
-// callSignedOrder made the whole declaration file unparseable.
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');

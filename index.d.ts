@@ -173,7 +173,6 @@ export class Network {
 export interface ClientOptions {
   acknowledgeMainnet?: boolean;
   network?: Network;
-  /** Bind signatures to this chain name; a gateway reporting any other is refused. */
   expectedChainId?: string;
 }
 

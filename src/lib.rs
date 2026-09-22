@@ -4,8 +4,6 @@
 use qtv_wipe::{Zeroize, Zeroizing};
 use wasm_bindgen::prelude::*;
 
-/// Takes the hex BY VALUE so it can be wiped. A borrowed `&str` leaves the caller's
-/// seed sitting in wasm linear memory for the life of the page.
 fn seed(mut seed_hex: String) -> Result<Zeroizing<[u8; 32]>, JsError> {
     let parsed = qcore::json::from_hex(&seed_hex);
     seed_hex.zeroize();
@@ -48,8 +46,6 @@ pub fn mnemonic_from_seed(seed_hex: String) -> Result<JsValue, JsError> {
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
 pub fn seed_from_mnemonic(mut phrase: String) -> Result<JsValue, JsError> {
-    // A recovery phrase is the seed in another form, so it is taken by value and wiped
-    // rather than left in wasm memory. The hex this returns is the caller's to hold.
     let derived = qcore::seed_from_mnemonic(&phrase);
     phrase.zeroize();
     let seed = derived.map_err(|e| JsError::new(&e))?;

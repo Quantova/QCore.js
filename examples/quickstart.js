@@ -30,7 +30,6 @@ async function main() {
 
   const client = new Client(GATEWAY);
 
-  // A new account holds nothing, so take testnet funds before anything else.
   const claim = await fetch(GATEWAY + '/faucet/api/claim', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -49,7 +48,6 @@ async function main() {
   }
   console.log('balance', funded.balance);
 
-  // An account publishes its key once before it is allowed to send.
   await client.register(seed, 0, MAX_FEE_QUON);
   const ready = await settle(client, from, (a) => a.has_key);
   if (!ready) {

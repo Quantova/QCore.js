@@ -1,10 +1,5 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-//
-// The owner order authorisation carries no deadline, so the contract nonce is the
-// only term that expires it. Reading that nonce from the gateway lets the endpoint
-// the signature protects against pick a future value and bank a valid order until
-// the counter reaches it. expectedOrderNonce binds what the caller meant to sign.
 const assert = require('assert');
 const { makeClient } = require('./shared.js');
 const core = require('./pkg-node/qcore_js.js');

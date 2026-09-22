@@ -1,11 +1,4 @@
-# Cross repo pins. One dependency per line, the repository then the exact commit a
-# published build resolves to. The wasm is rebuilt from these sibling commits in the
-# publish workflow rather than from a moving `main`, so a malicious commit on a sibling
-# main cannot become a signed, provenance badged npm release. Q-Crypto enters through a
-# cargo git dependency pinned in Cargo.lock at the same rev; the others enter by path
-# dependency and are checked out here. Keep these in step with Cargo.lock.
-
-Q-Crypto        cf5ec8f2e884a7dda052fe04f38ef6a0c1dbd055
-Quantova-Chain  f2e7538b003bd7e279f347981993f59485a71e56
-QVM             0026c817d09da828b458d2d82b89ae1c7afc151c
-QCore.rs        5c659587c4c4528d09910e81a0051c3b340652f5
+Q-Crypto        37a7a4963888a4bb0854d346583e26928659aa63
+Quantova-Chain  4681364131c46c33e2c84d5fc501d5acc01b2be8
+QVM             62fadd4ced98c4c4eb5042391aba54dabac51431
+QCore.rs        9e1b3499367c7b3365825c507606538cd2d00c2b

@@ -114,7 +114,7 @@ async function readBounded(res) {
     if (done) break;
     total += value.byteLength;
     if (total > MAX_RESPONSE) {
-      try { await reader.cancel(); } catch { /* already closing */ }
+      try { await reader.cancel(); } catch {}
       throw new Error('the response is too large');
     }
     chunks.push(value);
@@ -229,12 +229,6 @@ function makeClient(core) {
         this.network = opts.network instanceof Network ? opts.network : Network.forUrl(base);
       }
       this.base = requireSafeTransport(base).replace(/\/$/, '');
-      // The chain name the gateway reports is hashed into the signature preimage of
-      // every signing path, so whoever names it decides which network a signature is
-      // valid on. `Network.forUrl` leaves chainId null, which is the default for
-      // `new Client(url)`, and the configured check is skipped when it is null, so by
-      // default the endpoint chose. Bind it with expectedChainId, or rely on the pin,
-      // which at least refuses a gateway that changes its mind mid session.
       this.expectedChainId =
         typeof opts.expectedChainId === 'string' && opts.expectedChainId.length > 0
           ? opts.expectedChainId
@@ -262,12 +256,6 @@ function makeClient(core) {
       if (!this.acknowledgeMainnet && this._isMainnetId(id)) {
         throw new Error(`the gateway reports the mainnet chain ${name}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
-      // Pin on first ACCEPTED use, after every refusal above. With nothing configured
-      // the endpoint names the chain, and the least this can do is refuse one that
-      // answers differently later in the same session, which is how a signature ends
-      // up bound to a network the caller never chose while every earlier call looked
-      // entirely normal. Pinning a name we refused to sign for would be wrong: it was
-      // never a chain this client accepted.
       if (this._pinnedChainName === null) {
         this._pinnedChainName = name;
       } else if (this._pinnedChainName !== name) {
@@ -308,9 +296,6 @@ function makeClient(core) {
     head() { return this._call('head', '{}'); }
     async account(address) {
       const acct = await this._call('get_account', core.account_body(address));
-      // The field must be PRESENT and match. Allowing it to be absent let a gateway skip
-      // the check entirely by omitting it, which is the one control that contains a
-      // remote gateway operator, and this transport permits any https host.
       if (!acct || typeof acct.address !== 'string') {
         throw new Error(`the gateway answered about ${address} without naming the account, refusing to trust it`);
       }
@@ -499,12 +484,6 @@ function makeClient(core) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
-      // The owner authorisation carries no deadline, so this nonce is the only thing
-      // that stops it being replayed. Reading it from the gateway hands the party the
-      // signature protects against the one term that expires it: answer with a future
-      // nonce and the reply is a valid order banked until the contract counter reaches
-      // it. Pass expectedOrderNonce to bind what you meant to sign; without it you are
-      // trusting the endpoint with the owner key.
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
       if (expectedOrderNonce != null && BigInt(expectedOrderNonce) !== reportedOrder) {
