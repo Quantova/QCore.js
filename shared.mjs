@@ -545,4 +545,4 @@ function makeClient(core) {
   };
 }
 
-module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, validUntil, vmCallFee, VALIDITY_BLOCKS, Network };
+export { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, validUntil, vmCallFee, VALIDITY_BLOCKS, Network };

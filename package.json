@@ -66,6 +66,7 @@
     "index.js",
     "browser.mjs",
     "shared.js",
+    "shared.mjs",
     "index.d.ts",
     "pkg-node/qcore_js.js",
     "pkg-node/qcore_js_bg.wasm",
