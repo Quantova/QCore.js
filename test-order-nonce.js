@@ -52,5 +52,20 @@ async function sign(c, expected) {
     'a gateway nonce above the local one must still be refused');
   console.log('  ok   the local nonce bounds the gateway without outrunning the chain');
 
+  const Client = makeClient(core);
+  const keyed = new Client('https://example.invalid/v1/');
+  const signer = 'cc'.repeat(32);
+  const want = core.nonceSlotKey(signer);
+  let asked = null;
+  keyed._call = async (method, body) => {
+    asked = { method, body: JSON.parse(body) };
+    return { address: CONTRACT, slots: [{ slot: want, value: '9' }] };
+  };
+  assert.strictEqual(await keyed.contractNonce(CONTRACT, signer), 9n);
+  assert.strictEqual(asked.method, 'get_storage_at',
+    'the nonce is read by its own key, a full storage listing is capped and can miss it');
+  assert.deepStrictEqual(asked.body.keys, [want]);
+  console.log('  ok   the order nonce is read by its own key');
+
   console.log('\norder nonce: the caller can bind what the gateway may report');
 })();

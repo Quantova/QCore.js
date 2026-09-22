@@ -477,14 +477,17 @@ function makeClient(core) {
       return { signed, outcome };
     }
 
+    async _slotValue(contract, key) {
+      const resp = await this._call('get_storage_at', JSON.stringify({ address: contract, keys: [key] }));
+      return BigInt(core.storageValue(JSON.stringify(resp), key));
+    }
+
     async contractNonce(contract, signerHex) {
-      const resp = await this._call('get_storage', core.storageBody(contract));
-      return BigInt(core.storageValue(JSON.stringify(resp), core.nonceSlotKey(signerHex)));
+      return this._slotValue(contract, core.nonceSlotKey(signerHex));
     }
 
     async contractScalar(contract, slot) {
-      const resp = await this._call('get_storage', core.storageBody(contract));
-      return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
+      return this._slotValue(contract, core.scalarSlotKey(BigInt(slot)));
     }
 
     async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce, expectedNonce) {
