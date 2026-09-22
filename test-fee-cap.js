@@ -121,6 +121,15 @@ function fail(msg) {
   const agreed = await client.call(seed, 0, to, '01', 21000n, '1000000', 0n);
   if (agreed.outcome.verdict !== 'accepted') fail('an agreed expected nonce signs');
 
+  for (const meter of [-1n, 1n << 64n, 2 ** 60]) {
+    let refusedMeter = false;
+    const beforeMeter = submitted;
+    try { await client.call(seed, 0, to, '01', meter, '100000000000', 0n); }
+    catch (e) { refusedMeter = true; if (!/meter limit/.test(e.message)) fail('unclear meter limit error: ' + e.message); }
+    if (!refusedMeter) fail('a meter limit outside the unsigned 64 bit range must be refused: ' + meter);
+    if (submitted !== beforeMeter) fail('a refused meter limit must never submit');
+  }
+
   server.close();
   console.log('fee ceiling: all cases passed');
 })();

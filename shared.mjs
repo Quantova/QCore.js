@@ -57,8 +57,24 @@ const HEAD_BLOCKS_PER_SEC = 4n;
 const HEAD_SLACK_SECS = 60n;
 const TRANSFER_METER = 1210n;
 
+function meterLimitOf(meterLimit) {
+  if (typeof meterLimit === 'number' && !Number.isSafeInteger(meterLimit)) {
+    throw new Error('the meter limit must be a whole number in the safe integer range');
+  }
+  let meter;
+  try {
+    meter = BigInt(meterLimit);
+  } catch {
+    throw new Error('the meter limit must be a whole number');
+  }
+  if (meter < 0n || meter > 0xffffffffffffffffn) {
+    throw new Error('the meter limit must fit in an unsigned 64 bit integer');
+  }
+  return meter;
+}
+
 function vmCallFee(transferFee, meterLimit) {
-  const meter = BigInt(meterLimit);
+  const meter = meterLimitOf(meterLimit);
   let units = (meter + TRANSFER_METER - 1n) / TRANSFER_METER;
   if (units < 1n) units = 1n;
   return BigInt(transferFee) * units;
@@ -403,7 +419,7 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, BigInt(meterLimit), String(fee), chainId, this._validity(info))
+        core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
@@ -429,7 +445,7 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, BigInt(meterLimit), String(fee), chainId, this._validity(info))
+        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
@@ -454,7 +470,7 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, BigInt(meterLimit), String(fee), String(value), chainId, this._validity(info))
+        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, this._validity(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
@@ -514,7 +530,7 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const accountNonceUsed = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, BigInt(meterLimit), String(fee), chainId, this._validity(info))
+        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, accountNonceUsed, outcome);
