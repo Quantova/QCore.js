@@ -254,3 +254,5 @@ export class Client {
 export const core: QCore;
 
 export function generateSeed(): string;
+
+export function validUntil(nodeInfo: { head_height?: number | string | bigint }): bigint;

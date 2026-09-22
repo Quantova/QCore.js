@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 const core = require('./pkg-node/qcore_js.js');
-const { makeClient, generateSeed, Network } = require('./shared.js');
+const { makeClient, generateSeed, validUntil, Network } = require('./shared.js');
 
 const Client = makeClient(core);
 
-module.exports = { Client, core, generateSeed, Network };
+module.exports = { Client, core, generateSeed, validUntil, Network };
