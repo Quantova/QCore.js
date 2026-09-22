@@ -51,6 +51,26 @@ function accountNonce(nonce) {
   return n;
 }
 
+const VALIDITY_BLOCKS = 300n;
+
+function validUntil(info) {
+  const head = info && info.head_height;
+  if (head == null) throw new Error('the gateway did not report a head height to bound the transaction to');
+  if (typeof head === 'number' && !Number.isSafeInteger(head)) {
+    throw new Error('the gateway reported a head height outside the safe integer range');
+  }
+  let h;
+  try {
+    h = BigInt(head);
+  } catch {
+    throw new Error('the gateway reported a head height that is not a whole number');
+  }
+  if (h < 0n || h > 0xffffffffffffffffn - VALIDITY_BLOCKS) {
+    throw new Error('the gateway reported a head height outside the unsigned 64 bit range');
+  }
+  return h + VALIDITY_BLOCKS;
+}
+
 function gatewayFee(fee) {
   if (typeof fee === 'number' && !Number.isSafeInteger(fee)) {
     throw new Error('the gateway reported a fee outside the safe integer range, a number that large silently rounds and would sign a different fee');
@@ -323,13 +343,13 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce);
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId)
+        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId, validUntil(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
 
-    async register(seedHex, index, maxFeeQuon) {
+    async register(seedHex, index, maxFeeQuon, expectedNonce) {
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
       this._guardMainnet();
@@ -342,12 +362,13 @@ function makeClient(core) {
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), accountNonce(acct.nonce), String(fee), chainId));
+      const nonce = this._checkedNonce(acct.nonce, expectedNonce);
+      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), nonce, String(fee), chainId, validUntil(info)));
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
 
-    async call(seedHex, index, target, argsHex, meterLimit, maxFeeQuon) {
+    async call(seedHex, index, target, argsHex, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
@@ -362,13 +383,13 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(seedHex, accountIndex(index), target, argsHex, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(seedHex, accountIndex(index), target, argsHex, this._checkedNonce(acct.nonce, expectedNonce), BigInt(meterLimit), String(fee), chainId, validUntil(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
 
-    async assetCall(seedHex, index, target, argsHex, assetIssuer, amount, meterLimit, maxFeeQuon) {
+    async assetCall(seedHex, index, target, argsHex, assetIssuer, amount, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       if (!core.valid_address(assetIssuer)) throw new Error('the asset issuer is not a q1 address');
       checkAmount(amount);
@@ -385,13 +406,13 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), this._checkedNonce(acct.nonce, expectedNonce), BigInt(meterLimit), String(fee), chainId, validUntil(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
     }
 
-    async payableCall(seedHex, index, target, argsHex, value, meterLimit, maxFeeQuon) {
+    async payableCall(seedHex, index, target, argsHex, value, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       checkAmount(value);
       const ceiling = feeCeiling(maxFeeQuon);
@@ -407,7 +428,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), String(value), chainId)
+        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, this._checkedNonce(acct.nonce, expectedNonce), BigInt(meterLimit), String(fee), String(value), chainId, validUntil(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       return { signed, outcome };
@@ -423,7 +444,7 @@ function makeClient(core) {
       return BigInt(core.storageValue(JSON.stringify(resp), core.scalarSlotKey(BigInt(slot))));
     }
 
-    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce) {
+    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce, expectedNonce) {
       if (!core.valid_address(contract)) throw new Error('the contract is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
       const info = await this.nodeInfo();
@@ -463,7 +484,7 @@ function makeClient(core) {
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonce(acct.nonce), BigInt(meterLimit), String(fee), chainId)
+        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, this._checkedNonce(acct.nonce, expectedNonce), BigInt(meterLimit), String(fee), chainId, validUntil(info))
       );
       const outcome = await this.submit(signed.tx_hex);
       return { order, signed, outcome, orderNonce: nonce };
@@ -471,4 +492,4 @@ function makeClient(core) {
   };
 }
 
-module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, Network };
+module.exports = { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, validUntil, VALIDITY_BLOCKS, Network };

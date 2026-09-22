@@ -29,7 +29,7 @@ export function mapAddrWordKey(map_domain_tag: bigint, key32_hex: string, word: 
 
 export function mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
 
-export function mnemonicFromSeed(seed_hex: string): string;
+export function mnemonicFromSeed(seed_hex: string): any;
 
 export function nameKey(label: string): string;
 
@@ -43,17 +43,17 @@ export function parseEvents(response: string): string;
 
 export function scalarSlotKey(slot: bigint): string;
 
-export function seedFromMnemonic(phrase: string): string;
+export function seedFromMnemonic(phrase: string): any;
 
-export function signAssetCall(seed_hex: string, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint): string;
+export function signAssetCall(seed_hex: string, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
-export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint): string;
+export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint): string;
 
-export function signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint): string;
+export function signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
-export function sign_call(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint): string;
+export function sign_call(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
-export function sign_transfer(seed_hex: string, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint): string;
+export function sign_transfer(seed_hex: string, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
 export function storageBody(contract: string): string;
 

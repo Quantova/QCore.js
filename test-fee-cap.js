@@ -90,6 +90,30 @@ function fail(msg) {
   const okNonce = await client.transfer(seed, 0, to, '1000', '1000000');
   if (okNonce.outcome.verdict !== 'accepted' || submitted !== held + 1) fail('a normal nonce must still submit');
 
+  const { core } = require('./index.js');
+  const chainId = core.chainIdFromName('Q-test-net-1');
+  const bounded = await client.transfer(seed, 0, to, '1000', '1000000');
+  const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n));
+  if (bounded.signed.tx_hex !== expected.tx_hex) fail('a client transfer must expire 300 blocks past the head');
+  const unbounded = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n));
+  if (unbounded.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
+
+  const before = submitted;
+  const paths = [
+    () => client.call(seed, 0, to, '01', 21000n, '1000000', 5n),
+    () => client.payableCall(seed, 0, to, '01', '0', 21000n, '1000000', 5n),
+    () => client.register(seed, 0, '1000000', 5n),
+  ];
+  for (const path of paths) {
+    let refusedNonce = false;
+    try { await path(); }
+    catch (e) { refusedNonce = true; if (!/below the expected/.test(e.message)) fail('unclear expected nonce error: ' + e.message); }
+    if (!refusedNonce) fail('an expected nonce the gateway contradicts must be refused');
+  }
+  if (submitted !== before) fail('a contradicted expected nonce must never submit');
+  const agreed = await client.call(seed, 0, to, '01', 21000n, '1000000', 0n);
+  if (agreed.outcome.verdict !== 'accepted') fail('an agreed expected nonce signs');
+
   server.close();
   console.log('fee ceiling: all cases passed');
 })();

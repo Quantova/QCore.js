@@ -19,7 +19,5 @@ qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
 qtv-wipe = { path = "../Quantova-Chain/crates/qtv-wipe" }
 qtv-tx = { path = "../Quantova-Chain/crates/qtv-tx" }
-qtv-account = { path = "../Quantova-Chain/crates/qtv-account" }
-qtv-codec = { path = "../Quantova-Chain/crates/qtv-codec" }
 qtv-idfmt = { path = "../Quantova-Chain/crates/qtv-idfmt" }
 qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "986b7f75417ff0731bedb940e03e9ff0ebd55bec" }

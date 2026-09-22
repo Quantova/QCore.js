@@ -41,18 +41,20 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 }
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
-pub fn mnemonic_from_seed(seed_hex: String) -> Result<String, JsError> {
-    Ok(qcore::mnemonic_from_seed(&*seed(seed_hex)?))
+pub fn mnemonic_from_seed(seed_hex: String) -> Result<JsValue, JsError> {
+    let phrase = Zeroizing::new(qcore::mnemonic_from_seed(&*seed(seed_hex)?));
+    Ok(JsValue::from_str(&phrase))
 }
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
-pub fn seed_from_mnemonic(mut phrase: String) -> Result<String, JsError> {
+pub fn seed_from_mnemonic(mut phrase: String) -> Result<JsValue, JsError> {
     // A recovery phrase is the seed in another form, so it is taken by value and wiped
     // rather than left in wasm memory. The hex this returns is the caller's to hold.
     let derived = qcore::seed_from_mnemonic(&phrase);
     phrase.zeroize();
     let seed = derived.map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::to_hex(&seed[..]))
+    let hex = Zeroizing::new(qcore::json::to_hex(&seed[..]));
+    Ok(JsValue::from_str(&hex))
 }
 
 #[wasm_bindgen]
@@ -65,6 +67,7 @@ pub fn sign_transfer(
     nonce: u64,
     fee: &str,
     chain_id: u64,
+    valid_until: u64,
 ) -> Result<String, JsError> {
     if !qcore::valid_address(to) {
         return Err(JsError::new("the recipient is not a q1 address"));
@@ -75,8 +78,17 @@ pub fn sign_transfer(
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_transfer(&*seed(seed_hex)?, index, to, amount, nonce, fee, chain_id)
-        .map_err(|e| JsError::new(&e))?;
+    let signed = qcore::sign_transfer(
+        &*seed(seed_hex)?,
+        index,
+        to,
+        amount,
+        nonce,
+        fee,
+        chain_id,
+        valid_until,
+    )
+    .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
         ("tx_id", qcore::json::Json::str(signed.tx_id)),
@@ -95,11 +107,12 @@ pub fn sign_register(
     nonce: u64,
     fee: &str,
     chain_id: u64,
+    valid_until: u64,
 ) -> Result<String, JsError> {
     let fee: u128 = fee
         .parse()
         .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_register(&*seed(seed_hex)?, index, nonce, fee, chain_id)
+    let signed = qcore::sign_register(&*seed(seed_hex)?, index, nonce, fee, chain_id, valid_until)
         .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
         ("from", qcore::json::Json::str(signed.from)),
@@ -123,6 +136,7 @@ pub fn sign_call(
     meter_limit: u64,
     fee: &str,
     chain_id: u64,
+    valid_until: u64,
 ) -> Result<String, JsError> {
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
@@ -140,6 +154,7 @@ pub fn sign_call(
         meter_limit,
         fee,
         chain_id,
+        valid_until,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
@@ -495,6 +510,7 @@ pub fn sign_payable_call(
     fee: &str,
     value: &str,
     chain_id: u64,
+    valid_until: u64,
 ) -> Result<String, JsError> {
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
@@ -507,28 +523,25 @@ pub fn sign_payable_call(
         .parse()
         .map_err(|_| JsError::new("value is a whole number string"))?;
 
-    // The body and the signature come from the one canonical signer in qtv-tx, the same path
-    // QCore.rs and QCore.py sign through, so the wire is never hand assembled a second time here.
-    let sender = qtv_account::derive(&*seed(seed_hex)?, index);
-    let call = qtv_tx::Call::new(target.to_string(), args);
-    let body = qtv_tx::Body::with_context(
-        sender.address(),
+    let signed = qcore::sign_payable_call(
+        &*seed(seed_hex)?,
+        index,
+        target,
+        args,
+        value,
         nonce,
         meter_limit,
         fee,
-        call,
-        value,
         chain_id,
-    );
-    let wrapper = qtv_tx::sign(&sender, &body);
-    let tx_bytes = qtv_codec::to_bytes(&wrapper);
-
+        valid_until,
+    )
+    .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(sender.address())),
-        ("tx_id", qcore::json::Json::str(wrapper.id())),
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
         (
             "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&tx_bytes)),
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
         ),
     ])
     .render())
@@ -547,6 +560,7 @@ pub fn sign_asset_call(
     meter_limit: u64,
     fee: &str,
     chain_id: u64,
+    valid_until: u64,
 ) -> Result<String, JsError> {
     let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
     let fee: u128 = fee
@@ -566,6 +580,7 @@ pub fn sign_asset_call(
         meter_limit,
         fee,
         chain_id,
+        valid_until,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
@@ -618,6 +633,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         let second = sign_payable_call(
@@ -630,6 +646,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         assert_eq!(first, second);
@@ -651,6 +668,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         let signed_upper = sign_payable_call(
@@ -663,6 +681,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         assert_eq!(signed_lower, signed_upper);
@@ -681,6 +700,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         let b = sign_payable_call(
@@ -693,6 +713,7 @@ mod payable_tests {
             "1000000",
             "250001",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         assert_ne!(a, b);
@@ -711,6 +732,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         let b = sign_payable_call(
@@ -723,6 +745,7 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::MAINNET_CHAIN_ID,
+            0,
         )
         .unwrap();
         assert_ne!(a, b);

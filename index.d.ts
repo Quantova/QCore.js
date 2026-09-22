@@ -104,6 +104,7 @@ export interface QCore {
     fee: string,
     value: string,
     chain_id: bigint,
+    valid_until: bigint,
   ): string;
   signAssetCall(
     seed_hex: string,
@@ -116,8 +117,16 @@ export interface QCore {
     meter_limit: bigint,
     fee: string,
     chain_id: bigint,
+    valid_until: bigint,
   ): string;
-  signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint): string;
+  signRegister(
+    seed_hex: string,
+    index: bigint,
+    nonce: bigint,
+    fee: string,
+    chain_id: bigint,
+    valid_until: bigint,
+  ): string;
   sign_call(
     seed_hex: string,
     index: bigint,
@@ -127,6 +136,7 @@ export interface QCore {
     meter_limit: bigint,
     fee: string,
     chain_id: bigint,
+    valid_until: bigint,
   ): string;
   sign_transfer(
     seed_hex: string,
@@ -136,6 +146,7 @@ export interface QCore {
     nonce: bigint,
     fee: string,
     chain_id: bigint,
+    valid_until: bigint,
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
@@ -185,11 +196,13 @@ export class Client {
     to: string,
     amount: string | bigint,
     maxFeeQuon: string | bigint,
+    expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   register(
     seedHex: string,
     index: number,
     maxFeeQuon: string | bigint,
+    expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   call(
     seedHex: string,
@@ -198,6 +211,7 @@ export class Client {
     argsHex: string,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
+    expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   assetCall(
     seedHex: string,
@@ -208,6 +222,7 @@ export class Client {
     amount: string | bigint,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
+    expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   payableCall(
     seedHex: string,
@@ -217,6 +232,7 @@ export class Client {
     value: string | bigint,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
+    expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   contractNonce(contract: string, signerHex: string): Promise<bigint>;
   contractScalar(contract: string, slot: number | bigint): Promise<bigint>;
@@ -230,7 +246,8 @@ export class Client {
     ownerIndex: number,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
-    expectedOrderNonce?: bigint | number | string
+    expectedOrderNonce?: bigint | number | string,
+    expectedNonce?: bigint | number | string,
   ): Promise<SignedOrderResult>;
 }
 
