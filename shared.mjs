@@ -28,7 +28,15 @@ function checkAmount(amount) {
 }
 
 function accountIndex(index) {
-  const i = BigInt(index);
+  if (typeof index === 'number' && !Number.isSafeInteger(index)) {
+    throw new Error('the account index must be a whole number in the safe integer range, a number that large silently rounds and would sign with a different account key');
+  }
+  let i;
+  try {
+    i = BigInt(index);
+  } catch {
+    throw new Error('the account index must be a whole number');
+  }
   if (i < 0n || i > 0xffffffffffffffffn) {
     throw new Error('the account index must fit in an unsigned 64 bit integer');
   }
@@ -342,7 +350,8 @@ function makeClient(core) {
       if (this._headFloor) {
         const { height, at } = this._headFloor;
         if (head < height) throw new Error(`the gateway reports head ${head} below the ${height} it reported earlier, refusing to sign`);
-        const allowed = (now - at + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
+        const elapsed = now > at ? now - at : 0n;
+        const allowed = (elapsed + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
         if (head > height + allowed) throw new Error(`the gateway head leapt from ${height} to ${head} faster than blocks are made, refusing to sign`);
       } else {
         this._headFloor = { height: head, at: now };
@@ -365,9 +374,10 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const fee = info && info.fee && info.fee.transfer_quon;
-      if (fee == null) throw new Error('the gateway did not report a transfer fee');
-      if (gatewayFee(fee) > ceiling) {
+      const reported = info && info.fee && info.fee.transfer_quon;
+      if (reported == null) throw new Error('the gateway did not report a transfer fee');
+      const fee = gatewayFee(reported);
+      if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const from = core.address(seedHex, accountIndex(index));
@@ -387,9 +397,10 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const fee = info && info.fee && info.fee.transfer_quon;
-      if (fee == null) throw new Error('the gateway did not report a transfer fee');
-      if (gatewayFee(fee) > ceiling) {
+      const reported = info && info.fee && info.fee.transfer_quon;
+      if (reported == null) throw new Error('the gateway did not report a transfer fee');
+      const fee = gatewayFee(reported);
+      if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const from = core.address(seedHex, accountIndex(index));
