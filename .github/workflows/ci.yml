@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/Quantova-Chain
-          ref: fc169052407bcf0c85d0d5daba15d6ca0e3ac840
+          ref: 5d9fbf8e5a8de5070e6044a0451ca7fa2d250048
           path: Quantova-Chain
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
