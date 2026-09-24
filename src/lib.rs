@@ -40,7 +40,7 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
 pub fn mnemonic_from_seed(seed_hex: String) -> Result<JsValue, JsError> {
-    let phrase = Zeroizing::new(qcore::mnemonic_from_seed(&*seed(seed_hex)?));
+    let phrase = qcore::mnemonic_from_seed(&*seed(seed_hex)?);
     Ok(JsValue::from_str(&phrase))
 }
 

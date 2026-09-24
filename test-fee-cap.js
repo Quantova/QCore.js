@@ -27,6 +27,7 @@ function fail(msg) {
         res.end(JSON.stringify({ address: JSON.parse(body).address, nonce: nonceValue, balance: '0', scheme: 1, has_key: true }));
       } else if (req.url === '/v1/submit_transaction') {
         submitted++;
+        if (typeof nonceValue === 'number' && nonceValue >= 0) nonceValue += 1;
         res.end(JSON.stringify({ verdict: 'accepted', state: 'fresh', tx_id: 'Qtxabc' }));
       } else {
         res.statusCode = 404;
@@ -35,7 +36,7 @@ function fail(msg) {
     });
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const client = new Client('http://127.0.0.1:' + server.address().port);
+  let client = new Client('http://127.0.0.1:' + server.address().port);
   const seed = '0b'.repeat(32);
   const to = client.address(seed, 1);
 
@@ -92,6 +93,7 @@ function fail(msg) {
 
   const { core } = require('./index.js');
   const chainId = core.chainIdFromName('Q-test-net-1');
+  nonceValue = 0;
   const fresh = new Client('http://127.0.0.1:' + server.address().port);
   const bounded = await fresh.transfer(seed, 0, to, '1000', '1000000');
   const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n));
@@ -114,6 +116,7 @@ function fail(msg) {
   }
   if (submitted !== before) fail('a contradicted expected nonce must never submit');
   nonceValue = 0;
+  client = new Client('http://127.0.0.1:' + server.address().port);
   let underpaid = false;
   try { await client.call(seed, 0, to, '01', 21000n, '1000', 0n); }
   catch (e) { underpaid = true; if (!/above the maximum/.test(e.message)) fail('unclear meter fee error: ' + e.message); }

@@ -65,6 +65,7 @@ function fail(msg) {
   submitted = 0;
   await client.assetCall(seed, 0, target, 'dead', issuer, '1000', 21000, '1000000');
   if (submitted !== 1) fail('an honest asset call did not submit once');
+  nonceValue = 6;
   submitted = 0;
   await client.payableCall(seed, 0, target, 'dead', '1000', 21000, '1000000');
   if (submitted !== 1) fail('an honest payable call did not submit once');
