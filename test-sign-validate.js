@@ -26,6 +26,16 @@ for (const b of bad) {
   threw = false;
   try { core.signPayableCall(seed, 0n, b, '', 0n, 1000n, '1', '0', core.localChainId(), 0n); } catch { threw = true; }
   if (!threw) fail('signPayableCall signed a bad target ' + JSON.stringify(b));
+
+  threw = false;
+  try { core.signAssetCall(seed, 0n, b, '', good, '1', 0n, 1000n, '1', core.localChainId(), 0n); }
+  catch { threw = true; }
+  if (!threw) fail('signAssetCall signed a bad target ' + JSON.stringify(b));
+
+  threw = false;
+  try { core.signAssetCall(seed, 0n, good, '', b, '1', 0n, 1000n, '1', core.localChainId(), 0n); }
+  catch { threw = true; }
+  if (!threw) fail('signAssetCall signed a bad asset issuer ' + JSON.stringify(b));
 }
 
 let orderThrew = false;

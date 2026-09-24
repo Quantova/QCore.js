@@ -331,11 +331,29 @@ function makeClient(core) {
     _checkedNonce(reported, expected, key) {
       const n = accountNonce(reported);
       if (!this._nextNonces) this._nextNonces = new Map();
+      if (!this._signedNonces) this._signedNonces = new Map();
       const local = key != null ? this._nextNonces.get(key) : undefined;
       const e = expected != null ? BigInt(expected) : local;
-      if (e == null) return n;
-      if (n > e) throw new Error(`the gateway reported nonce ${n} above the expected ${e}; refusing so a signature cannot be banked for a nonce the account has not reached`);
-      return expected != null ? e : n;
+      let slot;
+      if (e == null) {
+        slot = n;
+      } else {
+        if (n > e) throw new Error(`the gateway reported nonce ${n} above the expected ${e}; refusing so a signature cannot be banked for a nonce the account has not reached`);
+        slot = expected != null ? e : n;
+      }
+      return slot;
+    }
+
+    _guardSigned(key, slot, txHex) {
+      if (key == null) return;
+      if (!this._signedNonces) this._signedNonces = new Map();
+      let held = this._signedNonces.get(key);
+      if (!held) { held = new Map(); this._signedNonces.set(key, held); }
+      const seen = held.get(String(slot));
+      if (seen != null && seen !== txHex) {
+        throw new Error(`a different transaction was already signed for nonce ${slot} in this session; one nonce carries one signature`);
+      }
+      held.set(String(slot), txHex);
     }
 
     _remember(key, used, outcome) {
@@ -387,6 +405,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId, this._validity(info))
       );
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -408,6 +427,7 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), nonce, String(fee), chainId, this._validity(info)));
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -432,6 +452,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -458,6 +479,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -483,6 +505,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, this._validity(info))
       );
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -546,6 +569,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
       );
+      this._guardSigned(from, nonce, signed.tx_hex);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, accountNonceUsed, outcome);
       this._remember(orderKey, nonce, outcome);

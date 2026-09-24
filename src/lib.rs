@@ -558,6 +558,12 @@ pub fn sign_asset_call(
     chain_id: u64,
     valid_until: u64,
 ) -> Result<String, JsError> {
+    if !qcore::valid_address(target) {
+        return Err(JsError::new("the target is not a q1 address"));
+    }
+    if !qcore::valid_address(asset_issuer) {
+        return Err(JsError::new("the asset issuer is not a q1 address"));
+    }
     let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
     let fee: u128 = fee
         .parse()
