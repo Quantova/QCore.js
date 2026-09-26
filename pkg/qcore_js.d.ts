@@ -17,6 +17,8 @@ export function buildTypedOrderCall(chain_id: bigint, contract: string, selector
 
 export function chainIdFromName(name: string): bigint;
 
+export function checkValidUntil(valid_until: bigint, head: bigint): void;
+
 export function contractAddress(deployer: string, nonce: bigint): string | undefined;
 
 export function eventsBody(height: bigint): string;
@@ -45,13 +47,13 @@ export function scalarSlotKey(slot: bigint): string;
 
 export function seedFromMnemonic(phrase: string): any;
 
-export function signAssetCall(seed_hex: string, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
+export function signAssetCall(seed_hex: string, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
 
-export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint): string;
+export function signPayableCall(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
 
 export function signRegister(seed_hex: string, index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
-export function sign_call(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
+export function sign_call(seed_hex: string, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
 
 export function sign_transfer(seed_hex: string, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
 
@@ -72,5 +74,7 @@ export function transaction_body(tx_id: string): string;
 export function unpackSymbol(word: bigint): string;
 
 export function valid_address(address: string): boolean;
+
+export function vmCallFee(transfer_fee: string, meter_limit: bigint): string;
 
 export function vmDeployAddress(): string;

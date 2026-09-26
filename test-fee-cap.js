@@ -13,6 +13,8 @@ function fail(msg) {
   let submitted = 0;
   let feeQuon = '100';
   let nonceValue = 0;
+  let head = 10;
+  let verdict = 'accepted';
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
@@ -20,13 +22,17 @@ function fail(msg) {
       res.setHeader('Content-Type', 'application/json');
       if (req.url === '/v1/node_info') {
         res.end(JSON.stringify({
-          chain_id: 'Q-test-net-1', head_height: 10, denomination: 'Quon',
+          chain_id: 'Q-dev-net-1', head_height: head, denomination: 'Quon',
           fee: { transfer_quon: feeQuon, quon_per_qtov: '1000000' }, version: 'test',
         }));
       } else if (req.url === '/v1/get_account') {
         res.end(JSON.stringify({ address: JSON.parse(body).address, nonce: nonceValue, balance: '0', scheme: 1, has_key: true }));
       } else if (req.url === '/v1/submit_transaction') {
         submitted++;
+        if (verdict === 'rejected') {
+          res.end(JSON.stringify({ verdict: 'rejected', reason: 'insufficient_funds' }));
+          return;
+        }
         if (typeof nonceValue === 'number' && nonceValue >= 0) nonceValue += 1;
         res.end(JSON.stringify({ verdict: 'accepted', state: 'fresh', tx_id: 'Qtxabc' }));
       } else {
@@ -92,14 +98,17 @@ function fail(msg) {
   if (okNonce.outcome.verdict !== 'accepted' || submitted !== held + 1) fail('a normal nonce must still submit');
 
   const { core } = require('./index.js');
-  const chainId = core.chainIdFromName('Q-test-net-1');
+  const chainId = core.chainIdFromName('Q-dev-net-1');
   nonceValue = 0;
   const fresh = new Client('http://127.0.0.1:' + server.address().port);
   const bounded = await fresh.transfer(seed, 0, to, '1000', '1000000');
   const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n));
   if (bounded.signed.tx_hex !== expected.tx_hex) fail('a client transfer must expire 300 blocks past the head');
-  const unbounded = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n));
-  if (unbounded.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
+  const later = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 311n));
+  if (later.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
+  let neverExpires = false;
+  try { core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n); } catch (e) { neverExpires = /never expires/.test(e.message); }
+  if (!neverExpires) fail('a deadline of zero never expires and must be refused');
 
   const before = submitted;
   nonceValue = 7;
@@ -111,8 +120,15 @@ function fail(msg) {
   for (const path of paths) {
     let refusedNonce = false;
     try { await path(); }
-    catch (e) { refusedNonce = true; if (!/above the expected/.test(e.message)) fail('unclear expected nonce error: ' + e.message); }
+    catch (e) { refusedNonce = true; if (!/you expected 5/.test(e.message)) fail('unclear expected nonce error: ' + e.message); }
     if (!refusedNonce) fail('a gateway nonce above the expected one must be refused');
+  }
+  nonceValue = 3;
+  for (const path of paths) {
+    let refusedAhead = false;
+    try { await path(); }
+    catch (e) { refusedAhead = true; if (!/you expected 5/.test(e.message)) fail('unclear expected nonce error: ' + e.message); }
+    if (!refusedAhead) fail('an expected nonce above the reported one must be refused, the mempool admits only the reported one');
   }
   if (submitted !== before) fail('a contradicted expected nonce must never submit');
   nonceValue = 0;
@@ -124,14 +140,45 @@ function fail(msg) {
   const agreed = await client.call(seed, 0, to, '01', 21000n, '1000000', 0n);
   if (agreed.outcome.verdict !== 'accepted') fail('an agreed expected nonce signs');
 
-  for (const meter of [-1n, 1n << 64n, 2 ** 60]) {
+  for (const meter of [-1n, 1n << 64n, 2 ** 60, 1209n, 12500001n]) {
     let refusedMeter = false;
     const beforeMeter = submitted;
-    try { await client.call(seed, 0, to, '01', meter, '100000000000', 0n); }
+    try { await client.call(seed, 0, to, '01', meter, '100000000000'); }
     catch (e) { refusedMeter = true; if (!/meter limit/.test(e.message)) fail('unclear meter limit error: ' + e.message); }
     if (!refusedMeter) fail('a meter limit outside the unsigned 64 bit range must be refused: ' + meter);
     if (submitted !== beforeMeter) fail('a refused meter limit must never submit');
   }
+
+  const retry = new Client('http://127.0.0.1:' + server.address().port);
+  feeQuon = '100';
+  nonceValue = 3;
+  verdict = 'rejected';
+  const rejected = await retry.transfer(seed, 0, to, '1', '1000000');
+  if (rejected.outcome.verdict !== 'rejected') fail('the stub gateway should reject this send');
+  verdict = 'accepted';
+  const resent = await retry.transfer(seed, 0, to, '2', '1000000');
+  if (resent.outcome.verdict !== 'accepted') fail('a rejected send must free its nonce for the next one');
+  if (retry._nextNonces.get(resent.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
+  nonceValue = 3;
+  let holding = false;
+  try { await retry.transfer(seed, 0, to, '3', '1000000'); }
+  catch (e) { holding = /already signed/.test(e.message); }
+  if (!holding) fail('an accepted send that has not expired still holds its nonce');
+  const replaced = await retry.transfer(seed, 0, to, '3', '1000000', 3n);
+  if (replaced.outcome.verdict !== 'accepted') fail('naming the nonce explicitly must override the hold');
+  if (retry._nextNonces.get(resent.signed.from) !== 4n) fail('the local next nonce never moves backwards');
+  retry._validity({ head_height: 250 });
+  let dropped = false;
+  try { retry._validity({ head_height: 200 }); } catch (e) { dropped = /below the 250/.test(e.message); }
+  if (!dropped) fail('the head floor must rise to the highest head seen');
+  head = 400;
+  nonceValue = 3;
+  const afterExpiry = await retry.transfer(seed, 0, to, '4', '1000000');
+  if (afterExpiry.outcome.verdict !== 'accepted') fail('a held nonce whose deadline has passed must be free again');
+  nonceValue = 9;
+  const ahead = await retry.transfer(seed, 0, to, '5', '1000000');
+  if (ahead.outcome.verdict !== 'accepted') fail('a gateway nonce ahead of the local one must be signed at, not refused');
+  if (retry._nextNonces.get(ahead.signed.from) !== 10n) fail('the local next nonce follows the highest nonce seen');
 
   server.close();
   console.log('fee ceiling: all cases passed');

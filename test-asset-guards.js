@@ -13,7 +13,7 @@ function fail(msg) {
   let submitted = 0;
   let feeQuon = '500';
   let nonceValue = 5;
-  let chainId = 'Q-test-net-1';
+  let chainId = 'Q-dev-net-1';
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
@@ -49,19 +49,19 @@ function fail(msg) {
     }
   }
 
-  feeQuon = '2000000'; nonceValue = 5; chainId = 'Q-test-net-1';
+  feeQuon = '2000000'; nonceValue = 5; chainId = 'Q-dev-net-1';
   await refuses('asset call with a fee above the ceiling', () => client.assetCall(seed, 0, target, 'dead', issuer, '1000', 21000, '1000000'));
   feeQuon = '500'; nonceValue = 4.9;
   await refuses('asset call with a float nonce', () => client.assetCall(seed, 0, target, 'dead', issuer, '1000', 21000, '1000000'));
   nonceValue = 5; chainId = 12345;
   await refuses('asset call with a non string chain id', () => client.assetCall(seed, 0, target, 'dead', issuer, '1000', 21000, '1000000'));
 
-  chainId = 'Q-test-net-1'; feeQuon = '2000000'; nonceValue = 5;
+  chainId = 'Q-dev-net-1'; feeQuon = '2000000'; nonceValue = 5;
   await refuses('payable call with a fee above the ceiling', () => client.payableCall(seed, 0, target, 'dead', '1000', 21000, '1000000'));
   feeQuon = '500'; nonceValue = 4.9;
   await refuses('payable call with a float nonce', () => client.payableCall(seed, 0, target, 'dead', '1000', 21000, '1000000'));
 
-  feeQuon = '500'; nonceValue = 5; chainId = 'Q-test-net-1';
+  feeQuon = '500'; nonceValue = 5; chainId = 'Q-dev-net-1';
   submitted = 0;
   await client.assetCall(seed, 0, target, 'dead', issuer, '1000', 21000, '1000000');
   if (submitted !== 1) fail('an honest asset call did not submit once');

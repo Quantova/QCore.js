@@ -39,7 +39,9 @@ const overUrlAcked = new Client('https://rpc.quantova.org', { acknowledgeMainnet
 ok('an acknowledged mainnet client passes the guard', overUrlAcked._guardMainnet() === undefined);
 
 throws('a plain url client refuses a gateway that reports mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-1' }));
-ok('a plain url client still binds a testnet reporting gateway', typeof overUrl._signingChainId({ chain_id: 'Q-test-net-1' }) === 'bigint');
+throws('a plain url client refuses a gateway that reports another mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-2' }));
+throws('a plain url client refuses a public testnet until the network is configured', () => overUrl._signingChainId({ chain_id: 'Q-test-net-1' }));
+ok('a plain url client still binds a private dev chain', typeof overUrl._signingChainId({ chain_id: 'Q-dev-net-1' }) === 'bigint');
 
 const inconsistentMainnet = new Client('https://rpc.quantova.org', { network: new Network({ name: 'custom', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: false }) });
 throws('a configured mainnet id is refused even with the isMainnet flag off and no acknowledgement', () => inconsistentMainnet._signingChainId({ chain_id: 'Q-main-net-1' }));

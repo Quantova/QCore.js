@@ -1,9 +1,11 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import * as core from './pkg/qcore_js.js';
-import { makeClient, generateSeed, validUntil, Network } from './shared.mjs';
+import * as raw from './pkg/qcore_js.js';
+import { makeClient, wrapCore, generateSeed, validUntil, Network } from './shared.mjs';
 
+const core = wrapCore(raw);
 const Client = makeClient(core);
+const vmCallFee = core.vmCallFee;
 
-export { Client, core, generateSeed, validUntil, Network };
+export { Client, core, generateSeed, validUntil, vmCallFee, Network };

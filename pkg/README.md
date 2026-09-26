@@ -16,7 +16,7 @@ npm install @quantovainc/qcore
 ## Quickstart
 
 ```js
-const { Client, core, generateSeed } = require('@quantovainc/qcore');
+const { Client, Network, core, generateSeed } = require('@quantovainc/qcore');
 
 const GATEWAY = 'https://rpc-testnet.quantova.org';
 
@@ -32,7 +32,7 @@ async function main() {
 
   // Open a client against a node you trust. The address above is the public testnet
   // gateway. A remote gateway must be https, plaintext http is allowed only to a loopback node.
-  const client = new Client(GATEWAY);
+  const client = new Client(GATEWAY, { network: Network.testnet() });
 
   // A fixed ceiling your app is willing to pay in fees, chosen here and never read back from the gateway.
   const MAX_FEE_QUON = '2000';
@@ -108,6 +108,11 @@ const seed = generateSeed();                 // thirty two random bytes as hex f
 const phrase = core.mnemonicFromSeed(seed);  // the only backup, shown once and kept on the device
 ```
 
+`core.seedFromMnemonic(phrase)` restores the seed from the twenty four words. It ignores case and extra
+spacing and applies Unicode NFKD before it looks a word up, so a phrase pasted with capitals, non breaking
+spaces, or full width letters restores the same seed. A standard BIP-39 phrase from another wallet is
+refused with its own error, since a Quantova phrase carries a SHA3 checksum and cannot be restored from it.
+
 ## Using it
 
 The last argument to a Client signing call, transfer, register, call, or callSignedOrder, is a fee
@@ -122,9 +127,23 @@ same reason as the amount, because a number silently rounds above 2^53 and could
 than you intended.
 
 This comparison lives in the Client and only in the Client. The raw core.* signing functions, such as
-core.sign_transfer, take the actual fee that goes on the wire as their last argument, not a ceiling, and
-do no gateway comparison at all. A developer who calls core.* directly has no fee cap, so reach for the
-Client whenever a gateway you do not control reports the fee.
+core.sign_transfer, take the actual fee that goes on the wire, not a ceiling, and do no gateway
+comparison at all. A developer who calls core.* directly has no fee cap, so reach for the Client whenever
+a gateway you do not control reports the fee.
+
+A contract call pays one transfer fee for every started 1210 units of its meter limit, and the chain
+refuses a call that pays less. The raw call signers, core.sign_call, core.signPayableCall, and
+core.signAssetCall, take the transfer fee the gateway reports as their last argument and refuse to sign a
+fee below `vmCallFee(transferFee, meterLimit)`, a meter limit outside 1210 to 12500000, or call arguments
+above 128 KiB. Every raw signer also refuses a validity deadline of zero, which would never expire, and
+core.sign_transfer refuses a transfer to the sending account itself. Numbers passed to core.* are decimal
+digit strings, non negative BigInt values, or non negative safe integers, and anything else is refused
+before the seed reaches the compiled core.
+
+A Client opened for a plain url with no network signs only for a private chain. It refuses the public
+testnet and any `Q-main-net-` chain until you name the network, with `Network.testnet()`, a mainnet
+network and `acknowledgeMainnet: true`, or `expectedChainId`. An expected nonce you pass must be the
+nonce the gateway reports, because the chain admits only the next nonce of an account.
 
 ```js
 const { Client, generateSeed } = require('@quantovainc/qcore');
@@ -157,13 +176,18 @@ await client.register(seed, 0, MAX_FEE_QUON);
 A call that also moves value, such as a payable contract call, reaches for `core.signPayableCall`
 directly. It takes the value and the chain id as explicit arguments, the value as a decimal string or a
 BigInt for the same reason as an amount, and the chain id from `core.localChainId()`,
-`core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number.
+`core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number. It also
+takes the validity deadline, the height after which the chain drops the transaction, from `validUntil`,
+and the transfer fee the gateway reports so the call fee can be checked against the meter limit.
 
 ```js
-const { core } = require('@quantovainc/qcore');
+const { core, validUntil, vmCallFee } = require('@quantovainc/qcore');
 
+const info = await client.nodeInfo();
+const transferFee = info.fee.transfer_quon;
+const fee = vmCallFee(transferFee, meterLimit);
 const signed = JSON.parse(
-  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId()),
+  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId(), validUntil(info), transferFee),
 );
 ```
 
@@ -197,7 +221,7 @@ The offline test scripts run with `npm test`, and they need no network and no ru
 
 ## Conformance vectors
 
-The frozen conformance vectors live in the [conformance](conformance) folder of this repository. The address derivation is in `conformance/address.derivation.json`, the transfer in `conformance/transaction.transfer.json`, and the payable call in `conformance/transaction.payable.json`. The offline test `test-conformance.js` signs from these vectors and checks the binding matches them byte for byte, so a change that would move a signed transaction fails the test.
+The frozen conformance vectors live in the [conformance](conformance) folder of this repository. The address derivation is in `conformance/address.derivation.json`, the transfer in `conformance/transaction.transfer.json`, and the payable call in `conformance/transaction.payable.json`. The frozen transactions were signed with a validity deadline of zero, which the binding now refuses, so each transaction vector also carries a `bounded` companion signed at a real deadline. The offline test `test-conformance.js` signs from these vectors, checks the binding matches the bounded transaction byte for byte, and checks its body is the frozen body with only the deadline moved, so a change that would move a signed transaction fails the test.
 
 ## Examples
 

@@ -1,7 +1,7 @@
 // Copyright 2026 Quantova Inc
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-const { Client, core, generateSeed } = require('@quantovainc/qcore');
+const { Client, Network, core, generateSeed } = require('@quantovainc/qcore');
 
 const MAX_FEE_QUON = '2000';
 
@@ -28,7 +28,7 @@ async function main() {
   console.log('from', from);
   console.log('to  ', to);
 
-  const client = new Client(GATEWAY);
+  const client = new Client(GATEWAY, { network: Network.testnet() });
 
   const claim = await fetch(GATEWAY + '/faucet/api/claim', {
     method: 'POST',

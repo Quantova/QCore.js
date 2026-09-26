@@ -130,6 +130,21 @@ function parsePayableBody(hex) {
   return { sender, nonce, meter, fee, target, args, value, chainId, length: r.offset() };
 }
 
+function withDeadline(bodyHex, validUntil) {
+  const at = bodyHex.length - 18;
+  let word = '';
+  let rest = BigInt(validUntil);
+  for (let i = 0; i < 8; i += 1) {
+    word += Number(rest & 0xffn).toString(16).padStart(2, '0');
+    rest >>= 8n;
+  }
+  return bodyHex.slice(0, at) + word + bodyHex.slice(at + 16);
+}
+
+function refused(fn) {
+  try { fn(); return false; } catch { return true; }
+}
+
 function addressVector() {
   console.log('address.derivation');
   const v = load('address.derivation.json');
@@ -147,8 +162,14 @@ function transactionVector() {
   check('sender derives to the vector sender', bech32Equal(sender, v.sender), true);
   check('target derives to the vector target', bech32Equal(target, v.target), true);
 
+  const b = v.bounded;
+  check(
+    'the never expiring deadline the frozen vector was signed at is refused',
+    refused(() => core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n, b.transfer_fee)),
+    true,
+  );
   const signed = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n),
+    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
   );
   check('the signer address is the vector sender', bech32Equal(signed.from, v.sender), true);
 
@@ -166,13 +187,16 @@ function transactionVector() {
   check('an unset value defaults to zero', got.value === 0n, true);
   check('an unset chain id defaults to the local chain', got.chainId === core.localChainId(), true);
 
+  check('the body is the frozen body with only its deadline moved', signed.tx_hex.startsWith(withDeadline(v.body_bytes, b.valid_until)), true);
+
   const again = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n),
+    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
   );
   check('signing is deterministic', again.tx_hex === signed.tx_hex, true);
   check('the transaction id is a qtx identifier', /^qtx1[0-9a-z]+$/i.test(signed.tx_id), true);
   check('the transaction id is rendered uppercase Q1', signed.tx_id === signed.tx_id.toUpperCase(), true);
-  check('the transfer helper matches the frozen tx id', signed.tx_id === v.tx_id, true);
+  check('the transfer helper matches the bounded tx id', signed.tx_id === b.tx_id, true);
+  check('the transfer helper matches the bounded tx hex byte for byte', signed.tx_hex === b.tx_hex, true);
 }
 
 function payableVector() {
@@ -184,6 +208,12 @@ function payableVector() {
   check('sender derives to the vector sender', bech32Equal(sender, v.sender), true);
   check('target derives to the vector target', bech32Equal(target, v.target), true);
 
+  const b = v.bounded;
+  check(
+    'the never expiring deadline the frozen vector was signed at is refused',
+    refused(() => core.signPayableCall(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n, b.transfer_fee)),
+    true,
+  );
   const signed = JSON.parse(
     core.signPayableCall(
       v.master_seed,
@@ -195,14 +225,17 @@ function payableVector() {
       String(v.fee),
       String(v.value),
       BigInt(v.chain_id),
-      0n,
+      BigInt(b.valid_until),
+      b.transfer_fee,
     ),
   );
   check('the payable helper matches the frozen from', signed.from === v.sender, true);
-  check('the payable helper matches the frozen tx id', signed.tx_id === v.tx_id, true);
-  check('the payable helper matches the frozen tx hex byte for byte', signed.tx_hex === v.tx_hex, true);
+  check('the payable helper matches the bounded tx id', signed.tx_id === b.tx_id, true);
+  check('the payable helper matches the bounded tx hex byte for byte', signed.tx_hex === b.tx_hex, true);
 
   const got = parsePayableBody(signed.tx_hex);
+  const bodyHex = v.tx_hex.slice(0, 2 * (got.length + 17));
+  check('the body is the frozen body with only its deadline moved', signed.tx_hex.startsWith(withDeadline(bodyHex, b.valid_until)), true);
   const senderPayload = hexFromBytes(decodeBech32m(sender).payload);
   const targetPayload = hexFromBytes(decodeBech32m(target).payload);
   check('the sender field is the raw 32 byte payload, not the rendered string', got.sender === senderPayload, true);
@@ -215,13 +248,13 @@ function payableVector() {
   const lower = target.toLowerCase();
   const upper = target.toUpperCase();
   const signedLower = JSON.parse(
-    core.signPayableCall(v.master_seed, BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n),
+    core.signPayableCall(v.master_seed, BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
   );
   const signedUpper = JSON.parse(
-    core.signPayableCall(v.master_seed, BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n),
+    core.signPayableCall(v.master_seed, BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
   );
   check('signing a lowercase and an uppercase target binds the same bytes', signedLower.tx_hex === signedUpper.tx_hex, true);
-  check('signing a differently cased target still matches the frozen vector', signedLower.tx_hex === v.tx_hex, true);
+  check('signing a differently cased target still matches the bounded vector', signedLower.tx_hex === b.tx_hex, true);
 }
 
 addressVector();

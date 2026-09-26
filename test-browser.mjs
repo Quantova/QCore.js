@@ -39,6 +39,10 @@ if (typeof mod.Client !== 'function') fail('the browser entry must export a Clie
 if (!mod.Client.prototype || typeof mod.Client.prototype.transfer !== 'function') fail('the browser Client is missing the guarded transfer');
 if (typeof mod.generateSeed !== 'function') fail('the browser entry must export generateSeed');
 if (typeof mod.core !== 'object' || typeof mod.core.valid_address !== 'function') fail('the browser entry must expose the core');
+if (typeof mod.vmCallFee !== 'function' || mod.vmCallFee('500', 21000n) !== 9000n) fail('the browser entry must export the call fee helper');
+let coercedThrew = false;
+try { mod.core.address('00'.repeat(32), -1n); } catch { coercedThrew = true; }
+if (!coercedThrew) fail('the browser core must refuse a negative index rather than wrap it');
 
 const seed = mod.generateSeed();
 if (!/^[0-9a-f]{64}$/.test(seed)) fail('generateSeed must return thirty two bytes of hex');

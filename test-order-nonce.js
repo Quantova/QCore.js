@@ -6,23 +6,23 @@ const core = require('./pkg-node/qcore_js.js');
 
 const CONTRACT = 'Q1TC7YLRN4X6HWYU4UMX7KXLPEZNMHRYHCNDE35R2HJJWKJMVPCDGQRWGG5Q';
 
-function client(reportedNonce) {
+function client(reportedNonce, accountNonce) {
   const Client = makeClient(core);
   const c = new Client('https://example.invalid/v1/');
-  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 1 });
+  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 1, head_height: 10 });
   c._guardMainnet = () => {};
   c._signingChainId = () => 1n;
   c.contractNonce = async () => reportedNonce;
   c.submit = async () => ({ ok: true });
-  c.account = async () => ({ nonce: 0 });
+  c.account = async () => ({ nonce: accountNonce || 0 });
   return c;
 }
 
-async function sign(c, expected) {
+async function sign(c, expected, layout) {
   return c.callSignedOrder(
     'aa'.repeat(32), 0, CONTRACT, '00000000',
-    { schemeOff: 0, ptrOff: 0, fields: [] },
-    'bb'.repeat(32), 0, 1000, '1000', expected
+    layout || { schemeOff: 0, ptrOff: 0, fields: [] },
+    'bb'.repeat(32), 0, 1210, '1000', expected
   );
 }
 
@@ -46,11 +46,27 @@ async function sign(c, expected) {
   assert.strictEqual(local._checkedNonce(4n, null, 'k'), 4n,
     'a submission that never landed must not push the next one past the nonce the chain admits');
   assert.strictEqual(local._checkedNonce(5n, null, 'k'), 5n);
+  assert.strictEqual(local._checkedNonce(6n, null, 'k'), 6n,
+    'a gateway nonce above the local one raises the local one rather than refusing');
+  assert.strictEqual(local._nextNonces.get('k'), 6n);
+  assert.strictEqual(local._checkedNonce(4n, null, 'k'), 4n);
+  assert.strictEqual(local._nextNonces.get('k'), 6n, 'the local nonce never moves backwards');
   threw = null;
-  try { local._checkedNonce(6n, null, 'k'); } catch (e) { threw = e.message; }
-  assert(threw && threw.includes('above the expected'),
-    'a gateway nonce above the local one must still be refused');
-  console.log('  ok   the local nonce bounds the gateway without outrunning the chain');
+  try { local._checkedNonce(6n, 7n, 'k'); } catch (e) { threw = e.message; }
+  assert(threw && threw.includes('you expected 7'),
+    'an expected nonce the account has not reached is refused, the mempool admits only the reported one');
+  assert.strictEqual(local._checkedNonce(6n, 6n, 'k'), 6n);
+  console.log('  ok   the local nonce follows the chain and an expected nonce must match it');
+
+  const ordered = client(5n, 2n);
+  const layout = { schemeOff: 120, ptrOff: 128, fields: [{ offset: 136, width: 8, value: '1' }] };
+  const done = await sign(ordered, 5n, layout);
+  assert.strictEqual(done.orderNonce, 5n);
+  const caller = core.address('aa'.repeat(32), 0n);
+  const held = ordered._signedNonces.get(caller);
+  assert(held && held.has('2') && !held.has('5'),
+    'the signature is held against the account nonce it was signed at, not the order nonce');
+  console.log('  ok   a signed order holds the account nonce it used');
 
   const Client = makeClient(core);
   const keyed = new Client('https://example.invalid/v1/');

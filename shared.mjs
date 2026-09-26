@@ -63,7 +63,82 @@ const VALIDITY_BLOCKS = 300n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
 const HEAD_BLOCKS_PER_SEC = 4n;
 const HEAD_SLACK_SECS = 60n;
-const TRANSFER_METER = 1210n;
+const U64_MAX = 0xffffffffffffffffn;
+const U128_MAX = (1n << 128n) - 1n;
+
+function wholeNumber(value, label, max) {
+  let n;
+  if (typeof value === 'bigint') {
+    n = value;
+  } else if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) {
+      throw new Error(`the ${label} must be a whole number in the safe integer range, a number outside it silently rounds, pass a decimal string or a BigInt`);
+    }
+    n = BigInt(value);
+  } else if (typeof value === 'string' && /^[0-9]+$/.test(value)) {
+    n = BigInt(value);
+  } else {
+    throw new Error(`the ${label} must be a string of decimal digits, a BigInt, or a safe integer number`);
+  }
+  if (n < 0n || n > max) {
+    throw new Error(`the ${label} must be a whole number from 0 to ${max}`);
+  }
+  return n;
+}
+
+function coreArg(kind, label, value) {
+  if (kind === 'text') {
+    if (typeof value !== 'string') throw new Error(`the ${label} must be a string`);
+    return value;
+  }
+  if (kind === 'u64') return wholeNumber(value, label, U64_MAX);
+  if (kind === 'u64s') return wholeNumber(value, label, U64_MAX).toString();
+  if (kind === 'u128s') return wholeNumber(value, label, U128_MAX).toString();
+  throw new Error(`unknown argument kind ${kind}`);
+}
+
+const CORE_ARGS = {
+  address: [['text', 'seed'], ['u64', 'account index']],
+  mnemonicFromSeed: [['text', 'seed']],
+  seedFromMnemonic: [['text', 'recovery phrase']],
+  orderSigner: [['text', 'seed'], ['u64', 'account index']],
+  sign_transfer: [['text', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
+  signRegister: [['text', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
+  sign_call: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  signPayableCall: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  signAssetCall: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['text', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
+  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'region offset'], ['text', 'fields'], ['text', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
+  contractAddress: [['text', 'deployer'], ['u64', 'nonce']],
+  scalarSlotKey: [['u64', 'slot']],
+  mapSlotKey: [['u64', 'map domain tag'], ['text', 'key address']],
+  mapAddrWordKey: [['u64', 'map domain tag'], ['text', 'key'], ['u64', 'word']],
+  unpackSymbol: [['u64', 'symbol word']],
+  eventsBody: [['u64', 'height']],
+  block_by_height_body: [['u64', 'height']],
+  vmCallFee: [['u128s', 'transfer fee'], ['u64', 'meter limit']],
+  checkValidUntil: [['u64', 'validity deadline'], ['u64', 'head height']],
+};
+
+function wrapCore(raw) {
+  const core = Object.assign({}, raw);
+  for (const [name, kinds] of Object.entries(CORE_ARGS)) {
+    const fn = raw[name];
+    if (typeof fn !== 'function') continue;
+    core[name] = (...args) => fn(...kinds.map(([kind, label], i) => coreArg(kind, label, args[i])));
+  }
+  const fee = core.vmCallFee;
+  if (typeof fee === 'function') core.vmCallFee = (transferFee, meterLimit) => BigInt(fee(transferFee, meterLimit));
+  return Object.freeze(core);
+}
+
+function isMainnetChain(name) {
+  return name.startsWith('Q-main-net-');
+}
+
+function isPublicChain(name) {
+  return name.startsWith('Q-test-net-') || isMainnetChain(name);
+}
 
 function meterLimitOf(meterLimit) {
   if (typeof meterLimit === 'number' && !Number.isSafeInteger(meterLimit)) {
@@ -79,13 +154,6 @@ function meterLimitOf(meterLimit) {
     throw new Error('the meter limit must fit in an unsigned 64 bit integer');
   }
   return meter;
-}
-
-function vmCallFee(transferFee, meterLimit) {
-  const meter = meterLimitOf(meterLimit);
-  let units = (meter + TRANSFER_METER - 1n) / TRANSFER_METER;
-  if (units < 1n) units = 1n;
-  return BigInt(transferFee) * units;
 }
 
 function validUntil(info) {
@@ -271,13 +339,17 @@ function makeClient(core) {
       const name = info && info.chain_id;
       if (!name) throw new Error('the gateway did not report a chain id to bind the signature to');
       if (typeof name !== 'string') throw new Error('the gateway reported a chain id that is not a string, refusing to bind a signature to it');
-      const id = BigInt(core.chainIdFromName(name));
       const configured =
         this.expectedChainId || (this.network && this.network.chainId) || null;
-      if (configured && name !== configured) {
-        throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
+      const mainnet = isMainnetChain(name);
+      if (configured) {
+        if (name !== configured) {
+          throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
+        }
+      } else if (isPublicChain(name) && !(mainnet && this.acknowledgeMainnet)) {
+        throw new Error(`the gateway reports the public chain ${name} but this client was opened for an unnamed network; configure the testnet or mainnet network before signing for it`);
       }
-      if (!this.acknowledgeMainnet && this._isMainnetId(id)) {
+      if (mainnet && !this.acknowledgeMainnet) {
         throw new Error(`the gateway reports the mainnet chain ${name}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
       if (this._pinnedChainName === null) {
@@ -285,11 +357,7 @@ function makeClient(core) {
       } else if (this._pinnedChainName !== name) {
         throw new Error(`the gateway reported chain ${this._pinnedChainName} earlier and now reports ${name}; refusing to sign, the endpoint is not naming one network`);
       }
-      return id;
-    }
-
-    _isMainnetId(id) {
-      return id === BigInt(core.mainnetChainId());
+      return BigInt(core.chainIdFromName(name));
     }
 
     async _call(method, body) {
@@ -330,35 +398,47 @@ function makeClient(core) {
     }
     _checkedNonce(reported, expected, key) {
       const n = accountNonce(reported);
-      if (!this._nextNonces) this._nextNonces = new Map();
-      if (!this._signedNonces) this._signedNonces = new Map();
-      const local = key != null ? this._nextNonces.get(key) : undefined;
-      const e = expected != null ? BigInt(expected) : local;
-      let slot;
-      if (e == null) {
-        slot = n;
-      } else {
-        if (n > e) throw new Error(`the gateway reported nonce ${n} above the expected ${e}; refusing so a signature cannot be banked for a nonce the account has not reached`);
-        slot = expected != null ? e : n;
+      if (expected != null) {
+        const e = wholeNumber(expected, 'expected nonce', U64_MAX);
+        if (e !== n) {
+          throw new Error(`the gateway reported nonce ${n} but you expected ${e}; the chain admits only the nonce the account has reached, refusing to sign`);
+        }
       }
-      return slot;
+      if (!this._nextNonces) this._nextNonces = new Map();
+      if (key != null) {
+        const local = this._nextNonces.get(key);
+        if (local == null || local < n) this._nextNonces.set(key, n);
+      }
+      return n;
     }
 
-    _guardSigned(key, slot, txHex) {
+    _guardSigned(key, slot, txHex, until, explicit) {
       if (key == null) return;
       if (!this._signedNonces) this._signedNonces = new Map();
       let held = this._signedNonces.get(key);
       if (!held) { held = new Map(); this._signedNonces.set(key, held); }
-      const seen = held.get(String(slot));
-      if (seen != null && seen !== txHex) {
-        throw new Error(`a different transaction was already signed for nonce ${slot} in this session; one nonce carries one signature`);
+      const head = until - VALIDITY_BLOCKS;
+      for (const [slotKey, entry] of held) {
+        if (head > entry.until) held.delete(slotKey);
       }
-      held.set(String(slot), txHex);
+      const seen = held.get(String(slot));
+      if (!explicit && seen != null && seen.txHex !== txHex) {
+        throw new Error(`a different transaction was already signed for nonce ${slot} in this session and was neither rejected nor expired; one nonce carries one signature, pass the nonce explicitly to replace one that never landed`);
+      }
+      held.set(String(slot), { txHex, until });
     }
 
     _remember(key, used, outcome) {
       if (!this._nextNonces) this._nextNonces = new Map();
-      if (outcome && outcome.verdict === 'accepted') this._nextNonces.set(key, BigInt(used) + 1n);
+      const verdict = outcome && outcome.verdict;
+      if (verdict === 'accepted') {
+        const next = BigInt(used) + 1n;
+        const local = this._nextNonces.get(key);
+        if (local == null || local < next) this._nextNonces.set(key, next);
+      } else if (verdict === 'rejected') {
+        const held = this._signedNonces && this._signedNonces.get(key);
+        if (held) held.delete(String(used));
+      }
     }
 
     _validity(info) {
@@ -371,9 +451,9 @@ function makeClient(core) {
         const elapsed = now > at ? now - at : 0n;
         const allowed = (elapsed + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
         if (head > height + allowed) throw new Error(`the gateway head leapt from ${height} to ${head} faster than blocks are made, refusing to sign`);
-      } else {
-        this._headFloor = { height: head, at: now };
       }
+      core.checkValidUntil(until, head);
+      if (!this._headFloor || head > this._headFloor.height) this._headFloor = { height: head, at: now };
       return until;
     }
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
@@ -398,14 +478,15 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId, this._validity(info))
+        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until)
       );
-      this._guardSigned(from, nonce, signed.tx_hex);
+      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -422,12 +503,13 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
-      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), nonce, String(fee), chainId, this._validity(info)));
-      this._guardSigned(from, nonce, signed.tx_hex);
+      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), nonce, String(fee), chainId, until));
+      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -441,18 +523,20 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const reported = info && info.fee && info.fee.transfer_quon;
       if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = vmCallFee(gatewayFee(reported), meterLimit);
+      const transferFee = gatewayFee(reported);
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
+        core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex);
+      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -468,18 +552,20 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const reported = info && info.fee && info.fee.transfer_quon;
       if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = vmCallFee(gatewayFee(reported), meterLimit);
+      const transferFee = gatewayFee(reported);
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
+        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex);
+      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -494,18 +580,20 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const reported = info && info.fee && info.fee.transfer_quon;
       if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = vmCallFee(gatewayFee(reported), meterLimit);
+      const transferFee = gatewayFee(reported);
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const from = core.address(seedHex, accountIndex(index));
       const acct = await this.account(from);
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, this._validity(info))
+        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex);
+      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, nonce, outcome);
       return { signed, outcome };
@@ -532,10 +620,12 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const reported = info && info.fee && info.fee.transfer_quon;
       if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = vmCallFee(gatewayFee(reported), meterLimit);
+      const transferFee = gatewayFee(reported);
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      const until = this._validity(info);
       const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
@@ -567,9 +657,9 @@ function makeClient(core) {
       if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
       const accountNonceUsed = this._checkedNonce(acct.nonce, expectedNonce, from);
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, this._validity(info))
+        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex);
+      this._guardSigned(from, accountNonceUsed, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, accountNonceUsed, outcome);
       this._remember(orderKey, nonce, outcome);
@@ -578,4 +668,4 @@ function makeClient(core) {
   };
 }
 
-export { makeClient, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, validUntil, vmCallFee, VALIDITY_BLOCKS, Network };
+export { makeClient, wrapCore, feeCeiling, checkAmount, generateSeed, readBounded, requireSafeTransport, validUntil, VALIDITY_BLOCKS, Network };

@@ -47,106 +47,113 @@ export interface SignedOrderResult {
   outcome: any;
 }
 
+export type WholeNumber = bigint | number | string;
+
 export interface QCore {
   account_body(address: string): string;
-  address(seed_hex: string, index: bigint): string;
-  block_by_height_body(height: bigint): string;
+  address(seed_hex: string, index: WholeNumber): string;
+  block_by_height_body(height: WholeNumber): string;
   buildSignedOrderCall(
-    chain_id: bigint,
+    chain_id: WholeNumber,
     contract: string,
     selector_hex: string,
-    scheme_off: bigint,
-    ptr_off: bigint,
+    scheme_off: WholeNumber,
+    ptr_off: WholeNumber,
     field_offs_csv: string,
     fields_csv: string,
-    region_off: bigint,
+    region_off: WholeNumber,
     owner_seed_hex: string,
-    owner_index: bigint,
-    nonce: bigint,
+    owner_index: WholeNumber,
+    nonce: WholeNumber,
   ): string;
   buildTypedOrderCall(
-    chain_id: bigint,
+    chain_id: WholeNumber,
     contract: string,
     selector_hex: string,
-    scheme_off: bigint,
-    ptr_off: bigint,
-    region_off: bigint,
+    scheme_off: WholeNumber,
+    ptr_off: WholeNumber,
+    region_off: WholeNumber,
     fields_json: string,
     owner_seed_hex: string,
-    owner_index: bigint,
-    nonce: bigint,
+    owner_index: WholeNumber,
+    nonce: WholeNumber,
   ): string;
-  contractAddress(deployer: string, nonce: bigint): string | undefined;
+  checkValidUntil(valid_until: WholeNumber, head: WholeNumber): void;
+  contractAddress(deployer: string, nonce: WholeNumber): string | undefined;
   chainIdFromName(name: string): bigint;
-  eventsBody(height: bigint): string;
+  eventsBody(height: WholeNumber): string;
   localChainId(): bigint;
   mainnetChainId(): bigint;
-  mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
+  mapAddrWordKey(map_domain_tag: WholeNumber, key32_hex: string, word: WholeNumber): string;
+  mapSlotKey(map_domain_tag: WholeNumber, key_address_hex: string): string;
   mnemonicFromSeed(seed_hex: string): string;
   nonceSlotKey(signer_hex: string): string;
-  orderSigner(seed_hex: string, index: bigint): string;
+  orderSigner(seed_hex: string, index: WholeNumber): string;
   parseEvents(response: string): string;
-  scalarSlotKey(slot: bigint): string;
+  scalarSlotKey(slot: WholeNumber): string;
   tokenDecimalsSlot(): bigint;
   tokenSymbolSlot(): bigint;
   packSymbol(symbol: string): bigint;
-  unpackSymbol(word: bigint): string;
+  unpackSymbol(word: WholeNumber): string;
   assetBalanceBody(issuer: string, holder: string): string;
   assetSupplyBody(issuer: string): string;
   seedFromMnemonic(phrase: string): string;
   signPayableCall(
     seed_hex: string,
-    index: bigint,
+    index: WholeNumber,
     target: string,
     args_hex: string,
-    nonce: bigint,
-    meter_limit: bigint,
-    fee: string,
-    value: string,
-    chain_id: bigint,
-    valid_until: bigint,
+    nonce: WholeNumber,
+    meter_limit: WholeNumber,
+    fee: WholeNumber,
+    value: WholeNumber,
+    chain_id: WholeNumber,
+    valid_until: WholeNumber,
+    transfer_fee: WholeNumber,
   ): string;
   signAssetCall(
     seed_hex: string,
-    index: bigint,
+    index: WholeNumber,
     target: string,
     args_hex: string,
     asset_issuer: string,
-    amount: string,
-    nonce: bigint,
-    meter_limit: bigint,
-    fee: string,
-    chain_id: bigint,
-    valid_until: bigint,
+    amount: WholeNumber,
+    nonce: WholeNumber,
+    meter_limit: WholeNumber,
+    fee: WholeNumber,
+    chain_id: WholeNumber,
+    valid_until: WholeNumber,
+    transfer_fee: WholeNumber,
   ): string;
   signRegister(
     seed_hex: string,
-    index: bigint,
-    nonce: bigint,
-    fee: string,
-    chain_id: bigint,
-    valid_until: bigint,
+    index: WholeNumber,
+    nonce: WholeNumber,
+    fee: WholeNumber,
+    chain_id: WholeNumber,
+    valid_until: WholeNumber,
   ): string;
   sign_call(
     seed_hex: string,
-    index: bigint,
+    index: WholeNumber,
     target: string,
     args_hex: string,
-    nonce: bigint,
-    meter_limit: bigint,
-    fee: string,
-    chain_id: bigint,
-    valid_until: bigint,
+    nonce: WholeNumber,
+    meter_limit: WholeNumber,
+    fee: WholeNumber,
+    chain_id: WholeNumber,
+    valid_until: WholeNumber,
+    transfer_fee: WholeNumber,
   ): string;
   sign_transfer(
     seed_hex: string,
-    index: bigint,
+    index: WholeNumber,
     to: string,
-    amount: string,
-    nonce: bigint,
-    fee: string,
-    chain_id: bigint,
-    valid_until: bigint,
+    amount: WholeNumber,
+    nonce: WholeNumber,
+    fee: WholeNumber,
+    chain_id: WholeNumber,
+    valid_until: WholeNumber,
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
@@ -154,6 +161,7 @@ export interface QCore {
   testnetChainId(): bigint;
   transaction_body(tx_id: string): string;
   valid_address(address: string): boolean;
+  vmCallFee(transfer_fee: WholeNumber, meter_limit: WholeNumber): bigint;
   vmDeployAddress(): string;
 }
 
@@ -255,3 +263,5 @@ export const core: QCore;
 export function generateSeed(): string;
 
 export function validUntil(nodeInfo: { head_height?: number | string | bigint }): bigint;
+
+export function vmCallFee(transferFee: WholeNumber, meterLimit: WholeNumber): bigint;

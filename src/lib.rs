@@ -18,6 +18,39 @@ fn seed(mut seed_hex: String) -> Result<Zeroizing<[u8; 32]>, JsError> {
     Ok(seed)
 }
 
+fn whole(value: &str, label: &str) -> Result<u128, JsError> {
+    if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(JsError::new(&format!("{label} is a whole number string")));
+    }
+    value
+        .parse()
+        .map_err(|_| JsError::new(&format!("{label} is out of range")))
+}
+
+fn whole_u64(value: &str, label: &str) -> Result<u64, JsError> {
+    u64::try_from(whole(value, label)?)
+        .map_err(|_| JsError::new(&format!("{label} is out of range")))
+}
+
+fn transfer_fee(value: Option<String>) -> Result<u128, JsError> {
+    let value = value.ok_or_else(|| {
+        JsError::new("pass the transfer fee the gateway reports, so a call is never signed below the fee its meter limit costs")
+    })?;
+    whole(&value, "transfer fee")
+}
+
+fn signed_json(signed: qcore::SignedTransfer) -> String {
+    qcore::json::object(vec![
+        ("from", qcore::json::Json::str(signed.from)),
+        ("tx_id", qcore::json::Json::str(signed.tx_id)),
+        (
+            "tx_hex",
+            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
+        ),
+    ])
+    .render()
+}
+
 #[wasm_bindgen]
 pub fn address(seed_hex: String, index: u64) -> Result<String, JsError> {
     Ok(qcore::account_address(&*seed(seed_hex)?, index))
@@ -65,17 +98,14 @@ pub fn sign_transfer(
     chain_id: u64,
     valid_until: u64,
 ) -> Result<String, JsError> {
+    let master = seed(seed_hex)?;
     if !qcore::valid_address(to) {
         return Err(JsError::new("the recipient is not a q1 address"));
     }
-    let amount: u64 = amount
-        .parse()
-        .map_err(|_| JsError::new("amount is a whole number string"))?;
-    let fee: u128 = fee
-        .parse()
-        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let amount = whole_u64(amount, "amount")?;
+    let fee = whole(fee, "fee")?;
     let signed = qcore::sign_transfer(
-        &*seed(seed_hex)?,
+        &master,
         index,
         to,
         amount,
@@ -85,15 +115,7 @@ pub fn sign_transfer(
         valid_until,
     )
     .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(signed.from)),
-        ("tx_id", qcore::json::Json::str(signed.tx_id)),
-        (
-            "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
-        ),
-    ])
-    .render())
+    Ok(signed_json(signed))
 }
 
 #[wasm_bindgen(js_name = signRegister)]
@@ -105,20 +127,11 @@ pub fn sign_register(
     chain_id: u64,
     valid_until: u64,
 ) -> Result<String, JsError> {
-    let fee: u128 = fee
-        .parse()
-        .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let signed = qcore::sign_register(&*seed(seed_hex)?, index, nonce, fee, chain_id, valid_until)
+    let master = seed(seed_hex)?;
+    let fee = whole(fee, "fee")?;
+    let signed = qcore::sign_register(&master, index, nonce, fee, chain_id, valid_until)
         .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(signed.from)),
-        ("tx_id", qcore::json::Json::str(signed.tx_id)),
-        (
-            "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
-        ),
-    ])
-    .render())
+    Ok(signed_json(signed))
 }
 
 #[wasm_bindgen]
@@ -133,16 +146,16 @@ pub fn sign_call(
     fee: &str,
     chain_id: u64,
     valid_until: u64,
+    transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
+    let master = seed(seed_hex)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
     let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee: u128 = fee
-        .parse()
-        .map_err(|_| JsError::new("fee is a whole number string"))?;
+    let fee = whole(fee, "fee")?;
     let signed = qcore::sign_call(
-        &*seed(seed_hex)?,
+        &master,
         index,
         target,
         args,
@@ -151,17 +164,10 @@ pub fn sign_call(
         fee,
         chain_id,
         valid_until,
+        self::transfer_fee(transfer_fee)?,
     )
     .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(signed.from)),
-        ("tx_id", qcore::json::Json::str(signed.tx_id)),
-        (
-            "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
-        ),
-    ])
-    .render())
+    Ok(signed_json(signed))
 }
 
 fn addr32(hex: &str) -> Result<[u8; 32], JsError> {
@@ -190,6 +196,16 @@ pub fn order_signer(seed_hex: String, index: u64) -> Result<String, JsError> {
         &*seed(seed_hex)?,
         index,
     )))
+}
+
+#[wasm_bindgen(js_name = vmCallFee)]
+pub fn vm_call_fee(transfer_fee: &str, meter_limit: u64) -> Result<String, JsError> {
+    Ok(qcore::vm_call_fee(whole(transfer_fee, "transfer fee")?, meter_limit).to_string())
+}
+
+#[wasm_bindgen(js_name = checkValidUntil)]
+pub fn check_valid_until(valid_until: u64, head: u64) -> Result<(), JsError> {
+    qcore::check_valid_until(valid_until, head).map_err(|e| JsError::new(&e))
 }
 
 #[wasm_bindgen(js_name = nonceSlotKey)]
@@ -275,6 +291,7 @@ pub fn build_signed_order_call(
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
+    let owner = seed(owner_seed_hex)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
         .map_err(|e| JsError::new(&e))?
         .try_into()
@@ -291,7 +308,7 @@ pub fn build_signed_order_call(
         selector,
         &layout,
         &fields,
-        &*seed(owner_seed_hex)?,
+        &owner,
         owner_index,
         nonce,
     )
@@ -336,6 +353,7 @@ pub fn build_typed_order_call(
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
+    let owner = seed(owner_seed_hex)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
         .map_err(|e| JsError::new(&e))?
         .try_into()
@@ -349,7 +367,7 @@ pub fn build_typed_order_call(
         ptr_off,
         region_off,
         &fields,
-        &*seed(owner_seed_hex)?,
+        &owner,
         owner_index,
         nonce,
     )
@@ -476,22 +494,22 @@ pub fn block_by_height_body(height: u64) -> String {
 
 #[wasm_bindgen(js_name = chainIdFromName)]
 pub fn chain_id_from_name(name: &str) -> u64 {
-    qtv_tx::chain_id_from_name(name)
+    qcore::chain_id_from_name(name)
 }
 
 #[wasm_bindgen(js_name = localChainId)]
 pub fn local_chain_id() -> u64 {
-    qtv_tx::LOCAL_CHAIN_ID
+    qcore::LOCAL_CHAIN_ID
 }
 
 #[wasm_bindgen(js_name = mainnetChainId)]
 pub fn mainnet_chain_id() -> u64 {
-    qtv_tx::MAINNET_CHAIN_ID
+    qcore::MAINNET_CHAIN_ID
 }
 
 #[wasm_bindgen(js_name = testnetChainId)]
 pub fn testnet_chain_id() -> u64 {
-    qtv_tx::TESTNET_CHAIN_ID
+    qcore::testnet_chain_id()
 }
 
 #[wasm_bindgen(js_name = signPayableCall)]
@@ -507,20 +525,18 @@ pub fn sign_payable_call(
     value: &str,
     chain_id: u64,
     valid_until: u64,
+    transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
+    let master = seed(seed_hex)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
     let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee: u128 = fee
-        .parse()
-        .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let value: u64 = value
-        .parse()
-        .map_err(|_| JsError::new("value is a whole number string"))?;
+    let fee = whole(fee, "fee")?;
+    let value = whole_u64(value, "value")?;
 
     let signed = qcore::sign_payable_call(
-        &*seed(seed_hex)?,
+        &master,
         index,
         target,
         args,
@@ -530,17 +546,10 @@ pub fn sign_payable_call(
         fee,
         chain_id,
         valid_until,
+        self::transfer_fee(transfer_fee)?,
     )
     .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(signed.from)),
-        ("tx_id", qcore::json::Json::str(signed.tx_id)),
-        (
-            "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
-        ),
-    ])
-    .render())
+    Ok(signed_json(signed))
 }
 
 #[wasm_bindgen(js_name = signAssetCall)]
@@ -557,7 +566,9 @@ pub fn sign_asset_call(
     fee: &str,
     chain_id: u64,
     valid_until: u64,
+    transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
+    let master = seed(seed_hex)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
@@ -565,14 +576,10 @@ pub fn sign_asset_call(
         return Err(JsError::new("the asset issuer is not a q1 address"));
     }
     let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee: u128 = fee
-        .parse()
-        .map_err(|_| JsError::new("fee is a whole number string"))?;
-    let amount: u64 = amount
-        .parse()
-        .map_err(|_| JsError::new("amount is a whole number string"))?;
+    let fee = whole(fee, "fee")?;
+    let amount = whole_u64(amount, "amount")?;
     let signed = qcore::sign_asset_call(
-        &*seed(seed_hex)?,
+        &master,
         index,
         target,
         args,
@@ -583,17 +590,10 @@ pub fn sign_asset_call(
         fee,
         chain_id,
         valid_until,
+        self::transfer_fee(transfer_fee)?,
     )
     .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        ("from", qcore::json::Json::str(signed.from)),
-        ("tx_id", qcore::json::Json::str(signed.tx_id)),
-        (
-            "tx_hex",
-            qcore::json::Json::str(qcore::json::to_hex(&signed.tx_bytes)),
-        ),
-    ])
-    .render())
+    Ok(signed_json(signed))
 }
 
 #[cfg(test)]
@@ -635,7 +635,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         let second = sign_payable_call(
@@ -648,7 +649,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         assert_eq!(first, second);
@@ -670,7 +672,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         let signed_upper = sign_payable_call(
@@ -683,7 +686,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         assert_eq!(signed_lower, signed_upper);
@@ -702,7 +706,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         let b = sign_payable_call(
@@ -715,7 +720,8 @@ mod payable_tests {
             "1000000",
             "250001",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         assert_ne!(a, b);
@@ -734,7 +740,8 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::TESTNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         let b = sign_payable_call(
@@ -747,9 +754,26 @@ mod payable_tests {
             "1000000",
             "250000",
             qtv_tx::MAINNET_CHAIN_ID,
-            0,
+            300,
+            Some("500".to_string()),
         )
         .unwrap();
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn a_call_fee_follows_the_meter_and_a_deadline_is_capped_past_the_head() {
+        assert_eq!(vm_call_fee("500", 21_000).unwrap(), "9000");
+        assert_eq!(vm_call_fee("500", 1).unwrap(), "500");
+        assert!(check_valid_until(1_300, 1_000).is_ok());
+        assert!(check_valid_until(1_000 + 3_600, 1_000).is_ok());
+    }
+
+    #[test]
+    fn the_testnet_chain_id_follows_the_testnet_network() {
+        assert_eq!(
+            testnet_chain_id(),
+            qcore::chain_id_from_name(&qcore::Network::testnet().chain_id.unwrap())
+        );
     }
 }
