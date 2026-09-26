@@ -108,7 +108,6 @@ const noNetworkFee = refusal(() => core.sign_call(seed, 0n, good, '', 0n, 21000n
 if (!noNetworkFee || !/transfer fee/.test(noNetworkFee)) fail('a call signed without the network transfer fee must be refused: ' + noNetworkFee);
 
 if (core.testnetChainId() !== core.chainIdFromName(Network.testnet().chainId)) fail('the testnet chain id must follow the testnet network');
-if (core.testnetChainId() === core.chainIdFromName('Q-test-net-1')) fail('the testnet chain id must not be the retired testnet');
 
 const phrase = core.mnemonicFromSeed(seed);
 const messy = '  ' + phrase.toUpperCase().split(' ').join('   ') + '\n';

@@ -161,6 +161,8 @@ export interface QCore {
   testnetChainId(): bigint;
   transaction_body(tx_id: string): string;
   valid_address(address: string): boolean;
+  sameAddress(a: string, b: string): boolean;
+  lookalikeOf(candidate: string, known: string[]): string | undefined;
   vmCallFee(transfer_fee: WholeNumber, meter_limit: WholeNumber): bigint;
   vmDeployAddress(): string;
 }

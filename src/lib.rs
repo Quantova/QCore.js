@@ -61,6 +61,16 @@ pub fn valid_address(address: &str) -> bool {
     qcore::valid_address(address)
 }
 
+#[wasm_bindgen(js_name = sameAddress)]
+pub fn same_address(a: &str, b: &str) -> bool {
+    qcore::same_address(a, b)
+}
+
+#[wasm_bindgen(js_name = lookalikeOf)]
+pub fn lookalike_of(candidate: &str, known: Vec<String>) -> Option<String> {
+    qcore::lookalike_of(candidate, &known)
+}
+
 #[wasm_bindgen(js_name = vmDeployAddress)]
 pub fn vm_deploy_address() -> String {
     qcore::vm_deploy_address()

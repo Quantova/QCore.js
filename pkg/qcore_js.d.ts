@@ -25,6 +25,8 @@ export function eventsBody(height: bigint): string;
 
 export function localChainId(): bigint;
 
+export function lookalikeOf(candidate: string, known: string[]): string | undefined;
+
 export function mainnetChainId(): bigint;
 
 export function mapAddrWordKey(map_domain_tag: bigint, key32_hex: string, word: bigint): string;
@@ -42,6 +44,8 @@ export function orderSigner(seed_hex: string, index: bigint): string;
 export function packSymbol(symbol: string): bigint;
 
 export function parseEvents(response: string): string;
+
+export function sameAddress(a: string, b: string): boolean;
 
 export function scalarSlotKey(slot: bigint): string;
 

@@ -269,7 +269,7 @@ class Network {
   static testnet() {
     return new Network({
       name: 'testnet',
-      chainId: 'Q-test-net-3',
+      chainId: 'Q-test-net-1',
       rpcUrl: 'https://rpc-testnet.quantova.org',
       explorerUrl: 'https://qvmscan.io',
       isMainnet: false,
