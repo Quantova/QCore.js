@@ -22,19 +22,19 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QCore.rs
-          ref: 49a8ec80c14c0f5e1e6c2a3ed2f855a61ed061f9
+          ref: 2c12040388dd6e6156fc690c47cf3003a356cb61
           path: QCore.rs
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/Quantova-Chain
-          ref: ead056d2dcffc370ea35cd0446ab3921f05b4988
+          ref: 024e4742365dcbb530b91a1b0a6ddcb7c9ab96e2
           path: Quantova-Chain
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QVM
-          ref: 3e8d8f194f93dad40fed826b021f058e5728f513
+          ref: a98e42130d353ab563b8990df84ffb0b66676c4d
           path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
