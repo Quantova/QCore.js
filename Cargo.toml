@@ -18,4 +18,4 @@ wasm-bindgen = "0.2"
 qtv-wipe = { path = "../Quantova-Chain/crates/qtv-wipe" }
 qtv-tx = { path = "../Quantova-Chain/crates/qtv-tx" }
 qtv-idfmt = { path = "../Quantova-Chain/crates/qtv-idfmt" }
-qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "387c01dee92bd3a7e5a6bf5a1480745ccafa0d5f" }
+qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "4abe71e9fa84a6e670e6d5736d7533c3fd10a3ed" }
