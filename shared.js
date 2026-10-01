@@ -435,9 +435,6 @@ function makeClient(core) {
         const next = BigInt(used) + 1n;
         const local = this._nextNonces.get(key);
         if (local == null || local < next) this._nextNonces.set(key, next);
-      } else if (verdict === 'rejected') {
-        const held = this._signedNonces && this._signedNonces.get(key);
-        if (held) held.delete(String(used));
       }
     }
 

@@ -156,17 +156,19 @@ function fail(msg) {
   const rejected = await retry.transfer(seed, 0, to, '1', '1000000');
   if (rejected.outcome.verdict !== 'rejected') fail('the stub gateway should reject this send');
   verdict = 'accepted';
-  const resent = await retry.transfer(seed, 0, to, '2', '1000000');
-  if (resent.outcome.verdict !== 'accepted') fail('a rejected send must free its nonce for the next one');
-  if (retry._nextNonces.get(resent.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
+  let blocked = false;
+  try { await retry.transfer(seed, 0, to, '2', '1000000'); }
+  catch (e) { blocked = /already signed/.test(e.message); }
+  if (!blocked) fail('a gateway rejection must not free a signed nonce on its own');
+  nonceValue = 3;
+  const replaced = await retry.transfer(seed, 0, to, '2', '1000000', 3n);
+  if (replaced.outcome.verdict !== 'accepted') fail('naming the nonce explicitly must override the hold');
+  if (retry._nextNonces.get(replaced.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
   nonceValue = 3;
   let holding = false;
   try { await retry.transfer(seed, 0, to, '3', '1000000'); }
   catch (e) { holding = /already signed/.test(e.message); }
   if (!holding) fail('an accepted send that has not expired still holds its nonce');
-  const replaced = await retry.transfer(seed, 0, to, '3', '1000000', 3n);
-  if (replaced.outcome.verdict !== 'accepted') fail('naming the nonce explicitly must override the hold');
-  if (retry._nextNonces.get(resent.signed.from) !== 4n) fail('the local next nonce never moves backwards');
   retry._validity({ head_height: 250 });
   let dropped = false;
   try { retry._validity({ head_height: 200 }); } catch (e) { dropped = /below the 250/.test(e.message); }
