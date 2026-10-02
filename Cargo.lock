@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "qcore-js"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "qcore",
  "qtv-crypto",
