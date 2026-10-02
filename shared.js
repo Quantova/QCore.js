@@ -63,6 +63,7 @@ const VALIDITY_BLOCKS = 300n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
 const HEAD_BLOCKS_PER_SEC = 4n;
 const HEAD_SLACK_SECS = 60n;
+const GENESIS_FLOOR_SECS = 1735689600n;
 const U64_MAX = 0xffffffffffffffffn;
 const U128_MAX = (1n << 128n) - 1n;
 
@@ -442,6 +443,10 @@ function makeClient(core) {
       const until = validUntil(info);
       const head = until - VALIDITY_BLOCKS;
       const now = BigInt(Math.floor(Date.now() / 1000));
+      if (now > GENESIS_FLOOR_SECS) {
+        const maxHead = (now - GENESIS_FLOOR_SECS + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
+        if (head > maxHead) throw new Error(`the gateway reports head ${head} further ahead than wall-clock time allows, refusing to sign`);
+      }
       if (this._headFloor) {
         const { height, at } = this._headFloor;
         if (head < height) throw new Error(`the gateway reports head ${head} below the ${height} it reported earlier, refusing to sign`);
