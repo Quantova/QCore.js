@@ -61,6 +61,11 @@ function coreArg(kind, label, value) {
     if (typeof value !== 'string') throw new Error(`the ${label} must be a string`);
     return value;
   }
+  if (kind === 'seed') {
+    if (!(value instanceof Uint8Array)) throw new Error(`the ${label} must be a Uint8Array of 32 bytes; pass a handle you can wipe after use, not a hex string`);
+    if (value.length !== 32) throw new Error(`the ${label} must be 32 bytes`);
+    return value;
+  }
   if (kind === 'u64') return wholeNumber(value, label, U64_MAX);
   if (kind === 'u64s') return wholeNumber(value, label, U64_MAX).toString();
   if (kind === 'u128s') return wholeNumber(value, label, U128_MAX).toString();
@@ -68,17 +73,17 @@ function coreArg(kind, label, value) {
 }
 
 const CORE_ARGS = {
-  address: [['text', 'seed'], ['u64', 'account index']],
-  mnemonicFromSeed: [['text', 'seed']],
+  address: [['seed', 'seed'], ['u64', 'account index']],
+  mnemonicFromSeed: [['seed', 'seed']],
   seedFromMnemonic: [['text', 'recovery phrase']],
-  orderSigner: [['text', 'seed'], ['u64', 'account index']],
-  sign_transfer: [['text', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
-  signRegister: [['text', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
-  sign_call: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  signPayableCall: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  signAssetCall: [['text', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['text', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
-  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'region offset'], ['text', 'fields'], ['text', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
+  orderSigner: [['seed', 'seed'], ['u64', 'account index']],
+  sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
+  signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
+  sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
+  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
   contractAddress: [['text', 'deployer'], ['u64', 'nonce']],
   scalarSlotKey: [['u64', 'slot']],
   mapSlotKey: [['u64', 'map domain tag'], ['text', 'key address']],
@@ -246,9 +251,7 @@ function generateSeed() {
   }
   const bytes = new Uint8Array(32);
   source.getRandomValues(bytes);
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-  bytes.fill(0);
-  return hex;
+  return bytes;
 }
 
 function makeClient(core) {

@@ -6,7 +6,7 @@ const { Client, core } = require('./index.js');
 (async () => {
   const url = process.argv[2] || 'http://127.0.0.1:8645';
   const client = new Client(url);
-  const seed = '0b'.repeat(32);
+  const seed = new Uint8Array(32).fill(0x0b);
 
   const info = await client.nodeInfo();
   console.log('network', info.chain_id, 'fee', info.fee.transfer_quon, info.denomination);

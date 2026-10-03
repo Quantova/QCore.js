@@ -21,15 +21,15 @@ function account_body(address) {
 exports.account_body = account_body;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @returns {string}
  */
-function address(seed_hex, index) {
+function address(seed_bytes, index) {
     let deferred3_0;
     let deferred3_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.address(ptr0, len0, index);
         var ptr2 = ret[0];
@@ -117,12 +117,12 @@ exports.block_by_height_body = block_by_height_body;
  * @param {string} field_offs_csv
  * @param {string} fields_csv
  * @param {bigint} region_off
- * @param {string} owner_seed_hex
+ * @param {Uint8Array} owner_seed_bytes
  * @param {bigint} owner_index
  * @param {bigint} nonce
  * @returns {string}
  */
-function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, field_offs_csv, fields_csv, region_off, owner_seed_hex, owner_index, nonce) {
+function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce) {
     let deferred7_0;
     let deferred7_1;
     try {
@@ -134,7 +134,7 @@ function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passStringToWasm0(fields_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passStringToWasm0(owner_seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr4 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
         const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce);
         var ptr6 = ret[0];
@@ -160,12 +160,12 @@ exports.buildSignedOrderCall = buildSignedOrderCall;
  * @param {bigint} ptr_off
  * @param {bigint} region_off
  * @param {string} fields_json
- * @param {string} owner_seed_hex
+ * @param {Uint8Array} owner_seed_bytes
  * @param {bigint} owner_index
  * @param {bigint} nonce
  * @returns {string}
  */
-function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, region_off, fields_json, owner_seed_hex, owner_index, nonce) {
+function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce) {
     let deferred6_0;
     let deferred6_1;
     try {
@@ -175,7 +175,7 @@ function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_o
         const len1 = WASM_VECTOR_LEN;
         const ptr2 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(owner_seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
         const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, region_off, ptr2, len2, ptr3, len3, owner_index, nonce);
         var ptr5 = ret[0];
@@ -347,11 +347,11 @@ function mapSlotKey(map_domain_tag, key_address_hex) {
 exports.mapSlotKey = mapSlotKey;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @returns {any}
  */
-function mnemonicFromSeed(seed_hex) {
-    const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+function mnemonicFromSeed(seed_bytes) {
+    const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.mnemonicFromSeed(ptr0, len0);
     if (ret[2]) {
@@ -408,15 +408,15 @@ function nonceSlotKey(signer_hex) {
 exports.nonceSlotKey = nonceSlotKey;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @returns {string}
  */
-function orderSigner(seed_hex, index) {
+function orderSigner(seed_bytes, index) {
     let deferred3_0;
     let deferred3_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.orderSigner(ptr0, len0, index);
         var ptr2 = ret[0];
@@ -507,21 +507,23 @@ exports.scalarSlotKey = scalarSlotKey;
 
 /**
  * @param {string} phrase
- * @returns {any}
+ * @returns {Uint8Array}
  */
 function seedFromMnemonic(phrase) {
     const ptr0 = passStringToWasm0(phrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.seedFromMnemonic(ptr0, len0);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
     }
-    return takeFromExternrefTable0(ret[0]);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
 }
 exports.seedFromMnemonic = seedFromMnemonic;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @param {string} target
  * @param {string} args_hex
@@ -535,11 +537,11 @@ exports.seedFromMnemonic = seedFromMnemonic;
  * @param {string | null} [transfer_fee]
  * @returns {string}
  */
-function signAssetCall(seed_hex, index, target, args_hex, asset_issuer, amount, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee) {
+function signAssetCall(seed_bytes, index, target, args_hex, asset_issuer, amount, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee) {
     let deferred9_0;
     let deferred9_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
@@ -570,7 +572,7 @@ function signAssetCall(seed_hex, index, target, args_hex, asset_issuer, amount, 
 exports.signAssetCall = signAssetCall;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @param {string} target
  * @param {string} args_hex
@@ -583,11 +585,11 @@ exports.signAssetCall = signAssetCall;
  * @param {string | null} [transfer_fee]
  * @returns {string}
  */
-function signPayableCall(seed_hex, index, target, args_hex, nonce, meter_limit, fee, value, chain_id, valid_until, transfer_fee) {
+function signPayableCall(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, value, chain_id, valid_until, transfer_fee) {
     let deferred8_0;
     let deferred8_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
@@ -616,7 +618,7 @@ function signPayableCall(seed_hex, index, target, args_hex, nonce, meter_limit, 
 exports.signPayableCall = signPayableCall;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @param {bigint} nonce
  * @param {string} fee
@@ -624,11 +626,11 @@ exports.signPayableCall = signPayableCall;
  * @param {bigint} valid_until
  * @returns {string}
  */
-function signRegister(seed_hex, index, nonce, fee, chain_id, valid_until) {
+function signRegister(seed_bytes, index, nonce, fee, chain_id, valid_until) {
     let deferred4_0;
     let deferred4_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
@@ -649,7 +651,7 @@ function signRegister(seed_hex, index, nonce, fee, chain_id, valid_until) {
 exports.signRegister = signRegister;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @param {string} target
  * @param {string} args_hex
@@ -661,11 +663,11 @@ exports.signRegister = signRegister;
  * @param {string | null} [transfer_fee]
  * @returns {string}
  */
-function sign_call(seed_hex, index, target, args_hex, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee) {
+function sign_call(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee) {
     let deferred7_0;
     let deferred7_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
@@ -692,7 +694,7 @@ function sign_call(seed_hex, index, target, args_hex, nonce, meter_limit, fee, c
 exports.sign_call = sign_call;
 
 /**
- * @param {string} seed_hex
+ * @param {Uint8Array} seed_bytes
  * @param {bigint} index
  * @param {string} to
  * @param {string} amount
@@ -702,11 +704,11 @@ exports.sign_call = sign_call;
  * @param {bigint} valid_until
  * @returns {string}
  */
-function sign_transfer(seed_hex, index, to, amount, nonce, fee, chain_id, valid_until) {
+function sign_transfer(seed_bytes, index, to, amount, nonce, fee, chain_id, valid_until) {
     let deferred6_0;
     let deferred6_1;
     try {
-        const ptr0 = passStringToWasm0(seed_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
@@ -970,6 +972,11 @@ function addToExternrefTable0(obj) {
     return idx;
 }
 
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
+}
+
 let cachedDataViewMemory0 = null;
 function getDataViewMemory0() {
     if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
@@ -992,6 +999,13 @@ function getUint8ArrayMemory0() {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passArrayJsValueToWasm0(array, malloc) {

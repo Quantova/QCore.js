@@ -45,7 +45,7 @@ try { mod.core.address('00'.repeat(32), -1n); } catch { coercedThrew = true; }
 if (!coercedThrew) fail('the browser core must refuse a negative index rather than wrap it');
 
 const seed = mod.generateSeed();
-if (!/^[0-9a-f]{64}$/.test(seed)) fail('generateSeed must return thirty two bytes of hex');
+if (!(seed instanceof Uint8Array) || seed.length !== 32) fail('generateSeed must return a thirty two byte Uint8Array');
 
 const client = new mod.Client('http://127.0.0.1:1');
 const to = client.address(seed, 1);

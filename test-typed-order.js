@@ -9,7 +9,7 @@ function ok(label, cond) {
   else { failures++; console.log('  FAIL ' + label); }
 }
 
-const seedHex = '04'.repeat(32);
+const seedHex = new Uint8Array(32).fill(0x04);
 const deployer = core.address(seedHex, 0n);
 const contract = core.contractAddress(deployer, 0n);
 const to = 'ab'.repeat(32);

@@ -7,6 +7,7 @@ const core = require('./pkg-node/qcore_js.js');
 
 const dir = path.join(__dirname, 'conformance');
 const load = (name) => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+const sb = (h) => Uint8Array.from(h.match(/../g).map((x) => parseInt(x, 16)));
 
 let failures = 0;
 function check(label, got, want) {
@@ -148,7 +149,7 @@ function refused(fn) {
 function addressVector() {
   console.log('address.derivation');
   const v = load('address.derivation.json');
-  const derived = core.address(v.master_seed, BigInt(v.index));
+  const derived = core.address(sb(v.master_seed), BigInt(v.index));
   check('address matches the vector as bech32', bech32Equal(derived, v.canonical) && core.valid_address(derived), true);
   check('the rendered address is uppercase Q1', derived === derived.toUpperCase(), true);
 }
@@ -157,19 +158,19 @@ function transactionVector() {
   console.log('transaction.transfer');
   const v = load('transaction.transfer.json');
 
-  const sender = core.address(v.master_seed, BigInt(v.sender_index));
-  const target = core.address(v.master_seed, BigInt(v.target_index));
+  const sender = core.address(sb(v.master_seed), BigInt(v.sender_index));
+  const target = core.address(sb(v.master_seed), BigInt(v.target_index));
   check('sender derives to the vector sender', bech32Equal(sender, v.sender), true);
   check('target derives to the vector target', bech32Equal(target, v.target), true);
 
   const b = v.bounded;
   check(
     'the never expiring deadline the frozen vector was signed at is refused',
-    refused(() => core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n, b.transfer_fee)),
+    refused(() => core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n, b.transfer_fee)),
     true,
   );
   const signed = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
+    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
   );
   check('the signer address is the vector sender', bech32Equal(signed.from, v.sender), true);
 
@@ -190,7 +191,7 @@ function transactionVector() {
   check('the body is the frozen body with only its deadline moved', signed.tx_hex.startsWith(withDeadline(v.body_bytes, b.valid_until)), true);
 
   const again = JSON.parse(
-    core.sign_call(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
+    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee),
   );
   check('signing is deterministic', again.tx_hex === signed.tx_hex, true);
   check('the transaction id is a qtx identifier', /^qtx1[0-9a-z]+$/i.test(signed.tx_id), true);
@@ -203,20 +204,20 @@ function payableVector() {
   console.log('transaction.payable');
   const v = load('transaction.payable.json');
 
-  const sender = core.address(v.master_seed, BigInt(v.sender_index));
-  const target = core.address(v.master_seed, BigInt(v.target_index));
+  const sender = core.address(sb(v.master_seed), BigInt(v.sender_index));
+  const target = core.address(sb(v.master_seed), BigInt(v.target_index));
   check('sender derives to the vector sender', bech32Equal(sender, v.sender), true);
   check('target derives to the vector target', bech32Equal(target, v.target), true);
 
   const b = v.bounded;
   check(
     'the never expiring deadline the frozen vector was signed at is refused',
-    refused(() => core.signPayableCall(v.master_seed, BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n, b.transfer_fee)),
+    refused(() => core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n, b.transfer_fee)),
     true,
   );
   const signed = JSON.parse(
     core.signPayableCall(
-      v.master_seed,
+      sb(v.master_seed),
       BigInt(v.sender_index),
       target,
       v.args,
@@ -248,10 +249,10 @@ function payableVector() {
   const lower = target.toLowerCase();
   const upper = target.toUpperCase();
   const signedLower = JSON.parse(
-    core.signPayableCall(v.master_seed, BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
+    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
   );
   const signedUpper = JSON.parse(
-    core.signPayableCall(v.master_seed, BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
+    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee),
   );
   check('signing a lowercase and an uppercase target binds the same bytes', signedLower.tx_hex === signedUpper.tx_hex, true);
   check('signing a differently cased target still matches the bounded vector', signedLower.tx_hex === b.tx_hex, true);

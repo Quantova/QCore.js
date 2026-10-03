@@ -35,7 +35,7 @@ function fail(msg) {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
   const client = new Client(`http://127.0.0.1:${port}`);
-  const seed = '11'.repeat(32);
+  const seed = new Uint8Array(32).fill(0x11);
   const target = core.address(seed, 2n);
   const issuer = core.address(seed, 3n);
 

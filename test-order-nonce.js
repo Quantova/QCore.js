@@ -20,9 +20,9 @@ function client(reportedNonce, accountNonce) {
 
 async function sign(c, expected, layout) {
   return c.callSignedOrder(
-    'aa'.repeat(32), 0, CONTRACT, '00000000',
+    new Uint8Array(32).fill(0xaa), 0, CONTRACT, '00000000',
     layout || { schemeOff: 0, ptrOff: 0, fields: [] },
-    'bb'.repeat(32), 0, 1210, '1000', expected
+    new Uint8Array(32).fill(0xbb), 0, 1210, '1000', expected
   );
 }
 
@@ -62,7 +62,7 @@ async function sign(c, expected, layout) {
   const layout = { schemeOff: 120, ptrOff: 128, fields: [{ offset: 136, width: 8, value: '1' }] };
   const done = await sign(ordered, 5n, layout);
   assert.strictEqual(done.orderNonce, 5n);
-  const caller = core.address('aa'.repeat(32), 0n);
+  const caller = core.address(new Uint8Array(32).fill(0xaa), 0n);
   const held = ordered._signedNonces.get(caller);
   assert(held && held.has('2') && !held.has('5'),
     'the signature is held against the account nonce it was signed at, not the order nonce');

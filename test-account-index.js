@@ -22,7 +22,7 @@ function refuses(label, fn, needle) {
   }
 }
 
-const SEED = '00'.repeat(32);
+const SEED = new Uint8Array(32);
 const client = new Client('http://127.0.0.1:1');
 
 refuses(

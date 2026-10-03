@@ -4,17 +4,12 @@
 use qtv_wipe::{Zeroize, Zeroizing};
 use wasm_bindgen::prelude::*;
 
-fn seed(mut seed_hex: String) -> Result<Zeroizing<[u8; 32]>, JsError> {
-    let parsed = qcore::json::from_hex(&seed_hex);
-    seed_hex.zeroize();
-    let mut bytes = parsed.map_err(|e| JsError::new(&e))?;
+fn seed(bytes: &[u8]) -> Result<Zeroizing<[u8; 32]>, JsError> {
     if bytes.len() != 32 {
-        bytes.zeroize();
-        return Err(JsError::new("a seed is 32 bytes of hex"));
+        return Err(JsError::new("a seed is 32 raw bytes (a Uint8Array)"));
     }
     let mut seed = Zeroizing::new([0u8; 32]);
-    seed.copy_from_slice(&bytes);
-    bytes.zeroize();
+    seed.copy_from_slice(bytes);
     Ok(seed)
 }
 
@@ -52,8 +47,8 @@ fn signed_json(signed: qcore::SignedTransfer) -> String {
 }
 
 #[wasm_bindgen]
-pub fn address(seed_hex: String, index: u64) -> Result<String, JsError> {
-    Ok(qcore::account_address(&*seed(seed_hex)?, index))
+pub fn address(seed_bytes: &[u8], index: u64) -> Result<String, JsError> {
+    Ok(qcore::account_address(&*seed(seed_bytes)?, index))
 }
 
 #[wasm_bindgen]
@@ -82,24 +77,23 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 }
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
-pub fn mnemonic_from_seed(seed_hex: String) -> Result<JsValue, JsError> {
-    let phrase = qcore::mnemonic_from_seed(&*seed(seed_hex)?);
+pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
+    let phrase = qcore::mnemonic_from_seed(&*seed(seed_bytes)?);
     Ok(JsValue::from_str(&phrase))
 }
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
-pub fn seed_from_mnemonic(mut phrase: String) -> Result<JsValue, JsError> {
+pub fn seed_from_mnemonic(mut phrase: String) -> Result<Vec<u8>, JsError> {
     let derived = qcore::seed_from_mnemonic(&phrase);
     phrase.zeroize();
     let seed = derived.map_err(|e| JsError::new(&e))?;
-    let hex = Zeroizing::new(qcore::json::to_hex(&seed[..]));
-    Ok(JsValue::from_str(&hex))
+    Ok(seed[..].to_vec())
 }
 
 #[wasm_bindgen]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_transfer(
-    seed_hex: String,
+    seed_bytes: &[u8],
     index: u64,
     to: &str,
     amount: &str,
@@ -108,7 +102,7 @@ pub fn sign_transfer(
     chain_id: u64,
     valid_until: u64,
 ) -> Result<String, JsError> {
-    let master = seed(seed_hex)?;
+    let master = seed(seed_bytes)?;
     if !qcore::valid_address(to) {
         return Err(JsError::new("the recipient is not a q1 address"));
     }
@@ -130,14 +124,14 @@ pub fn sign_transfer(
 
 #[wasm_bindgen(js_name = signRegister)]
 pub fn sign_register(
-    seed_hex: String,
+    seed_bytes: &[u8],
     index: u64,
     nonce: u64,
     fee: &str,
     chain_id: u64,
     valid_until: u64,
 ) -> Result<String, JsError> {
-    let master = seed(seed_hex)?;
+    let master = seed(seed_bytes)?;
     let fee = whole(fee, "fee")?;
     let signed = qcore::sign_register(&master, index, nonce, fee, chain_id, valid_until)
         .map_err(|e| JsError::new(&e))?;
@@ -147,7 +141,7 @@ pub fn sign_register(
 #[wasm_bindgen]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_call(
-    seed_hex: String,
+    seed_bytes: &[u8],
     index: u64,
     target: &str,
     args_hex: &str,
@@ -158,7 +152,7 @@ pub fn sign_call(
     valid_until: u64,
     transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
-    let master = seed(seed_hex)?;
+    let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
@@ -201,9 +195,9 @@ fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
 }
 
 #[wasm_bindgen(js_name = orderSigner)]
-pub fn order_signer(seed_hex: String, index: u64) -> Result<String, JsError> {
+pub fn order_signer(seed_bytes: &[u8], index: u64) -> Result<String, JsError> {
     Ok(qcore::json::to_hex(&qcore::contract::order_signer(
-        &*seed(seed_hex)?,
+        &*seed(seed_bytes)?,
         index,
     )))
 }
@@ -297,11 +291,11 @@ pub fn build_signed_order_call(
     field_offs_csv: &str,
     fields_csv: &str,
     region_off: u64,
-    owner_seed_hex: String,
+    owner_seed_bytes: &[u8],
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
-    let owner = seed(owner_seed_hex)?;
+    let owner = seed(owner_seed_bytes)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
         .map_err(|e| JsError::new(&e))?
         .try_into()
@@ -359,11 +353,11 @@ pub fn build_typed_order_call(
     ptr_off: u64,
     region_off: u64,
     fields_json: &str,
-    owner_seed_hex: String,
+    owner_seed_bytes: &[u8],
     owner_index: u64,
     nonce: u64,
 ) -> Result<String, JsError> {
-    let owner = seed(owner_seed_hex)?;
+    let owner = seed(owner_seed_bytes)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
         .map_err(|e| JsError::new(&e))?
         .try_into()
@@ -525,7 +519,7 @@ pub fn testnet_chain_id() -> u64 {
 #[wasm_bindgen(js_name = signPayableCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_payable_call(
-    seed_hex: String,
+    seed_bytes: &[u8],
     index: u64,
     target: &str,
     args_hex: &str,
@@ -537,7 +531,7 @@ pub fn sign_payable_call(
     valid_until: u64,
     transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
-    let master = seed(seed_hex)?;
+    let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
@@ -565,7 +559,7 @@ pub fn sign_payable_call(
 #[wasm_bindgen(js_name = signAssetCall)]
 #[allow(clippy::too_many_arguments)]
 pub fn sign_asset_call(
-    seed_hex: String,
+    seed_bytes: &[u8],
     index: u64,
     target: &str,
     args_hex: &str,
@@ -578,7 +572,7 @@ pub fn sign_asset_call(
     valid_until: u64,
     transfer_fee: Option<String>,
 ) -> Result<String, JsError> {
-    let master = seed(seed_hex)?;
+    let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
         return Err(JsError::new("the target is not a q1 address"));
     }
@@ -610,13 +604,17 @@ pub fn sign_asset_call(
 mod payable_tests {
     use super::*;
 
-    fn seed_hex() -> String {
-        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f".to_string()
+    fn seed_bytes() -> [u8; 32] {
+        let mut s = [0u8; 32];
+        for (i, b) in s.iter_mut().enumerate() {
+            *b = i as u8;
+        }
+        s
     }
 
     #[test]
     fn the_seed_helper_decodes_into_a_zeroizing_handle() {
-        let handle = seed(seed_hex()).unwrap();
+        let handle = seed(&seed_bytes()).unwrap();
         let mut expected = [0u8; 32];
         for (i, slot) in expected.iter_mut().enumerate() {
             *slot = i as u8;
@@ -626,7 +624,7 @@ mod payable_tests {
             "the seed decodes to the canonical bytes through the zeroizing scratch"
         );
         assert_eq!(
-            address(seed_hex(), 0).unwrap(),
+            address(&seed_bytes(), 0).unwrap(),
             qcore::account_address(&expected, 0),
             "an address over the zeroizing handle matches one over the raw seed"
         );
@@ -634,9 +632,9 @@ mod payable_tests {
 
     #[test]
     fn signing_is_deterministic() {
-        let target = address(seed_hex(), 8).unwrap();
+        let target = address(&seed_bytes(), 8).unwrap();
         let first = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",
@@ -650,7 +648,7 @@ mod payable_tests {
         )
         .unwrap();
         let second = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",
@@ -668,12 +666,12 @@ mod payable_tests {
 
     #[test]
     fn the_signature_binds_the_raw_address_payload_not_the_rendered_string() {
-        let target = address(seed_hex(), 8).unwrap();
+        let target = address(&seed_bytes(), 8).unwrap();
         let lower = target.to_ascii_lowercase();
         let upper = target.to_ascii_uppercase();
         assert_ne!(lower, upper, "the two variants must differ only in case");
         let signed_lower = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &lower,
             "deadbeef",
@@ -687,7 +685,7 @@ mod payable_tests {
         )
         .unwrap();
         let signed_upper = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &upper,
             "deadbeef",
@@ -705,9 +703,9 @@ mod payable_tests {
 
     #[test]
     fn the_value_is_bound_into_the_signature() {
-        let target = address(seed_hex(), 8).unwrap();
+        let target = address(&seed_bytes(), 8).unwrap();
         let a = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",
@@ -721,7 +719,7 @@ mod payable_tests {
         )
         .unwrap();
         let b = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",
@@ -739,9 +737,9 @@ mod payable_tests {
 
     #[test]
     fn the_chain_id_is_bound_into_the_signature() {
-        let target = address(seed_hex(), 8).unwrap();
+        let target = address(&seed_bytes(), 8).unwrap();
         let a = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",
@@ -755,7 +753,7 @@ mod payable_tests {
         )
         .unwrap();
         let b = sign_payable_call(
-            seed_hex(),
+            &seed_bytes(),
             7,
             &target,
             "deadbeef",

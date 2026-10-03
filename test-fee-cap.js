@@ -43,7 +43,7 @@ function fail(msg) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   let client = new Client('http://127.0.0.1:' + server.address().port);
-  const seed = '0b'.repeat(32);
+  const seed = new Uint8Array(32).fill(0x0b);
   const to = client.address(seed, 1);
 
   feeQuon = '100';

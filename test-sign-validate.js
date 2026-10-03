@@ -12,7 +12,7 @@ function refusal(fn) {
   try { fn(); return null; } catch (e) { return e.message; }
 }
 
-const seed = '11'.repeat(32);
+const seed = new Uint8Array(32).fill(0x11);
 const own = core.address(seed, 0n);
 const good = core.address(seed, 1n);
 const until = 300n;
@@ -82,7 +82,7 @@ for (const [label, fn] of [
 ]) {
   const why = refusal(fn);
   if (!why) fail(`${label} was accepted`);
-  if (!/string of decimal digits|safe integer|from 0 to|must be a string/.test(why)) fail(`${label} was not refused before the core: ${why}`);
+  if (!/string of decimal digits|safe integer|from 0 to|must be a string|must be a Uint8Array/.test(why)) fail(`${label} was not refused before the core: ${why}`);
 }
 if (core.address(seed, '1') !== good || core.address(seed, 1) !== good) fail('a digit string or a safe integer index must still derive the same address');
 
@@ -111,9 +111,10 @@ if (core.testnetChainId() !== core.chainIdFromName(Network.testnet().chainId)) f
 
 const phrase = core.mnemonicFromSeed(seed);
 const messy = '  ' + phrase.toUpperCase().split(' ').join('   ') + '\n';
-if (core.seedFromMnemonic(messy) !== seed) fail('a phrase with odd case and spacing must restore the same seed');
+const sameBytes = (a, b) => a instanceof Uint8Array && b instanceof Uint8Array && a.length === b.length && a.every((x, i) => x === b[i]);
+if (!sameBytes(core.seedFromMnemonic(messy), seed)) fail('a phrase with odd case and spacing must restore the same seed');
 const wide = phrase.replace(/[a-z]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 97 + 0xff41));
-if (core.seedFromMnemonic(wide) !== seed) fail('a phrase in full width letters must restore the same seed');
+if (!sameBytes(core.seedFromMnemonic(wide), seed)) fail('a phrase in full width letters must restore the same seed');
 const standard = refusal(() => core.seedFromMnemonic('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'));
 if (!standard || !/standard BIP-39/.test(standard)) fail('a standard BIP-39 phrase must be named as one: ' + standard);
 
