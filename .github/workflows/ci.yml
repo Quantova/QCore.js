@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QVM
-          ref: cd7f2772399eefe803810e84fcbb7feb7aae4397
+          ref: 57ab7b50b52f78ffd5811fffa109eb2dd2a9c906
           path: QVM
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
