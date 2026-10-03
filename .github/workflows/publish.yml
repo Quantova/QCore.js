@@ -77,10 +77,13 @@ jobs:
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
       - name: the tag must name the version being published
-        if: startsWith(github.ref, 'refs/tags/v')
         working-directory: QCore.js
         run: |
           set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/v*) ;;
+            *) echo "publish runs only from a vX.Y.Z tag, refusing $GITHUB_REF" >&2; exit 1 ;;
+          esac
           tagged="${GITHUB_REF_NAME#v}"
           declared=$(node -p "require('./package.json').version")
           if [ "$tagged" != "$declared" ]; then
