@@ -40,13 +40,13 @@ refuses(
 refuses(
   'a negative account index is refused',
   () => client.address(SEED, -1),
-  'unsigned 64 bit',
+  'from 0 to',
 );
 
 refuses(
   'an account index above the unsigned 64 bit range is refused',
   () => client.address(SEED, 2n ** 64n),
-  'unsigned 64 bit',
+  'from 0 to',
 );
 
 const zero = client.address(SEED, 0);

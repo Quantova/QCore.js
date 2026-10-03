@@ -8,14 +8,7 @@ function feeCeiling(maxFeeQuon) {
   if (typeof maxFeeQuon === 'number') {
     throw new Error('pass the maximum fee as a decimal string or a BigInt, never a JavaScript number, because a number silently rounds above 2^53 and could set the ceiling higher than you intended');
   }
-  let ceiling;
-  try {
-    ceiling = BigInt(maxFeeQuon);
-  } catch {
-    throw new Error('the maximum fee must be an integer number of Quon');
-  }
-  if (ceiling < 0n) throw new Error('the maximum fee cannot be negative');
-  return ceiling;
+  return wholeNumber(maxFeeQuon, 'maximum fee', U128_MAX);
 }
 
 function checkAmount(amount) {
@@ -28,35 +21,11 @@ function checkAmount(amount) {
 }
 
 function accountIndex(index) {
-  if (typeof index === 'number' && !Number.isSafeInteger(index)) {
-    throw new Error('the account index must be a whole number in the safe integer range, a number that large silently rounds and would sign with a different account key');
-  }
-  let i;
-  try {
-    i = BigInt(index);
-  } catch {
-    throw new Error('the account index must be a whole number');
-  }
-  if (i < 0n || i > 0xffffffffffffffffn) {
-    throw new Error('the account index must fit in an unsigned 64 bit integer');
-  }
-  return i;
+  return wholeNumber(index, 'account index', U64_MAX);
 }
 
 function accountNonce(nonce) {
-  if (typeof nonce === 'number' && !Number.isSafeInteger(nonce)) {
-    throw new Error('the gateway reported a nonce outside the safe integer range, a number that large silently rounds and would sign a different nonce');
-  }
-  let n;
-  try {
-    n = BigInt(nonce);
-  } catch {
-    throw new Error('the gateway reported a nonce that is not a whole number');
-  }
-  if (n < 0n || n > 0xffffffffffffffffn) {
-    throw new Error('the gateway reported a nonce outside the unsigned 64 bit range');
-  }
-  return n;
+  return wholeNumber(nonce, 'nonce', U64_MAX);
 }
 
 const VALIDITY_BLOCKS = 300n;
@@ -142,19 +111,7 @@ function isPublicChain(name) {
 }
 
 function meterLimitOf(meterLimit) {
-  if (typeof meterLimit === 'number' && !Number.isSafeInteger(meterLimit)) {
-    throw new Error('the meter limit must be a whole number in the safe integer range');
-  }
-  let meter;
-  try {
-    meter = BigInt(meterLimit);
-  } catch {
-    throw new Error('the meter limit must be a whole number');
-  }
-  if (meter < 0n || meter > 0xffffffffffffffffn) {
-    throw new Error('the meter limit must fit in an unsigned 64 bit integer');
-  }
-  return meter;
+  return wholeNumber(meterLimit, 'meter limit', U64_MAX);
 }
 
 function validUntil(info) {
@@ -176,17 +133,7 @@ function validUntil(info) {
 }
 
 function gatewayFee(fee) {
-  if (typeof fee === 'number' && !Number.isSafeInteger(fee)) {
-    throw new Error('the gateway reported a fee outside the safe integer range, a number that large silently rounds and would sign a different fee');
-  }
-  let f;
-  try {
-    f = BigInt(fee);
-  } catch {
-    throw new Error('the gateway reported a fee that is not a whole number');
-  }
-  if (f < 0n) throw new Error('the gateway reported a negative fee');
-  return f;
+  return wholeNumber(fee, 'fee', U128_MAX);
 }
 
 async function readBounded(res) {
