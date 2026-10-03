@@ -75,6 +75,7 @@ jobs:
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
+          cargo install wasm-bindgen-cli --version 0.2.126 --locked
           bash scripts/build.sh
       - name: the tag must name the version being published
         working-directory: QCore.js
