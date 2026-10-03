@@ -246,7 +246,9 @@ function generateSeed() {
   }
   const bytes = new Uint8Array(32);
   source.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  bytes.fill(0);
+  return hex;
 }
 
 function makeClient(core) {
