@@ -29,6 +29,7 @@ function accountNonce(nonce) {
 }
 
 const VALIDITY_BLOCKS = 300n;
+const ORDER_HOLD_UNTIL = 1n << 62n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
 const HEAD_BLOCKS_PER_SEC = 4n;
 const HEAD_SLACK_SECS = 60n;
@@ -613,6 +614,7 @@ function makeClient(core) {
       const signed = JSON.parse(
         core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
+      this._guardSigned(orderKey, nonce, order.call_args, ORDER_HOLD_UNTIL, expectedOrderNonce != null);
       this._guardSigned(from, accountNonceUsed, signed.tx_hex, until, expectedNonce != null);
       const outcome = await this.submit(signed.tx_hex);
       this._remember(from, accountNonceUsed, outcome);
