@@ -31,7 +31,7 @@ function accountNonce(nonce) {
 const VALIDITY_BLOCKS = 300n;
 const ORDER_HOLD_UNTIL = 1n << 62n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
-const HEAD_BLOCKS_PER_SEC = 4n;
+const HEAD_BLOCKS_PER_SEC = 20n;
 const HEAD_SLACK_SECS = 60n;
 const GENESIS_FLOOR_SECS = 1735689600n;
 const U64_MAX = 0xffffffffffffffffn;
