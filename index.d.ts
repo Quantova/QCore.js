@@ -212,6 +212,8 @@ export interface SigningSession {
   rememberAddress(address: string): void;
   checkTarget(address: string): void;
   slot(key: string, reported: bigint, expected: bigint | undefined, order: boolean): bigint;
+  release(key: string, slot: bigint): void;
+  releasePending(key: string): void;
   signed(key: string, slot: bigint): void;
   outcome(key: string, slot: bigint, accepted: boolean): void;
   nextNonce(key: string): bigint | undefined;

@@ -479,6 +479,7 @@ function makeClient(core) {
     async _accountSlot(from, expectedNonce) {
       const acct = await this.account(from);
       const reported = gatewayInteger(acct.nonce, 'nonce');
+      this._session.releasePending(from);
       return BigInt(this._session.slot(from, reported, this._expected(expectedNonce, 'expected nonce'), false));
     }
 
@@ -666,6 +667,7 @@ function makeClient(core) {
       const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
+      this._session.releasePending(orderKey);
       const nonce = BigInt(this._session.slot(orderKey, reportedOrder, this._expected(expectedOrderNonce, 'expected order nonce'), true));
       if (typeof orderSpec.layoutHash !== 'string') throw new Error('the order spec needs the layout hash the compiler emits for this entry');
       const orderExpiry = wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX);

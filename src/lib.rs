@@ -228,6 +228,15 @@ impl SigningSession {
         self.0.signed(key, slot)
     }
 
+    pub fn release(&mut self, key: &str, slot: u64) {
+        self.0.release(key, slot)
+    }
+
+    #[wasm_bindgen(js_name = releasePending)]
+    pub fn release_pending(&mut self, key: &str) {
+        self.0.release_pending(key)
+    }
+
     pub fn outcome(&mut self, key: &str, slot: u64, accepted: bool) {
         self.0.outcome(key, slot, accepted)
     }
