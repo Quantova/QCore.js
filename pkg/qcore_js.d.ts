@@ -26,17 +26,21 @@ export function block_by_height_body(height: bigint): string;
 
 export function boundedValidUntil(chain_name: string, head: bigint, wall_secs: bigint, floor: bigint | null | undefined, floor_age_secs: bigint): bigint;
 
-export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
-export function buildTypedOrderCall(chain_id: bigint, contract: string, selector_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildTypedOrderCall(chain_id: bigint, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
 export function chainIdFromName(name: string): bigint;
 
 export function checkGatewayJson(response: string): void;
 
+export function checkOrderExpiry(expiry: bigint, now_secs: bigint): void;
+
 export function checkValidUntil(valid_until: bigint, head: bigint): void;
 
 export function contractAddress(deployer: string, nonce: bigint): string | undefined;
+
+export function decodeEvent(leaf_hex: string): string;
 
 export function eventsBody(height: bigint): string;
 
@@ -61,6 +65,8 @@ export function mnemonicFromSeedText(seed_bytes: Uint8Array): any;
 export function nameKey(label: string): string;
 
 export function nonceSlotKey(signer_hex: string): string;
+
+export function orderLayoutHash(selector_hex: string, fields_json: string): string;
 
 export function orderSigner(seed_bytes: Uint8Array, index: bigint): string;
 
@@ -109,6 +115,10 @@ export function unpackSymbol(word: bigint): string;
 export function valid_address(address: string): boolean;
 
 export function validityBlocks(): bigint;
+
+export function verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
+
+export function verifyFinality(chain_id: bigint, header_hex: string, certificate_hex: string, roster_json: string): string;
 
 export function vmCallFee(transfer_fee: string, meter_limit: bigint): string;
 

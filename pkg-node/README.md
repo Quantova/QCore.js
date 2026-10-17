@@ -231,7 +231,9 @@ the fee cap and the amount guard and never the bare signing functions.
 The raw builds are still reachable on their own subpaths, `@quantovainc/qcore/pkg` for the bundler build
 and `@quantovainc/qcore/pkg-node` for the nodejs build. Those export only the core.* functions, with no
 Client, no fee cap, and no amount guard, and are for an advanced caller who assembles the fee comparison
-alone. The default browser, import, node, and require resolutions never reach them.
+alone. A whole number argument above the u64 range wraps modulo 2^64 in a raw build, so such a caller
+must range check every amount, fee, nonce, and expiry before the call. The default browser, import,
+node, and require resolutions never reach them.
 
 To build both from source, run `npm run build`, which produces the bundler build in `pkg` and the node
 build in `pkg-node`.

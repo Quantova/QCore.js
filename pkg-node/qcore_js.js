@@ -235,6 +235,7 @@ exports.boundedValidUntil = boundedValidUntil;
  * @param {bigint} chain_id
  * @param {string} contract
  * @param {string} selector_hex
+ * @param {string} layout_hash_hex
  * @param {bigint} scheme_off
  * @param {bigint} ptr_off
  * @param {bigint} expiry_off
@@ -247,32 +248,34 @@ exports.boundedValidUntil = boundedValidUntil;
  * @param {bigint} expiry
  * @returns {string}
  */
-function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, expiry_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce, expiry) {
-    let deferred7_0;
-    let deferred7_1;
+function buildSignedOrderCall(chain_id, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce, expiry) {
+    let deferred8_0;
+    let deferred8_1;
     try {
         const ptr0 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(field_offs_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(fields_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(field_offs_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const ptr4 = passStringToWasm0(fields_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len4 = WASM_VECTOR_LEN;
-        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, expiry_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce, expiry);
-        var ptr6 = ret[0];
-        var len6 = ret[1];
+        const ptr5 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, scheme_off, ptr_off, expiry_off, ptr3, len3, ptr4, len4, region_off, ptr5, len5, owner_index, nonce, expiry);
+        var ptr7 = ret[0];
+        var len7 = ret[1];
         if (ret[3]) {
-            ptr6 = 0; len6 = 0;
+            ptr7 = 0; len7 = 0;
             throw takeFromExternrefTable0(ret[2]);
         }
-        deferred7_0 = ptr6;
-        deferred7_1 = len6;
-        return getStringFromWasm0(ptr6, len6);
+        deferred8_0 = ptr7;
+        deferred8_1 = len7;
+        return getStringFromWasm0(ptr7, len7);
     } finally {
-        wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
+        wasm.__wbindgen_free(deferred8_0, deferred8_1, 1);
     }
 }
 exports.buildSignedOrderCall = buildSignedOrderCall;
@@ -281,6 +284,7 @@ exports.buildSignedOrderCall = buildSignedOrderCall;
  * @param {bigint} chain_id
  * @param {string} contract
  * @param {string} selector_hex
+ * @param {string} layout_hash_hex
  * @param {bigint} scheme_off
  * @param {bigint} ptr_off
  * @param {bigint} expiry_off
@@ -292,30 +296,32 @@ exports.buildSignedOrderCall = buildSignedOrderCall;
  * @param {bigint} expiry
  * @returns {string}
  */
-function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, expiry_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce, expiry) {
-    let deferred6_0;
-    let deferred6_1;
+function buildTypedOrderCall(chain_id, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce, expiry) {
+    let deferred7_0;
+    let deferred7_1;
     try {
         const ptr0 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const ptr3 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, expiry_off, region_off, ptr2, len2, ptr3, len3, owner_index, nonce, expiry);
-        var ptr5 = ret[0];
-        var len5 = ret[1];
+        const ptr4 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, scheme_off, ptr_off, expiry_off, region_off, ptr3, len3, ptr4, len4, owner_index, nonce, expiry);
+        var ptr6 = ret[0];
+        var len6 = ret[1];
         if (ret[3]) {
-            ptr5 = 0; len5 = 0;
+            ptr6 = 0; len6 = 0;
             throw takeFromExternrefTable0(ret[2]);
         }
-        deferred6_0 = ptr5;
-        deferred6_1 = len5;
-        return getStringFromWasm0(ptr5, len5);
+        deferred7_0 = ptr6;
+        deferred7_1 = len6;
+        return getStringFromWasm0(ptr6, len6);
     } finally {
-        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
+        wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
     }
 }
 exports.buildTypedOrderCall = buildTypedOrderCall;
@@ -346,6 +352,18 @@ function checkGatewayJson(response) {
 exports.checkGatewayJson = checkGatewayJson;
 
 /**
+ * @param {bigint} expiry
+ * @param {bigint} now_secs
+ */
+function checkOrderExpiry(expiry, now_secs) {
+    const ret = wasm.checkOrderExpiry(expiry, now_secs);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
+}
+exports.checkOrderExpiry = checkOrderExpiry;
+
+/**
  * @param {bigint} valid_until
  * @param {bigint} head
  */
@@ -374,6 +392,32 @@ function contractAddress(deployer, nonce) {
     return v2;
 }
 exports.contractAddress = contractAddress;
+
+/**
+ * @param {string} leaf_hex
+ * @returns {string}
+ */
+function decodeEvent(leaf_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(leaf_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.decodeEvent(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.decodeEvent = decodeEvent;
 
 /**
  * @param {bigint} height
@@ -588,6 +632,35 @@ function nonceSlotKey(signer_hex) {
     }
 }
 exports.nonceSlotKey = nonceSlotKey;
+
+/**
+ * @param {string} selector_hex
+ * @param {string} fields_json
+ * @returns {string}
+ */
+function orderLayoutHash(selector_hex, fields_json) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.orderLayoutHash(ptr0, len0, ptr1, len1);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+exports.orderLayoutHash = orderLayoutHash;
 
 /**
  * @param {Uint8Array} seed_bytes
@@ -1125,6 +1198,60 @@ function validityBlocks() {
     return BigInt.asUintN(64, ret);
 }
 exports.validityBlocks = validityBlocks;
+
+/**
+ * @param {string} event_root_hex
+ * @param {string} leaf_hex
+ * @param {string} steps_json
+ * @returns {boolean}
+ */
+function verifyEvent(event_root_hex, leaf_hex, steps_json) {
+    const ptr0 = passStringToWasm0(event_root_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(leaf_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(steps_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.verifyEvent(ptr0, len0, ptr1, len1, ptr2, len2);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+exports.verifyEvent = verifyEvent;
+
+/**
+ * @param {bigint} chain_id
+ * @param {string} header_hex
+ * @param {string} certificate_hex
+ * @param {string} roster_json
+ * @returns {string}
+ */
+function verifyFinality(chain_id, header_hex, certificate_hex, roster_json) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(header_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(certificate_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.verifyFinality(chain_id, ptr0, len0, ptr1, len1, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+}
+exports.verifyFinality = verifyFinality;
 
 /**
  * @param {string} transfer_fee
