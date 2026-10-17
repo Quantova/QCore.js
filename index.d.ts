@@ -237,6 +237,7 @@ export interface ClientOptions {
   network?: Network;
   expectedChainId?: string;
   addressBook?: ReadonlyArray<string>;
+  fetch?: (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal; redirect: 'error' }) => Promise<Response>;
 }
 
 export class Client {

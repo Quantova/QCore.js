@@ -59,6 +59,20 @@ function wholeNumber(value, label, max) {
   return n;
 }
 
+const ACCOUNT_LOCKS = new Map();
+
+function requireVerifiedTls() {
+  const env = typeof process !== 'undefined' && process && process.env ? process.env : null;
+  if (env && env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+    throw new Error('this process has TLS certificate checks turned off with NODE_TLS_REJECT_UNAUTHORIZED=0, refusing to talk to a gateway');
+  }
+}
+
+function shown(value) {
+  const text = String(value).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]/g, '');
+  return text.length > 96 ? text.slice(0, 96) + '...' : text;
+}
+
 function coreArg(kind, label, value) {
   if (kind === 'text') {
     if (typeof value !== 'string') throw new Error(`the ${label} must be a string`);
@@ -343,7 +357,10 @@ function makeClient(core) {
       this._session = new core.SigningSession(book);
       this._pinnedChainName = null;
       this._headFloor = null;
-      this._locks = new Map();
+      if (opts.fetch != null && typeof opts.fetch !== 'function') throw new Error('the fetch option must be a function with the fetch signature');
+      this._fetch = opts.fetch || ((url, init) => fetch(url, init));
+      requireVerifiedTls();
+      this._locks = ACCOUNT_LOCKS;
       for (const name of ['transfer', 'register', 'call', 'assetCall', 'payableCall']) {
         const inner = this[name].bind(this);
         this[name] = (seed, index, ...rest) => {
@@ -392,18 +409,18 @@ function makeClient(core) {
       const mainnet = isMainnetChain(name);
       if (configured) {
         if (name !== configured) {
-          throw new Error(`the gateway reports chain ${name} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
+          throw new Error(`the gateway reports chain ${shown(name)} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
         }
       } else if (isPublicChain(name) && !(mainnet && this.acknowledgeMainnet)) {
-        throw new Error(`the gateway reports the public chain ${name} but this client was opened for an unnamed network; configure the testnet or mainnet network before signing for it`);
+        throw new Error(`the gateway reports the public chain ${shown(name)} but this client was opened for an unnamed network; configure the testnet or mainnet network before signing for it`);
       }
       if (mainnet && !this.acknowledgeMainnet) {
-        throw new Error(`the gateway reports the mainnet chain ${name}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
+        throw new Error(`the gateway reports the mainnet chain ${shown(name)}; refusing to sign a mainnet transaction without acknowledgeMainnet`);
       }
       if (this._pinnedChainName === null) {
         this._pinnedChainName = name;
       } else if (this._pinnedChainName !== name) {
-        throw new Error(`the gateway reported chain ${this._pinnedChainName} earlier and now reports ${name}; refusing to sign, the endpoint is not naming one network`);
+        throw new Error(`the gateway reported chain ${shown(this._pinnedChainName)} earlier and now reports ${shown(name)}; refusing to sign, the endpoint is not naming one network`);
       }
       return BigInt(core.chainIdFromName(name));
     }
@@ -412,7 +429,7 @@ function makeClient(core) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
-        const res = await fetch(this.base + '/v1/' + method, {
+        const res = await this._fetch(this.base + '/v1/' + method, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: body || '{}',
@@ -425,7 +442,7 @@ function makeClient(core) {
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
         if (res.status !== 200) {
           const detail = data && typeof data === 'object' ? (data.message || data.error) : null;
-          throw new Error(detail || ('status ' + res.status));
+          throw new Error(detail ? shown(detail) : ('status ' + res.status));
         }
         return data;
       } finally {
@@ -441,7 +458,7 @@ function makeClient(core) {
         throw new Error(`the gateway answered about ${address} without naming the account, refusing to trust it`);
       }
       if (acct.address !== address) {
-        throw new Error(`the gateway answered for ${acct.address} when asked about ${address}, refusing to trust it`);
+        throw new Error(`the gateway answered for ${shown(acct.address)} when asked about ${address}, refusing to trust it`);
       }
       return acct;
     }
@@ -469,7 +486,7 @@ function makeClient(core) {
       for (const [key, slot] of slots) this._session.signed(key, slot);
       const outcome = await this.submit(txHex);
       const verdict = outcome && outcome.verdict;
-      if (verdict !== 'accepted' && verdict !== 'rejected') throw new Error(`unknown verdict ${verdict}`);
+      if (verdict !== 'accepted' && verdict !== 'rejected') throw new Error(`unknown verdict ${shown(verdict)}`);
       for (const [key, slot] of slots) this._session.outcome(key, slot, verdict === 'accepted');
       return outcome;
     }
