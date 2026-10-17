@@ -134,6 +134,13 @@ Pass `addressBook`, a list of Q1 addresses you trust, in the Client options, and
 a target that shares two or more leading and trailing characters with a known address, eight in all, but is a
 different address. The sending accounts and every target signed for in the session are known as well.
 
+Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
+through your own transport, for example one that enforces an address allow list. Without it the Client
+uses the platform fetch, which on Node follows HTTPS_PROXY only when NODE_USE_ENV_PROXY is set. The
+Client refuses to start when NODE_TLS_REJECT_UNAUTHORIZED is 0. Signing calls for one account run one at a
+time across every Client in the process, and each Client keeps its own record of signed nonces, so keep
+one Client per account to have every nonce tracked in one place.
+
 The last argument to a Client signing call, transfer, register, call, or callSignedOrder, is a fee
 ceiling, the most you are ever willing to pay in fees for one transaction. You choose it yourself, as a
 fixed number your app decides on its own, before you sign. The Client reads the gateway's reported fee,
