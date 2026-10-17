@@ -13,7 +13,7 @@ function client(reportedNonce, accountNonce) {
   c._guardMainnet = () => {};
   c._signingChainId = () => 1n;
   c.contractNonce = async () => reportedNonce;
-  c.submit = async () => ({ ok: true });
+  c.submit = async () => ({ verdict: 'accepted', state: 'fresh', tx_id: 'Qtx' });
   c.account = async () => ({ nonce: accountNonce || 0 });
   return c;
 }
@@ -21,7 +21,7 @@ function client(reportedNonce, accountNonce) {
 async function sign(c, expected, layout) {
   return c.callSignedOrder(
     new Uint8Array(32).fill(0xaa), 0, CONTRACT, '00000000',
-    layout || { schemeOff: 0, ptrOff: 0, fields: [] },
+    layout || { schemeOff: 0, ptrOff: 0, expiryOff: 0, expiry: 0, fields: [] },
     new Uint8Array(32).fill(0xbb), 0, 1210, '1000', expected
   );
 }
@@ -41,31 +41,36 @@ async function sign(c, expected, layout) {
     'the matching nonce must be allowed through');
   console.log('  ok   the expected nonce signs');
 
-  const local = client(0n);
-  local._remember('k', 4n, { verdict: 'accepted' });
-  assert.strictEqual(local._checkedNonce(4n, null, 'k'), 4n,
-    'a submission that never landed must not push the next one past the nonce the chain admits');
-  assert.strictEqual(local._checkedNonce(5n, null, 'k'), 5n);
-  assert.strictEqual(local._checkedNonce(6n, null, 'k'), 6n,
-    'a gateway nonce above the local one raises the local one rather than refusing');
-  assert.strictEqual(local._nextNonces.get('k'), 6n);
-  assert.strictEqual(local._checkedNonce(4n, null, 'k'), 4n);
-  assert.strictEqual(local._nextNonces.get('k'), 6n, 'the local nonce never moves backwards');
+  const local = client(0n)._session;
+  assert.strictEqual(local.slot('k', 4n, undefined, false), 4n);
+  local.signed('k', 4n);
+  local.outcome('k', 4n, true);
+  assert.strictEqual(local.nextNonce('k'), 5n);
+  assert.strictEqual(local.slot('k', 6n, undefined, false), 6n,
+    'a gateway nonce above the local one raises the local one once every signed slot was accepted');
+  assert.strictEqual(local.nextNonce('k'), 6n);
   threw = null;
-  try { local._checkedNonce(6n, 7n, 'k'); } catch (e) { threw = e.message; }
+  try { local.slot('k', 6n, 7n, false); } catch (e) { threw = e.message; }
   assert(threw && threw.includes('you expected 7'),
     'an expected nonce the account has not reached is refused, the mempool admits only the reported one');
-  assert.strictEqual(local._checkedNonce(6n, 6n, 'k'), 6n);
+  assert.strictEqual(local.slot('k', 6n, 6n, false), 6n);
+  assert.strictEqual(local.slot('o', 2n, undefined, true), 2n);
+  threw = null;
+  try { local.slot('o', 9n, undefined, true); } catch (e) { threw = e.message; }
+  assert(threw && threw.includes('order nonce 9'),
+    'an order nonce the gateway raised above the tracked one is refused unless the caller names it');
+  assert.strictEqual(local.slot('o', 9n, 9n, true), 9n);
   console.log('  ok   the local nonce follows the chain and an expected nonce must match it');
 
   const ordered = client(5n, 2n);
-  const layout = { schemeOff: 120, ptrOff: 128, fields: [{ offset: 136, width: 8, value: '1' }] };
+  const layout = { schemeOff: 120, ptrOff: 128, expiryOff: 144, expiry: 1900000000, fields: [{ offset: 136, width: 8, value: '1' }] };
   const done = await sign(ordered, 5n, layout);
   assert.strictEqual(done.orderNonce, 5n);
   const caller = core.address(new Uint8Array(32).fill(0xaa), 0n);
-  const held = ordered._signedNonces.get(caller);
-  assert(held && held.has('2') && !held.has('5'),
+  const orderKey = CONTRACT + '/' + core.orderSigner(new Uint8Array(32).fill(0xbb), 0n);
+  assert(ordered._session.isHeld(caller, 2n) && !ordered._session.isHeld(caller, 5n),
     'the signature is held against the account nonce it was signed at, not the order nonce');
+  assert(ordered._session.isHeld(orderKey, 5n), 'the order nonce is held under its own key');
   console.log('  ok   a signed order holds the account nonce it used');
 
   const Client = makeClient(core);

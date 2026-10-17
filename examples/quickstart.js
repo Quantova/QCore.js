@@ -20,7 +20,8 @@ async function main() {
   const seed = generateSeed();
 
   const phrase = core.mnemonicFromSeed(seed);
-  console.log('mnemonic words', phrase.split(' ').length);
+  console.log('mnemonic words', phrase.filter((byte) => byte === 0x20).length + 1);
+  phrase.fill(0);
 
   const from = core.address(seed, 0n);
   const to = core.address(seed, 1n);

@@ -14,11 +14,14 @@ export interface SignedOrder {
   public_key: string;
   signer: string;
   nonce: number;
+  expiry: number;
 }
 
 export interface OrderLayout {
   schemeOff: number | bigint;
   ptrOff: number | bigint;
+  expiryOff: number | bigint;
+  expiry: number | bigint;
   fieldOffs?: ReadonlyArray<number | bigint>;
   regionOff?: number | bigint;
 }
@@ -32,6 +35,8 @@ export interface SignedOrderField {
 export interface SignedOrderSpec {
   schemeOff: number | bigint;
   ptrOff: number | bigint;
+  expiryOff: number | bigint;
+  expiry: number | bigint;
   regionOff?: number | bigint;
   fields: ReadonlyArray<SignedOrderField>;
 }
@@ -59,12 +64,14 @@ export interface QCore {
     selector_hex: string,
     scheme_off: WholeNumber,
     ptr_off: WholeNumber,
+    expiry_off: WholeNumber,
     field_offs_csv: string,
     fields_csv: string,
     region_off: WholeNumber,
     owner_seed: Uint8Array,
     owner_index: WholeNumber,
     nonce: WholeNumber,
+    expiry: WholeNumber,
   ): string;
   buildTypedOrderCall(
     chain_id: WholeNumber,
@@ -72,11 +79,13 @@ export interface QCore {
     selector_hex: string,
     scheme_off: WholeNumber,
     ptr_off: WholeNumber,
+    expiry_off: WholeNumber,
     region_off: WholeNumber,
     fields_json: string,
     owner_seed: Uint8Array,
     owner_index: WholeNumber,
     nonce: WholeNumber,
+    expiry: WholeNumber,
   ): string;
   checkValidUntil(valid_until: WholeNumber, head: WholeNumber): void;
   contractAddress(deployer: string, nonce: WholeNumber): string | undefined;
@@ -86,7 +95,8 @@ export interface QCore {
   mainnetChainId(): bigint;
   mapAddrWordKey(map_domain_tag: WholeNumber, key32_hex: string, word: WholeNumber): string;
   mapSlotKey(map_domain_tag: WholeNumber, key_address_hex: string): string;
-  mnemonicFromSeed(seed: Uint8Array): string;
+  mnemonicFromSeed(seed: Uint8Array): Uint8Array;
+  mnemonicFromSeedText(seed: Uint8Array): string;
   nonceSlotKey(signer_hex: string): string;
   orderSigner(seed: Uint8Array, index: WholeNumber): string;
   parseEvents(response: string): string;
@@ -97,7 +107,22 @@ export interface QCore {
   unpackSymbol(word: WholeNumber): string;
   assetBalanceBody(issuer: string, holder: string): string;
   assetSupplyBody(issuer: string): string;
-  seedFromMnemonic(phrase: string): Uint8Array;
+  seedFromMnemonic(phrase: string | Uint8Array): Uint8Array;
+  seedFromMnemonicBytes(phrase: Uint8Array): Uint8Array;
+  genesisSecs(chain_name: string): bigint;
+  headCeiling(chain_name: string, wall_secs: WholeNumber): bigint;
+  boundedValidUntil(
+    chain_name: string,
+    head: WholeNumber,
+    wall_secs: WholeNumber,
+    floor: WholeNumber | undefined,
+    floor_age_secs: WholeNumber,
+  ): bigint;
+  checkGatewayJson(response: string): void;
+  testnetRpcUrl(): string;
+  testnetChainName(): string;
+  validityBlocks(): bigint;
+  SigningSession: new (book: string[]) => SigningSession;
   signPayableCall(
     seed: Uint8Array,
     index: WholeNumber,
@@ -167,6 +192,17 @@ export interface QCore {
   vmDeployAddress(): string;
 }
 
+export interface SigningSession {
+  rememberAddress(address: string): void;
+  checkTarget(address: string): void;
+  slot(key: string, reported: bigint, expected: bigint | undefined, order: boolean): bigint;
+  signed(key: string, slot: bigint): void;
+  outcome(key: string, slot: bigint, accepted: boolean): void;
+  nextNonce(key: string): bigint | undefined;
+  isHeld(key: string, slot: bigint): boolean;
+  free(): void;
+}
+
 export class Network {
   readonly name: string;
   readonly chainId: string | null;
@@ -184,6 +220,7 @@ export interface ClientOptions {
   acknowledgeMainnet?: boolean;
   network?: Network;
   expectedChainId?: string;
+  addressBook?: ReadonlyArray<string>;
 }
 
 export class Client {
@@ -245,6 +282,8 @@ export class Client {
   ): Promise<TransferResult>;
   contractNonce(contract: string, signerHex: string): Promise<bigint>;
   contractScalar(contract: string, slot: number | bigint): Promise<bigint>;
+  contractMap(contract: string, mapDomainTag: number | bigint, keyHex: string): Promise<bigint>;
+  assetBalance(issuer: string, holder: string): Promise<bigint>;
   callSignedOrder(
     callerSeed: Uint8Array,
     callerIndex: number,
@@ -264,6 +303,6 @@ export const core: QCore;
 
 export function generateSeed(): Uint8Array;
 
-export function validUntil(nodeInfo: { head_height?: number | string | bigint }): bigint;
+export function validUntil(nodeInfo: { head_height?: number | bigint }): bigint;
 
 export function vmCallFee(transferFee: WholeNumber, meterLimit: WholeNumber): bigint;

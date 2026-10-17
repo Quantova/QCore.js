@@ -19,14 +19,19 @@ const fields = JSON.stringify([
 ]);
 
 const res = JSON.parse(
-  core.buildTypedOrderCall(core.localChainId(), contract, '3eccb9bc', 120n, 128n, 0n, fields, seedHex, 0n, 0n)
+  core.buildTypedOrderCall(core.localChainId(), contract, '3eccb9bc', 120n, 128n, 184n, 0n, fields, seedHex, 0n, 0n, 1900000000n)
 );
 const msg = Buffer.from(res.message, 'hex');
+const mem = Buffer.from(res.call_args, 'hex').slice(4);
 
-ok('the wide amount widens the preimage to 136 bytes', msg.length === 136);
-ok('the amount low word is first', msg.readBigUInt64BE(88) === 100n);
-ok('the amount high word is second', msg.readBigUInt64BE(96) === 1n);
-ok('the address follows the wide amount', msg.slice(104, 136).toString('hex') === to);
+ok('the wide amount widens the preimage to 152 bytes', msg.length === 152);
+ok('the tag is fixed', msg.slice(0, 8).toString() === 'QTVSGN02');
+ok('the chain id is its own word', msg.readBigUInt64BE(8) === BigInt(core.localChainId()));
+ok('the expiry follows the nonce', msg.readBigUInt64BE(96) === 1900000000n);
+ok('the expiry is placed at its argument slot', mem.readBigUInt64BE(184) === 1900000000n);
+ok('the amount low word is first', msg.readBigUInt64BE(104) === 100n);
+ok('the amount high word is second', msg.readBigUInt64BE(112) === 1n);
+ok('the address follows the wide amount', msg.slice(120, 152).toString('hex') === to);
 
 if (failures > 0) {
   console.log('\ntyped order: ' + failures + ' checks failed');

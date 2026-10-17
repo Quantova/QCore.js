@@ -105,7 +105,7 @@ Quantova shares no wire, no address, and no unit with any other chain, and QCore
 const { generateSeed, core } = require('@quantovainc/qcore');
 
 const seed = generateSeed();                 // thirty two random bytes in a Uint8Array from the platform source
-const phrase = core.mnemonicFromSeed(seed);  // the only backup, shown once and kept on the device
+const phrase = core.mnemonicFromSeed(seed);  // the only backup as UTF-8 bytes in a Uint8Array you can wipe
 ```
 
 `core.seedFromMnemonic(phrase)` restores the seed from the twenty five words as a Uint8Array. It ignores
@@ -116,9 +116,23 @@ wallet is refused with its own error, since a Quantova phrase carries a SHA3 che
 from it.
 
 Every seed is a Uint8Array. Call `seed.fill(0)` when you are done with it, and never print or log any part of
-it. The WASM core wipes its own copies of a seed before it frees them.
+it. The WASM core wipes its own copies of a seed before it frees them. The phrase comes back as a Uint8Array
+of UTF-8 text for the same reason, so call `phrase.fill(0)` once it has been shown, and pass it back to
+`core.seedFromMnemonic` as the same bytes. `core.mnemonicFromSeedText(seed)` returns the words as a string for
+a caller that must display them, and a JavaScript string can never be wiped, so prefer the bytes.
 
 ## Using it
+
+The Client checks every number the gateway reports before it signs. A fee or balance must be a string of
+the ASCII digits zero to nine, a nonce or head height must be a JSON integer, and the head is bounded by the
+time since the genesis of the named network, a constant the Client reads from the compiled core so all three
+QCore clients share one value. The Client keeps a signing session in memory. A nonce it signed once is not
+signed again until you pass that nonce as the expected nonce, which is how you say the first transaction never
+landed, and a gateway that rejects a transaction and then reports a later nonce is refused for the same reason.
+An order nonce the gateway raises above the one the session tracked needs the expected order nonce as well.
+Pass `addressBook`, a list of Q1 addresses you trust, in the Client options, and the Client refuses to sign for
+a target that shares two or more leading and trailing characters with a known address, eight in all, but is a
+different address. The sending accounts and every target signed for in the session are known as well.
 
 The last argument to a Client signing call, transfer, register, call, or callSignedOrder, is a fee
 ceiling, the most you are ever willing to pay in fees for one transaction. You choose it yourself, as a

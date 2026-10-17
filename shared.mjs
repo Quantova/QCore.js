@@ -29,12 +29,7 @@ function accountNonce(nonce) {
 }
 
 const VALIDITY_BLOCKS = 300n;
-const ORDER_HOLD_UNTIL = 1n << 62n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
-const HEAD_BLOCKS_PER_SEC = 20n;
-const HEAD_SLACK_BLOCKS = 240n;
-const GENESIS_FLOOR_SECS = 1735689600n;
-const TESTNET_GENESIS_SECS = 1791082813n;
 const U64_MAX = 0xffffffffffffffffn;
 const U128_MAX = (1n << 128n) - 1n;
 
@@ -69,12 +64,17 @@ function coreArg(kind, label, value) {
     if (typeof value !== 'string') throw new Error(`the ${label} must be a string`);
     return value;
   }
+  if (kind === 'phrase') {
+    if (!(value instanceof Uint8Array)) throw new Error(`the ${label} must be a Uint8Array of UTF-8 text`);
+    return value;
+  }
   if (kind === 'seed') {
     if (!(value instanceof Uint8Array)) throw new Error(`the ${label} must be a Uint8Array of 32 bytes; pass a handle you can wipe after use, not a hex string`);
     if (value.length !== 32) throw new Error(`the ${label} must be 32 bytes`);
     return value;
   }
   if (kind === 'u64') return wholeNumber(value, label, U64_MAX);
+  if (kind === 'u64opt') return value == null ? undefined : wholeNumber(value, label, U64_MAX);
   if (kind === 'u64s') return wholeNumber(value, label, U64_MAX).toString();
   if (kind === 'u128s') return wholeNumber(value, label, U128_MAX).toString();
   throw new Error(`unknown argument kind ${kind}`);
@@ -83,15 +83,21 @@ function coreArg(kind, label, value) {
 const CORE_ARGS = {
   address: [['seed', 'seed'], ['u64', 'account index']],
   mnemonicFromSeed: [['seed', 'seed']],
+  mnemonicFromSeedText: [['seed', 'seed']],
   seedFromMnemonic: [['text', 'recovery phrase']],
+  seedFromMnemonicBytes: [['phrase', 'recovery phrase']],
+  genesisSecs: [['text', 'chain name']],
+  headCeiling: [['text', 'chain name'], ['u64', 'wall clock seconds']],
+  boundedValidUntil: [['text', 'chain name'], ['u64', 'head height'], ['u64', 'wall clock seconds'], ['u64opt', 'head floor'], ['u64', 'head floor age']],
+  checkGatewayJson: [['text', 'gateway response']],
   orderSigner: [['seed', 'seed'], ['u64', 'account index']],
   sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
   signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
   sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
   signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
   signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
-  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce']],
+  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   contractAddress: [['text', 'deployer'], ['u64', 'nonce']],
   scalarSlotKey: [['u64', 'slot']],
   mapSlotKey: [['u64', 'map domain tag'], ['text', 'key address']],
@@ -112,7 +118,46 @@ function wrapCore(raw) {
   }
   const fee = core.vmCallFee;
   if (typeof fee === 'function') core.vmCallFee = (transferFee, meterLimit) => BigInt(fee(transferFee, meterLimit));
+  const text = core.seedFromMnemonic;
+  const bytes = core.seedFromMnemonicBytes;
+  if (typeof text === 'function' && typeof bytes === 'function') {
+    core.seedFromMnemonic = (phrase) => (phrase instanceof Uint8Array ? bytes(phrase) : text(phrase));
+  }
+  bindNetworkDefaults(raw);
   return Object.freeze(core);
+}
+
+const NETWORK_DEFAULTS = { testnetChainName: null, testnetRpcUrl: null };
+
+function bindNetworkDefaults(core) {
+  if (core && typeof core.testnetRpcUrl === 'function' && typeof core.testnetChainName === 'function') {
+    NETWORK_DEFAULTS.testnetRpcUrl = core.testnetRpcUrl();
+    NETWORK_DEFAULTS.testnetChainName = core.testnetChainName();
+  }
+}
+
+function requireNetworkDefaults() {
+  if (!NETWORK_DEFAULTS.testnetRpcUrl || !NETWORK_DEFAULTS.testnetChainName) {
+    throw new Error('load the core before naming the testnet, its endpoint and chain come from the core');
+  }
+  return NETWORK_DEFAULTS;
+}
+
+function gatewayInteger(value, label) {
+  if (value == null) throw new Error(`the gateway did not report a ${label}`);
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+  if (typeof value === 'bigint' && value >= 0n && value <= U64_MAX) return value;
+  throw new Error(`the gateway reported a ${label} that is not a whole number`);
+}
+
+function gatewayDecimal(value, label) {
+  if (value == null) throw new Error(`the gateway did not report a ${label}`);
+  if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) {
+    throw new Error(`the gateway reported a ${label} that is not a string of decimal digits`);
+  }
+  const n = BigInt(value);
+  if (n > U128_MAX) throw new Error(`the gateway reported a ${label} outside the unsigned 128 bit range`);
+  return n;
 }
 
 function isMainnetChain(name) {
@@ -128,25 +173,23 @@ function meterLimitOf(meterLimit) {
 }
 
 function validUntil(info) {
-  const head = info && info.head_height;
-  if (head == null) throw new Error('the gateway did not report a head height to bound the transaction to');
-  if (typeof head === 'number' && !Number.isSafeInteger(head)) {
-    throw new Error('the gateway reported a head height outside the safe integer range');
-  }
-  let h;
-  try {
-    h = wholeNumber(head, 'head height', U64_MAX);
-  } catch {
-    throw new Error('the gateway reported a head height that is not a whole number');
-  }
-  if (h < 0n || h > MAX_PLAUSIBLE_HEAD) {
+  const h = gatewayInteger(info && info.head_height, 'head height');
+  if (h > MAX_PLAUSIBLE_HEAD) {
     throw new Error('the gateway reported a head height past any height this chain can have reached');
   }
   return h + VALIDITY_BLOCKS;
 }
 
 function gatewayFee(fee) {
-  return wholeNumber(fee, 'fee', U128_MAX);
+  return gatewayDecimal(fee, 'transfer fee');
+}
+
+function decodeUtf8(bytes) {
+  try {
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+  } catch {
+    throw new Error('the response is not UTF-8');
+  }
 }
 
 async function readBounded(res) {
@@ -157,7 +200,9 @@ async function readBounded(res) {
       throw new Error('the response has no content-length to bound it and cannot be read safely');
     }
     if (len > MAX_RESPONSE) throw new Error('the response is too large');
-    return await res.text();
+    const whole = new Uint8Array(await res.arrayBuffer());
+    if (whole.byteLength > MAX_RESPONSE) throw new Error('the response is too large');
+    return decodeUtf8(whole);
   }
   const reader = res.body.getReader();
   const chunks = [];
@@ -178,7 +223,7 @@ async function readBounded(res) {
     merged.set(chunk, at);
     at += chunk.byteLength;
   }
-  return new TextDecoder().decode(merged);
+  return decodeUtf8(merged);
 }
 
 function isLoopbackHost(hostname) {
@@ -228,10 +273,11 @@ class Network {
   }
 
   static testnet() {
+    const defaults = requireNetworkDefaults();
     return new Network({
       name: 'testnet',
-      chainId: 'Q-test-net-1',
-      rpcUrl: 'https://rpc-testnet.quantova.org',
+      chainId: defaults.testnetChainName,
+      rpcUrl: defaults.testnetRpcUrl,
       explorerUrl: 'https://qvmscan.io',
       isMainnet: false,
     });
@@ -263,6 +309,7 @@ function generateSeed() {
 }
 
 function makeClient(core) {
+  bindNetworkDefaults(core);
   return class Client {
     constructor(target, options) {
       const opts = options || {};
@@ -286,7 +333,10 @@ function makeClient(core) {
         typeof opts.expectedChainId === 'string' && opts.expectedChainId.length > 0
           ? opts.expectedChainId
           : null;
+      const book = opts.addressBook == null ? [] : Array.from(opts.addressBook, String);
+      this._session = new core.SigningSession(book);
       this._pinnedChainName = null;
+      this._headFloor = null;
     }
 
     _guardMainnet() {
@@ -321,7 +371,7 @@ function makeClient(core) {
       return BigInt(core.chainIdFromName(name));
     }
 
-    async _call(method, body) {
+    async _call(method, body, strict) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
@@ -333,9 +383,10 @@ function makeClient(core) {
           redirect: 'error',
         });
         const text = await readBounded(res);
+        if (strict && res.status === 200) core.checkGatewayJson(text);
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
-        if (!res.ok) {
+        if (res.status !== 200) {
           const detail = data && typeof data === 'object' ? (data.message || data.error) : null;
           throw new Error(detail || ('status ' + res.status));
         }
@@ -345,10 +396,10 @@ function makeClient(core) {
       }
     }
 
-    nodeInfo() { return this._call('node_info', '{}'); }
+    nodeInfo() { return this._call('node_info', '{}', true); }
     head() { return this._call('head', '{}'); }
     async account(address) {
-      const acct = await this._call('get_account', core.account_body(address));
+      const acct = await this._call('get_account', core.account_body(address), true);
       if (!acct || typeof acct.address !== 'string') {
         throw new Error(`the gateway answered about ${address} without naming the account, refusing to trust it`);
       }
@@ -357,215 +408,172 @@ function makeClient(core) {
       }
       return acct;
     }
-    _checkedNonce(reported, expected, key) {
-      const n = accountNonce(reported);
-      if (expected != null) {
-        const e = wholeNumber(expected, 'expected nonce', U64_MAX);
-        if (e !== n) {
-          throw new Error(`the gateway reported nonce ${n} but you expected ${e}; the chain admits only the nonce the account has reached, refusing to sign`);
-        }
-      }
-      if (!this._nextNonces) this._nextNonces = new Map();
-      if (key != null) {
-        const local = this._nextNonces.get(key);
-        if (local == null || local < n) this._nextNonces.set(key, n);
-      }
-      return n;
+
+    _vet(sender, targets) {
+      this._session.rememberAddress(sender);
+      for (const target of targets) this._session.checkTarget(target);
     }
 
-    _guardSigned(key, slot, txHex, until, explicit) {
-      if (key == null) return;
-      if (!this._signedNonces) this._signedNonces = new Map();
-      let held = this._signedNonces.get(key);
-      if (!held) { held = new Map(); this._signedNonces.set(key, held); }
-      const head = until - VALIDITY_BLOCKS;
-      const now = monotonicSecs();
-      for (const [slotKey, entry] of held) {
-        if (head > entry.until && (now - entry.at) * HEAD_BLOCKS_PER_SEC >= VALIDITY_BLOCKS) held.delete(slotKey);
-      }
-      const seen = held.get(String(slot));
-      if (!explicit && seen != null && seen.txHex !== txHex) {
-        throw new Error(`a different transaction was already signed for nonce ${slot} in this session and was neither rejected nor expired; one nonce carries one signature, pass the nonce explicitly to replace one that never landed`);
-      }
-      held.set(String(slot), { txHex, until, at: now });
+    _rememberTargets(targets) {
+      for (const target of targets) this._session.rememberAddress(target);
     }
 
-    _remember(key, used, outcome) {
-      if (!this._nextNonces) this._nextNonces = new Map();
+    _expected(value, label) {
+      return value == null ? undefined : wholeNumber(value, label, U64_MAX);
+    }
+
+    async _accountSlot(from, expectedNonce) {
+      const acct = await this.account(from);
+      const reported = gatewayInteger(acct.nonce, 'nonce');
+      return BigInt(this._session.slot(from, reported, this._expected(expectedNonce, 'expected nonce'), false));
+    }
+
+    async _submitHeld(slots, txHex) {
+      for (const [key, slot] of slots) this._session.signed(key, slot);
+      const outcome = await this.submit(txHex);
       const verdict = outcome && outcome.verdict;
-      if (verdict === 'accepted') {
-        const next = BigInt(used) + 1n;
-        const local = this._nextNonces.get(key);
-        if (local == null || local < next) this._nextNonces.set(key, next);
-      }
+      if (verdict !== 'accepted' && verdict !== 'rejected') throw new Error(`unknown verdict ${verdict}`);
+      for (const [key, slot] of slots) this._session.outcome(key, slot, verdict === 'accepted');
+      return outcome;
+    }
+
+    _transferFee(info) {
+      return gatewayFee(info && info.fee && info.fee.transfer_quon);
     }
 
     _validity(info) {
-      const until = validUntil(info);
-      const head = until - VALIDITY_BLOCKS;
-      const now = BigInt(Math.floor(Date.now() / 1000));
-      const genesis = info && info.chain_id === 'Q-test-net-1' ? TESTNET_GENESIS_SECS : GENESIS_FLOOR_SECS;
-      if (now > genesis) {
-        const maxHead = (now - genesis) * HEAD_BLOCKS_PER_SEC + HEAD_SLACK_BLOCKS;
-        if (head > maxHead) throw new Error(`the gateway reports head ${head} further ahead than wall-clock time allows, refusing to sign`);
-      }
-      if (this._headFloor) {
-        const { height, at } = this._headFloor;
-        if (head < height) throw new Error(`the gateway reports head ${head} below the ${height} it reported earlier, refusing to sign`);
-        const tick = monotonicSecs();
-        const elapsed = tick > at ? tick - at : 0n;
-        const allowed = elapsed * HEAD_BLOCKS_PER_SEC + HEAD_SLACK_BLOCKS;
-        if (head > height + allowed) throw new Error(`the gateway head leapt from ${height} to ${head} faster than blocks are made, refusing to sign`);
-      }
-      core.checkValidUntil(until, head);
-      if (!this._headFloor || head > this._headFloor.height) this._headFloor = { height: head, at: monotonicSecs() };
+      const head = gatewayInteger(info && info.head_height, 'head height');
+      const chain = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const wall = BigInt(Math.floor(Date.now() / 1000));
+      const tick = monotonicSecs();
+      const floor = this._headFloor;
+      const age = floor && tick > floor.at ? tick - floor.at : 0n;
+      const until = BigInt(core.boundedValidUntil(chain, head, wall, floor ? floor.height : undefined, age));
+      if (!floor || head > floor.height) this._headFloor = { height: head, at: tick };
       return until;
     }
+
+    _callFee(info, meterLimit, ceiling, maxFeeQuon) {
+      const transferFee = this._transferFee(info);
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
+      if (fee > ceiling) {
+        throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
+      }
+      return { transferFee, fee };
+    }
+
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
     block(height) { return this._call('get_block', core.block_by_height_body(wholeNumber(height, 'height', U64_MAX))); }
-    submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex)); }
+    submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex), true); }
     container(address) { return this._call('get_container', JSON.stringify({ address })); }
     storage(address) { return this._call('get_storage', JSON.stringify({ address })); }
     events(height) { return this._call('get_events', core.eventsBody(wholeNumber(height, 'height', U64_MAX))); }
 
-    address(seedHex, index) { return core.address(seedHex, accountIndex(index)); }
+    address(seed, index) { return core.address(seed, accountIndex(index)); }
 
-    async transfer(seedHex, index, to, amount, maxFeeQuon, expectedNonce) {
+    async transfer(seed, index, to, amount, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(to)) throw new Error('the recipient is not a q1 address');
       checkAmount(amount);
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(seed, accountIndex(index));
+      this._vet(from, [to]);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = gatewayFee(reported);
+      const fee = this._transferFee(info);
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const until = this._validity(info);
-      const from = core.address(seedHex, accountIndex(index));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
+      const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_transfer(seedHex, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until)
+        core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until)
       );
-      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, nonce, outcome);
+      this._rememberTargets([to]);
+      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
-    async register(seedHex, index, maxFeeQuon, expectedNonce) {
+    async register(seed, index, maxFeeQuon, expectedNonce) {
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(seed, accountIndex(index));
+      this._vet(from, []);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const fee = gatewayFee(reported);
+      const fee = this._transferFee(info);
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       const until = this._validity(info);
-      const from = core.address(seedHex, accountIndex(index));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
-      const signed = JSON.parse(core.signRegister(seedHex, accountIndex(index), nonce, String(fee), chainId, until));
-      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, nonce, outcome);
+      const nonce = await this._accountSlot(from, expectedNonce);
+      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until));
+      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
-    async call(seedHex, index, target, argsHex, meterLimit, maxFeeQuon, expectedNonce) {
+    async call(seed, index, target, argsHex, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(seed, accountIndex(index));
+      this._vet(from, [target]);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const transferFee = gatewayFee(reported);
-      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
-      if (fee > ceiling) {
-        throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
-      }
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       const until = this._validity(info);
-      const from = core.address(seedHex, accountIndex(index));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
+      const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, nonce, outcome);
+      this._rememberTargets([target]);
+      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
-    async assetCall(seedHex, index, target, argsHex, assetIssuer, amount, meterLimit, maxFeeQuon, expectedNonce) {
+    async assetCall(seed, index, target, argsHex, assetIssuer, amount, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       if (!core.valid_address(assetIssuer)) throw new Error('the asset issuer is not a q1 address');
       checkAmount(amount);
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(seed, accountIndex(index));
+      this._vet(from, [target, assetIssuer]);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const transferFee = gatewayFee(reported);
-      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
-      if (fee > ceiling) {
-        throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
-      }
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       const until = this._validity(info);
-      const from = core.address(seedHex, accountIndex(index));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
+      const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signAssetCall(seedHex, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, nonce, outcome);
+      this._rememberTargets([target, assetIssuer]);
+      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
-    async payableCall(seedHex, index, target, argsHex, value, meterLimit, maxFeeQuon, expectedNonce) {
+    async payableCall(seed, index, target, argsHex, value, meterLimit, maxFeeQuon, expectedNonce) {
       if (!core.valid_address(target)) throw new Error('the target is not a q1 address');
       checkAmount(value);
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(seed, accountIndex(index));
+      this._vet(from, [target]);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const transferFee = gatewayFee(reported);
-      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
-      if (fee > ceiling) {
-        throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
-      }
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       const until = this._validity(info);
-      const from = core.address(seedHex, accountIndex(index));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const nonce = this._checkedNonce(acct.nonce, expectedNonce, from);
+      const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signPayableCall(seedHex, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee))
+        core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee))
       );
-      this._guardSigned(from, nonce, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, nonce, outcome);
+      this._rememberTargets([target]);
+      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
     async _slotValue(contract, key) {
-      const resp = await this._call('get_storage_at', JSON.stringify({ address: contract, keys: [key] }));
+      const resp = await this._call('get_storage_at', JSON.stringify({ address: contract, keys: [key] }), true);
       return BigInt(core.storageValue(JSON.stringify(resp), key));
     }
 
@@ -577,35 +585,39 @@ function makeClient(core) {
       return this._slotValue(contract, core.scalarSlotKey(wholeNumber(slot, 'slot', U64_MAX)));
     }
 
-    async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce, expectedNonce) {
+    async contractMap(contract, mapDomainTag, keyHex) {
+      return this._slotValue(contract, core.mapSlotKey(wholeNumber(mapDomainTag, 'map domain tag', U64_MAX), keyHex));
+    }
+
+    async assetBalance(issuer, holder) {
+      if (!core.valid_address(issuer) || !core.valid_address(holder)) {
+        throw new Error('the issuer or holder is not a q1 address');
+      }
+      const resp = await this._call('get_asset_balance', core.assetBalanceBody(issuer, holder), true);
+      return gatewayDecimal(resp && resp.balance, 'balance');
+    }
+
+    async callSignedOrder(callerSeed, callerIndex, contract, selectorHex, orderSpec, ownerSeed, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce, expectedNonce) {
       if (!core.valid_address(contract)) throw new Error('the contract is not a q1 address');
       const ceiling = feeCeiling(maxFeeQuon);
+      const from = core.address(callerSeed, accountIndex(callerIndex));
+      this._vet(from, [contract]);
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const reported = info && info.fee && info.fee.transfer_quon;
-      if (reported == null) throw new Error('the gateway did not report a transfer fee');
-      const transferFee = gatewayFee(reported);
-      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
-      if (fee > ceiling) {
-        throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
-      }
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       const until = this._validity(info);
-      const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
+      const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
-      if (expectedOrderNonce != null && wholeNumber(expectedOrderNonce, 'expected order nonce', U64_MAX) !== reportedOrder) {
-        throw new Error(
-          `the gateway reported order nonce ${reportedOrder} but you expected ${expectedOrderNonce}, refusing to sign`
-        );
-      }
-      const nonce = this._checkedNonce(reportedOrder, expectedOrderNonce, orderKey);
+      const nonce = BigInt(this._session.slot(orderKey, reportedOrder, this._expected(expectedOrderNonce, 'expected order nonce'), true));
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,
         selectorHex,
         wholeNumber(orderSpec.schemeOff, 'scheme offset', U64_MAX),
         wholeNumber(orderSpec.ptrOff, 'pointer offset', U64_MAX),
+        wholeNumber(orderSpec.expiryOff, 'expiry offset', U64_MAX),
         orderSpec.regionOff == null ? 0n : wholeNumber(orderSpec.regionOff, 'region offset', U64_MAX),
         JSON.stringify(orderSpec.fields || [], (k, v) => {
           if (typeof v !== 'bigint') return v;
@@ -613,22 +625,17 @@ function makeClient(core) {
           if (v > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`the order field ${k} ${v} is too large to carry`);
           return Number(v);
         }),
-        ownerSeedHex,
+        ownerSeed,
         accountIndex(ownerIndex),
         nonce,
+        wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX),
       ));
-      const from = core.address(callerSeedHex, accountIndex(callerIndex));
-      const acct = await this.account(from);
-      if (!acct || acct.nonce == null) throw new Error('the gateway did not report a nonce');
-      const accountNonceUsed = this._checkedNonce(acct.nonce, expectedNonce, from);
+      const accountNonceUsed = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(callerSeedHex, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
       );
-      this._guardSigned(orderKey, nonce, order.call_args, ORDER_HOLD_UNTIL, expectedOrderNonce != null);
-      this._guardSigned(from, accountNonceUsed, signed.tx_hex, until, expectedNonce != null);
-      const outcome = await this.submit(signed.tx_hex);
-      this._remember(from, accountNonceUsed, outcome);
-      this._remember(orderKey, nonce, outcome);
+      this._rememberTargets([contract]);
+      const outcome = await this._submitHeld([[orderKey, nonce], [from, accountNonceUsed]], signed.tx_hex);
       return { order, signed, outcome, orderNonce: nonce };
     }
   };

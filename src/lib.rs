@@ -102,7 +102,13 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 }
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
-pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
+pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<Vec<u8>, JsError> {
+    let phrase = qcore::mnemonic_bytes_from_seed(&*seed(seed_bytes)?);
+    Ok(phrase.to_vec())
+}
+
+#[wasm_bindgen(js_name = mnemonicFromSeedText)]
+pub fn mnemonic_from_seed_text(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
     let phrase = qcore::mnemonic_from_seed(&*seed(seed_bytes)?);
     Ok(JsValue::from_str(&phrase))
 }
@@ -127,6 +133,114 @@ pub fn seed_from_mnemonic(phrase: String) -> Result<Vec<u8>, JsError> {
     let seed = restore_seed(phrase);
     scrub_stack();
     seed
+}
+
+#[inline(never)]
+fn restore_seed_bytes(phrase: &[u8]) -> Result<Vec<u8>, JsError> {
+    let seed = qcore::seed_from_mnemonic_bytes(phrase).map_err(|e| JsError::new(&e))?;
+    Ok(seed[..].to_vec())
+}
+
+#[wasm_bindgen(js_name = seedFromMnemonicBytes)]
+pub fn seed_from_mnemonic_bytes(phrase: &[u8]) -> Result<Vec<u8>, JsError> {
+    let seed = restore_seed_bytes(phrase);
+    scrub_stack();
+    seed
+}
+
+#[wasm_bindgen(js_name = genesisSecs)]
+pub fn genesis_secs(chain_name: &str) -> u64 {
+    qcore::genesis_secs(chain_name)
+}
+
+#[wasm_bindgen(js_name = headCeiling)]
+pub fn head_ceiling(chain_name: &str, wall_secs: u64) -> u64 {
+    qcore::head_ceiling(chain_name, wall_secs)
+}
+
+#[wasm_bindgen(js_name = boundedValidUntil)]
+pub fn bounded_valid_until(
+    chain_name: &str,
+    head: u64,
+    wall_secs: u64,
+    floor: Option<u64>,
+    floor_age_secs: u64,
+) -> Result<u64, JsError> {
+    qcore::bounded_valid_until(chain_name, head, wall_secs, floor, floor_age_secs)
+        .map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = checkGatewayJson)]
+pub fn check_gateway_json(response: &str) -> Result<(), JsError> {
+    qcore::check_gateway_json(response).map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = testnetRpcUrl)]
+pub fn testnet_rpc_url() -> String {
+    qcore::TESTNET_RPC_URL.to_string()
+}
+
+#[wasm_bindgen(js_name = testnetChainName)]
+pub fn testnet_chain_name() -> String {
+    qcore::TESTNET_CHAIN_NAME.to_string()
+}
+
+#[wasm_bindgen(js_name = validityBlocks)]
+pub fn validity_blocks() -> u64 {
+    qcore::DEFAULT_VALIDITY_BLOCKS
+}
+
+#[wasm_bindgen(js_name = SigningSession)]
+pub struct SigningSession(qcore::SigningSession);
+
+#[wasm_bindgen(js_class = SigningSession)]
+impl SigningSession {
+    #[wasm_bindgen(constructor)]
+    pub fn new(book: Vec<String>) -> Result<SigningSession, JsError> {
+        qcore::SigningSession::with_address_book(&book)
+            .map(SigningSession)
+            .map_err(|e| JsError::new(&e))
+    }
+
+    #[wasm_bindgen(js_name = rememberAddress)]
+    pub fn remember_address(&mut self, address: &str) {
+        self.0.remember_address(address)
+    }
+
+    #[wasm_bindgen(js_name = checkTarget)]
+    pub fn check_target(&self, address: &str) -> Result<(), JsError> {
+        self.0.check_target(address).map_err(|e| JsError::new(&e))
+    }
+
+    pub fn slot(
+        &mut self,
+        key: &str,
+        reported: u64,
+        expected: Option<u64>,
+        order: bool,
+    ) -> Result<u64, JsError> {
+        self.0
+            .slot(key, reported, expected, order)
+            .map_err(|e| JsError::new(&e))
+    }
+
+    pub fn signed(&mut self, key: &str, slot: u64) {
+        self.0.signed(key, slot)
+    }
+
+    pub fn outcome(&mut self, key: &str, slot: u64, accepted: bool) {
+        self.0.outcome(key, slot, accepted)
+    }
+
+    #[wasm_bindgen(js_name = nextNonce)]
+    pub fn next_nonce(&self, key: &str) -> Option<u64> {
+        self.0.next_nonce(key)
+    }
+
+    #[wasm_bindgen(js_name = isHeld)]
+    pub fn is_held(&self, key: &str, slot: u64) -> bool {
+        self.0.is_held(key, slot)
+    }
 }
 
 #[wasm_bindgen]
@@ -327,20 +441,27 @@ pub fn build_signed_order_call(
     selector_hex: &str,
     scheme_off: u64,
     ptr_off: u64,
+    expiry_off: u64,
     field_offs_csv: &str,
     fields_csv: &str,
     region_off: u64,
     owner_seed_bytes: &[u8],
     owner_index: u64,
     nonce: u64,
+    expiry: u64,
 ) -> Result<String, JsError> {
     let owner = seed(owner_seed_bytes)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
         .map_err(|e| JsError::new(&e))?
         .try_into()
         .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
-    let mut layout =
-        qcore::contract::OrderLayout::new(scheme_off, ptr_off, u64_list(field_offs_csv)?);
+    let mut layout = qcore::contract::OrderLayout::new(
+        scheme_off,
+        ptr_off,
+        expiry_off,
+        u64_list(field_offs_csv)?,
+        expiry,
+    );
     if region_off != 0 {
         layout.region_off = region_off;
     }
@@ -378,6 +499,7 @@ pub fn build_signed_order_call(
             qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
         ),
         ("nonce", qcore::json::Json::Int(order.nonce)),
+        ("expiry", qcore::json::Json::Int(order.expiry)),
     ])
     .render())
 }
@@ -390,11 +512,13 @@ pub fn build_typed_order_call(
     selector_hex: &str,
     scheme_off: u64,
     ptr_off: u64,
+    expiry_off: u64,
     region_off: u64,
     fields_json: &str,
     owner_seed_bytes: &[u8],
     owner_index: u64,
     nonce: u64,
+    expiry: u64,
 ) -> Result<String, JsError> {
     let owner = seed(owner_seed_bytes)?;
     let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
@@ -408,11 +532,13 @@ pub fn build_typed_order_call(
         selector,
         scheme_off,
         ptr_off,
+        expiry_off,
         region_off,
         &fields,
         &owner,
         owner_index,
         nonce,
+        expiry,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(qcore::json::object(vec![
@@ -437,6 +563,7 @@ pub fn build_typed_order_call(
             qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
         ),
         ("nonce", qcore::json::Json::Int(order.nonce)),
+        ("expiry", qcore::json::Json::Int(order.expiry)),
     ])
     .render())
 }
@@ -821,6 +948,15 @@ mod payable_tests {
         assert_eq!(
             testnet_chain_id(),
             qcore::chain_id_from_name(&qcore::Network::testnet().chain_id.unwrap())
+        );
+        assert_eq!(
+            Some(testnet_rpc_url()),
+            qcore::Network::testnet().rpc_url,
+            "the javascript client reads the testnet endpoint from the core"
+        );
+        assert_eq!(
+            genesis_secs(&testnet_chain_name()),
+            qcore::TESTNET_GENESIS_SECS
         );
     }
 }

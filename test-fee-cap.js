@@ -88,7 +88,7 @@ function fail(msg) {
     nonceValue = badNonce;
     let nonceRefused = false;
     try { await client.transfer(seed, 0, to, '1000', '1000000'); }
-    catch (e) { nonceRefused = true; if (!/nonce/.test(e.message)) fail('unclear nonce error: ' + e.message); }
+    catch (e) { nonceRefused = true; if (!/nonce|whole number/.test(e.message)) fail('unclear nonce error: ' + e.message); }
     if (!nonceRefused) fail('a hostile nonce must be refused: ' + String(badNonce));
   }
   if (submitted !== held) fail('a refused nonce must never submit');
@@ -163,12 +163,12 @@ function fail(msg) {
   nonceValue = 3;
   const replaced = await retry.transfer(seed, 0, to, '2', '1000000', 3n);
   if (replaced.outcome.verdict !== 'accepted') fail('naming the nonce explicitly must override the hold');
-  if (retry._nextNonces.get(replaced.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
+  if (retry._session.nextNonce(replaced.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
   nonceValue = 3;
   let holding = false;
   try { await retry.transfer(seed, 0, to, '3', '1000000'); }
   catch (e) { holding = /already signed/.test(e.message); }
-  if (!holding) fail('an accepted send that has not expired still holds its nonce');
+  if (!holding) fail('an accepted send the chain has not passed still holds its nonce');
   retry._validity({ head_height: 250 });
   let dropped = false;
   try { retry._validity({ head_height: 200 }); } catch (e) { dropped = /below the 250/.test(e.message); }
@@ -178,15 +178,25 @@ function fail(msg) {
   let early = false;
   try { await retry.transfer(seed, 0, to, '4', '1000000'); }
   catch (e) { early = /already signed/.test(e.message); }
-  if (!early) fail('a gateway head past the deadline must not free a nonce before blocks could have been made');
-  for (const held of retry._signedNonces.values()) for (const entry of held.values()) entry.at -= 15n;
-  nonceValue = 3;
-  const afterExpiry = await retry.transfer(seed, 0, to, '4', '1000000');
-  if (afterExpiry.outcome.verdict !== 'accepted') fail('a held nonce whose deadline has passed must be free again');
+  if (!early) fail('a gateway head past the deadline must never free a signed nonce');
+  nonceValue = 4;
+  const advanced = await retry.transfer(seed, 0, to, '4', '1000000');
+  if (advanced.outcome.verdict !== 'accepted') fail('a nonce the gateway reports past an accepted send signs');
   nonceValue = 9;
   const ahead = await retry.transfer(seed, 0, to, '5', '1000000');
   if (ahead.outcome.verdict !== 'accepted') fail('a gateway nonce ahead of the local one must be signed at, not refused');
-  if (retry._nextNonces.get(ahead.signed.from) !== 10n) fail('the local next nonce follows the highest nonce seen');
+  if (retry._session.nextNonce(ahead.signed.from) !== 10n) fail('the local next nonce follows the highest nonce seen');
+  nonceValue = 10;
+  verdict = 'rejected';
+  await retry.transfer(seed, 0, to, '6', '1000000');
+  verdict = 'accepted';
+  nonceValue = 11;
+  let skipped = false;
+  try { await retry.transfer(seed, 0, to, '6', '1000000'); }
+  catch (e) { skipped = /was not accepted/.test(e.message); }
+  if (!skipped) fail('a gateway that rejects a send and then reports the next nonce must not get a second signature');
+  const vouched = await retry.transfer(seed, 0, to, '6', '1000000', 11n);
+  if (vouched.outcome.verdict !== 'accepted') fail('naming the nonce lets the caller vouch for the earlier send');
 
   server.close();
   console.log('fee ceiling: all cases passed');

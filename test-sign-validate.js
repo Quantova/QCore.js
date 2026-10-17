@@ -45,7 +45,7 @@ for (const b of bad) {
 }
 
 let orderThrew = false;
-try { core.buildSignedOrderCall(core.localChainId(), 'not an address', '00000000', 0n, 0n, '', '', 0n, seed, 0n, 0n); }
+try { core.buildSignedOrderCall(core.localChainId(), 'not an address', '00000000', 0n, 0n, 0n, '', '', 0n, seed, 0n, 0n, 0n); }
 catch { orderThrew = true; }
 if (!orderThrew) fail('buildSignedOrderCall built an order for a bad contract');
 
@@ -109,7 +109,13 @@ if (!noNetworkFee || !/transfer fee/.test(noNetworkFee)) fail('a call signed wit
 
 if (core.testnetChainId() !== core.chainIdFromName(Network.testnet().chainId)) fail('the testnet chain id must follow the testnet network');
 
-const phrase = core.mnemonicFromSeed(seed);
+const phraseBytes = core.mnemonicFromSeed(seed);
+if (!(phraseBytes instanceof Uint8Array)) fail('the phrase is returned as a byte buffer the caller can wipe');
+const phrase = core.mnemonicFromSeedText(seed);
+if (new TextDecoder().decode(phraseBytes) !== phrase) fail('the byte and text phrases carry the same words');
+const sameBytes0 = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+if (!sameBytes0(core.seedFromMnemonic(phraseBytes), seed)) fail('a phrase passed as bytes restores the same seed');
+phraseBytes.fill(0);
 const messy = '  ' + phrase.toUpperCase().split(' ').join('   ') + '\n';
 const sameBytes = (a, b) => a instanceof Uint8Array && b instanceof Uint8Array && a.length === b.length && a.every((x, i) => x === b[i]);
 if (!sameBytes(core.seedFromMnemonic(messy), seed)) fail('a phrase with odd case and spacing must restore the same seed');
