@@ -1,3 +1,106 @@
+export class SigningSession {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        SigningSessionFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_signingsession_free(ptr, 0);
+    }
+    /**
+     * @param {string} address
+     */
+    checkTarget(address) {
+        const ptr0 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_checkTarget(this.__wbg_ptr, ptr0, len0);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+    /**
+     * @param {string} key
+     * @param {bigint} slot
+     * @returns {boolean}
+     */
+    isHeld(key, slot) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_isHeld(this.__wbg_ptr, ptr0, len0, slot);
+        return ret !== 0;
+    }
+    /**
+     * @param {string[]} book
+     */
+    constructor(book) {
+        const ptr0 = passArrayJsValueToWasm0(book, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_new(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        SigningSessionFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {string} key
+     * @returns {bigint | undefined}
+     */
+    nextNonce(key) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_nextNonce(this.__wbg_ptr, ptr0, len0);
+        return ret[0] === 0 ? undefined : BigInt.asUintN(64, ret[1]);
+    }
+    /**
+     * @param {string} key
+     * @param {bigint} slot
+     * @param {boolean} accepted
+     */
+    outcome(key, slot, accepted) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_outcome(this.__wbg_ptr, ptr0, len0, slot, accepted);
+    }
+    /**
+     * @param {string} address
+     */
+    rememberAddress(address) {
+        const ptr0 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_rememberAddress(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * @param {string} key
+     * @param {bigint} slot
+     */
+    signed(key, slot) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_signed(this.__wbg_ptr, ptr0, len0, slot);
+    }
+    /**
+     * @param {string} key
+     * @param {bigint} reported
+     * @param {bigint | null | undefined} expected
+     * @param {boolean} order
+     * @returns {bigint}
+     */
+    slot(key, reported, expected, order) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_slot(this.__wbg_ptr, ptr0, len0, reported, !isLikeNone(expected), isLikeNone(expected) ? BigInt(0) : expected, order);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return BigInt.asUintN(64, ret[0]);
+    }
+}
+if (Symbol.dispose) SigningSession.prototype[Symbol.dispose] = SigningSession.prototype.free;
+
 /**
  * @param {string} address
  * @returns {string}
@@ -102,20 +205,40 @@ export function block_by_height_body(height) {
 }
 
 /**
+ * @param {string} chain_name
+ * @param {bigint} head
+ * @param {bigint} wall_secs
+ * @param {bigint | null | undefined} floor
+ * @param {bigint} floor_age_secs
+ * @returns {bigint}
+ */
+export function boundedValidUntil(chain_name, head, wall_secs, floor, floor_age_secs) {
+    const ptr0 = passStringToWasm0(chain_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.boundedValidUntil(ptr0, len0, head, wall_secs, !isLikeNone(floor), isLikeNone(floor) ? BigInt(0) : floor, floor_age_secs);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return BigInt.asUintN(64, ret[0]);
+}
+
+/**
  * @param {bigint} chain_id
  * @param {string} contract
  * @param {string} selector_hex
  * @param {bigint} scheme_off
  * @param {bigint} ptr_off
+ * @param {bigint} expiry_off
  * @param {string} field_offs_csv
  * @param {string} fields_csv
  * @param {bigint} region_off
  * @param {Uint8Array} owner_seed_bytes
  * @param {bigint} owner_index
  * @param {bigint} nonce
+ * @param {bigint} expiry
  * @returns {string}
  */
-export function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce) {
+export function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, expiry_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce, expiry) {
     let deferred7_0;
     let deferred7_1;
     try {
@@ -129,7 +252,7 @@ export function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_of
         const len3 = WASM_VECTOR_LEN;
         const ptr4 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
         const len4 = WASM_VECTOR_LEN;
-        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce);
+        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, expiry_off, ptr2, len2, ptr3, len3, region_off, ptr4, len4, owner_index, nonce, expiry);
         var ptr6 = ret[0];
         var len6 = ret[1];
         if (ret[3]) {
@@ -150,14 +273,16 @@ export function buildSignedOrderCall(chain_id, contract, selector_hex, scheme_of
  * @param {string} selector_hex
  * @param {bigint} scheme_off
  * @param {bigint} ptr_off
+ * @param {bigint} expiry_off
  * @param {bigint} region_off
  * @param {string} fields_json
  * @param {Uint8Array} owner_seed_bytes
  * @param {bigint} owner_index
  * @param {bigint} nonce
+ * @param {bigint} expiry
  * @returns {string}
  */
-export function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce) {
+export function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off, ptr_off, expiry_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce, expiry) {
     let deferred6_0;
     let deferred6_1;
     try {
@@ -169,7 +294,7 @@ export function buildTypedOrderCall(chain_id, contract, selector_hex, scheme_off
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, region_off, ptr2, len2, ptr3, len3, owner_index, nonce);
+        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, scheme_off, ptr_off, expiry_off, region_off, ptr2, len2, ptr3, len3, owner_index, nonce, expiry);
         var ptr5 = ret[0];
         var len5 = ret[1];
         if (ret[3]) {
@@ -193,6 +318,18 @@ export function chainIdFromName(name) {
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.chainIdFromName(ptr0, len0);
     return BigInt.asUintN(64, ret);
+}
+
+/**
+ * @param {string} response
+ */
+export function checkGatewayJson(response) {
+    const ptr0 = passStringToWasm0(response, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.checkGatewayJson(ptr0, len0);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
 }
 
 /**
@@ -238,6 +375,29 @@ export function eventsBody(height) {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
+}
+
+/**
+ * @param {string} chain_name
+ * @returns {bigint}
+ */
+export function genesisSecs(chain_name) {
+    const ptr0 = passStringToWasm0(chain_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.genesisSecs(ptr0, len0);
+    return BigInt.asUintN(64, ret);
+}
+
+/**
+ * @param {string} chain_name
+ * @param {bigint} wall_secs
+ * @returns {bigint}
+ */
+export function headCeiling(chain_name, wall_secs) {
+    const ptr0 = passStringToWasm0(chain_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.headCeiling(ptr0, len0, wall_secs);
+    return BigInt.asUintN(64, ret);
 }
 
 /**
@@ -330,12 +490,28 @@ export function mapSlotKey(map_domain_tag, key_address_hex) {
 
 /**
  * @param {Uint8Array} seed_bytes
- * @returns {any}
+ * @returns {Uint8Array}
  */
 export function mnemonicFromSeed(seed_bytes) {
     const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.mnemonicFromSeed(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * @param {Uint8Array} seed_bytes
+ * @returns {any}
+ */
+export function mnemonicFromSeedText(seed_bytes) {
+    const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.mnemonicFromSeedText(ptr0, len0);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -487,6 +663,22 @@ export function seedFromMnemonic(phrase) {
     const ptr0 = passStringToWasm0(phrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.seedFromMnemonic(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * @param {Uint8Array} phrase
+ * @returns {Uint8Array}
+ */
+export function seedFromMnemonicBytes(phrase) {
+    const ptr0 = passArray8ToWasm0(phrase, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.seedFromMnemonicBytes(ptr0, len0);
     if (ret[3]) {
         throw takeFromExternrefTable0(ret[2]);
     }
@@ -781,6 +973,38 @@ export function testnetChainId() {
 }
 
 /**
+ * @returns {string}
+ */
+export function testnetChainName() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.testnetChainName();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * @returns {string}
+ */
+export function testnetRpcUrl() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.testnetRpcUrl();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * @returns {bigint}
  */
 export function tokenDecimalsSlot() {
@@ -841,6 +1065,14 @@ export function valid_address(address) {
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.valid_address(ptr0, len0);
     return ret !== 0;
+}
+
+/**
+ * @returns {bigint}
+ */
+export function validityBlocks() {
+    const ret = wasm.validityBlocks();
+    return BigInt.asUintN(64, ret);
 }
 
 /**
@@ -913,6 +1145,10 @@ export function __wbindgen_init_externref_table() {
     table.set(offset + 2, true);
     table.set(offset + 3, false);
 }
+const SigningSessionFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_signingsession_free(ptr, 1));
+
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
     wasm.__wbindgen_externrefs.set(idx, obj);
