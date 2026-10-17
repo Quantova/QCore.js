@@ -419,7 +419,7 @@ function makeClient(core) {
           redirect: 'error',
         });
         const text = await readBounded(res);
-        if (strict && res.status === 200) core.checkGatewayJson(text);
+        if (res.status === 200) core.checkGatewayJson(text);
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
         if (res.status !== 200) {
