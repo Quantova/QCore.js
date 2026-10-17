@@ -11,8 +11,8 @@
     "qcore_js_bg.wasm",
     "qcore_js.js",
     "qcore_js.d.ts",
-    "LICENSE-APACHE",
-    "LICENSE-MIT"
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
   ],
   "main": "qcore_js.js",
   "types": "qcore_js.d.ts"
