@@ -439,6 +439,7 @@ pub fn build_signed_order_call(
     chain_id: u64,
     contract: &str,
     selector_hex: &str,
+    layout_hash_hex: &str,
     scheme_off: u64,
     ptr_off: u64,
     expiry_off: u64,
@@ -455,12 +456,15 @@ pub fn build_signed_order_call(
         .map_err(|e| JsError::new(&e))?
         .try_into()
         .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+    let layout_hash =
+        qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
     let mut layout = qcore::contract::OrderLayout::new(
         scheme_off,
         ptr_off,
         expiry_off,
         u64_list(field_offs_csv)?,
         expiry,
+        layout_hash,
     );
     if region_off != 0 {
         layout.region_off = region_off;
@@ -510,6 +514,7 @@ pub fn build_typed_order_call(
     chain_id: u64,
     contract: &str,
     selector_hex: &str,
+    layout_hash_hex: &str,
     scheme_off: u64,
     ptr_off: u64,
     expiry_off: u64,
@@ -525,11 +530,14 @@ pub fn build_typed_order_call(
         .map_err(|e| JsError::new(&e))?
         .try_into()
         .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+    let layout_hash =
+        qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
     let fields = parse_typed_fields(fields_json)?;
     let order = qcore::contract::build_order_from_typed(
         chain_id,
         contract,
         selector,
+        &layout_hash,
         scheme_off,
         ptr_off,
         expiry_off,
@@ -566,6 +574,47 @@ pub fn build_typed_order_call(
         ("expiry", qcore::json::Json::Int(order.expiry)),
     ])
     .render())
+}
+
+#[wasm_bindgen(js_name = checkOrderExpiry)]
+pub fn check_order_expiry(expiry: u64, now_secs: u64) -> Result<(), JsError> {
+    qcore::contract::check_order_expiry(expiry, now_secs).map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = orderLayoutHash)]
+pub fn order_layout_hash(selector_hex: &str, fields_json: &str) -> Result<String, JsError> {
+    let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+    let parsed = qcore::json::parse(fields_json).map_err(|e| JsError::new(&e))?;
+    let items = match &parsed {
+        qcore::json::Json::Array(items) => items,
+        _ => return Err(JsError::new("the order layout must be a JSON array")),
+    };
+    let mut fields = Vec::with_capacity(items.len());
+    for item in items {
+        let name = item
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| JsError::new("an order layout field needs a string name"))?;
+        let ty = item
+            .get("type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| JsError::new("an order layout field needs a string type"))?;
+        let width = item
+            .get("width")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| JsError::new("an order layout field needs a numeric width"))?;
+        fields.push(qcore::contract::OrderLayoutField {
+            name: name.to_string(),
+            ty: ty.to_string(),
+            width,
+        });
+    }
+    Ok(qcore::json::to_hex(&qcore::contract::order_layout_hash(
+        selector, &fields,
+    )))
 }
 
 fn parse_typed_fields(fields_json: &str) -> Result<Vec<qcore::contract::TypedField>, JsError> {
@@ -959,4 +1008,144 @@ mod payable_tests {
             qcore::TESTNET_GENESIS_SECS
         );
     }
+}
+
+fn parse_roster(roster_json: &str) -> Result<Vec<qcore::finality::RosterMember>, String> {
+    let parsed = qcore::json::parse(roster_json)?;
+    let items = match &parsed {
+        qcore::json::Json::Array(items) => items,
+        _ => return Err("the validator roster must be a JSON array".to_string()),
+    };
+    let mut roster = Vec::with_capacity(items.len());
+    for item in items {
+        let id = item
+            .get("id")
+            .and_then(|v| v.as_u64())
+            .ok_or_else(|| "a roster member needs a numeric id".to_string())?;
+        let stake = item
+            .get("stake")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| "a roster member needs a stake as a digit string".to_string())?;
+        if stake.is_empty() || !stake.bytes().all(|b| b.is_ascii_digit()) {
+            return Err("a roster stake is not a whole number".to_string());
+        }
+        let stake: u64 = stake
+            .parse()
+            .map_err(|_| "a roster stake is out of range".to_string())?;
+        let pk = item
+            .get("attest_pk")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| "a roster member needs an attest_pk".to_string())?;
+        roster.push(qcore::finality::RosterMember {
+            id,
+            stake,
+            attest_pk: qcore::json::from_hex(pk)?,
+        });
+    }
+    Ok(roster)
+}
+
+fn parse_steps(steps_json: &str) -> Result<Vec<([u8; 32], bool)>, String> {
+    let parsed = qcore::json::parse(steps_json)?;
+    let items = match &parsed {
+        qcore::json::Json::Array(items) => items,
+        _ => return Err("the proof steps must be a JSON array".to_string()),
+    };
+    let mut steps = Vec::with_capacity(items.len());
+    for item in items {
+        let sibling = item
+            .get("sibling")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| "a proof step needs a sibling".to_string())?;
+        let left = match item.get("left") {
+            Some(qcore::json::Json::Bool(b)) => *b,
+            _ => return Err("a proof step needs a boolean left".to_string()),
+        };
+        let bytes: [u8; 32] = qcore::json::from_hex(sibling)?
+            .try_into()
+            .map_err(|_| "a proof sibling is 32 bytes of hex".to_string())?;
+        steps.push((bytes, left));
+    }
+    Ok(steps)
+}
+
+fn finalized_json(h: &qcore::finality::FinalizedHeader) -> String {
+    qcore::json::object(vec![
+        ("height", qcore::json::Json::str(h.height.to_string())),
+        ("hash", qcore::json::Json::str(qcore::json::to_hex(&h.hash))),
+        (
+            "parent_hash",
+            qcore::json::Json::str(qcore::json::to_hex(&h.parent_hash)),
+        ),
+        (
+            "q_root",
+            qcore::json::Json::str(qcore::json::to_hex(&h.q_root)),
+        ),
+        (
+            "transaction_root",
+            qcore::json::Json::str(qcore::json::to_hex(&h.transaction_root)),
+        ),
+        (
+            "event_root",
+            qcore::json::Json::str(qcore::json::to_hex(&h.event_root)),
+        ),
+        ("time", qcore::json::Json::str(h.time.to_string())),
+        (
+            "signed_stake",
+            qcore::json::Json::str(h.signed_stake.to_string()),
+        ),
+        (
+            "total_stake",
+            qcore::json::Json::str(h.total_stake.to_string()),
+        ),
+    ])
+    .render()
+}
+
+#[wasm_bindgen(js_name = verifyFinality)]
+pub fn verify_finality(
+    chain_id: u64,
+    header_hex: &str,
+    certificate_hex: &str,
+    roster_json: &str,
+) -> Result<String, JsError> {
+    let header = qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?;
+    let certificate = qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?;
+    let roster = parse_roster(roster_json).map_err(|e| JsError::new(&e))?;
+    let verified = qcore::finality::verify_finality(chain_id, &header, &certificate, &roster)
+        .map_err(|e| JsError::new(&e))?;
+    Ok(finalized_json(&verified))
+}
+
+#[wasm_bindgen(js_name = verifyEvent)]
+pub fn verify_event(
+    event_root_hex: &str,
+    leaf_hex: &str,
+    steps_json: &str,
+) -> Result<bool, JsError> {
+    let root: [u8; 32] = qcore::json::from_hex(event_root_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the event root is 32 bytes of hex"))?;
+    let leaf = qcore::json::from_hex(leaf_hex).map_err(|e| JsError::new(&e))?;
+    let steps = parse_steps(steps_json).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::finality::verify_event(&root, &leaf, &steps))
+}
+
+#[wasm_bindgen(js_name = decodeEvent)]
+pub fn decode_event(leaf_hex: &str) -> Result<String, JsError> {
+    let leaf = qcore::json::from_hex(leaf_hex).map_err(|e| JsError::new(&e))?;
+    let event = qcore::finality::decode_event(&leaf).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::json::object(vec![
+        ("contract", qcore::json::Json::str(event.contract)),
+        (
+            "selector",
+            qcore::json::Json::str(qcore::json::to_hex(&event.selector)),
+        ),
+        (
+            "data",
+            qcore::json::Json::str(qcore::json::to_hex(&event.data)),
+        ),
+    ])
+    .render())
 }

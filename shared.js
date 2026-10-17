@@ -96,8 +96,13 @@ const CORE_ARGS = {
   sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
   signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
   signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
-  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
+  checkOrderExpiry: [['u64', 'order expiry'], ['u64', 'wall clock seconds']],
+  verifyFinality: [['u64', 'chain id'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
+  verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
+  decodeEvent: [['text', 'event leaf']],
   contractAddress: [['text', 'deployer'], ['u64', 'nonce']],
   scalarSlotKey: [['u64', 'slot']],
   mapSlotKey: [['u64', 'map domain tag'], ['text', 'key address']],
@@ -337,6 +342,37 @@ function makeClient(core) {
       this._session = new core.SigningSession(book);
       this._pinnedChainName = null;
       this._headFloor = null;
+      this._locks = new Map();
+      for (const name of ['transfer', 'register', 'call', 'assetCall', 'payableCall']) {
+        const inner = this[name].bind(this);
+        this[name] = (seed, index, ...rest) => {
+          let key;
+          try { key = core.address(seed, index); } catch (e) { return inner(seed, index, ...rest); }
+          return this._exclusive([key], () => inner(seed, index, ...rest));
+        };
+      }
+      const order = this.callSignedOrder.bind(this);
+      this.callSignedOrder = (callerSeed, callerIndex, contract, selectorHex, orderSpec, ownerSeed, ownerIndex, ...rest) => {
+        const run = () => order(callerSeed, callerIndex, contract, selectorHex, orderSpec, ownerSeed, ownerIndex, ...rest);
+        let keys;
+        try {
+          keys = [core.address(callerSeed, callerIndex), String(contract) + '/' + core.orderSigner(ownerSeed, ownerIndex)];
+        } catch (e) {
+          return run();
+        }
+        return this._exclusive(keys, run);
+      };
+    }
+
+    _exclusive(keys, fn) {
+      const prior = keys.map((key) => this._locks.get(key) || Promise.resolve());
+      let release;
+      const gate = new Promise((resolve) => { release = resolve; });
+      for (const key of keys) this._locks.set(key, gate);
+      return Promise.all(prior).then(fn).finally(() => {
+        release();
+        for (const key of keys) if (this._locks.get(key) === gate) this._locks.delete(key);
+      });
     }
 
     _guardMainnet() {
@@ -574,6 +610,10 @@ function makeClient(core) {
 
     async _slotValue(contract, key) {
       const resp = await this._call('get_storage_at', JSON.stringify({ address: contract, keys: [key] }), true);
+      const slots = resp && Array.isArray(resp.slots) ? resp.slots : [];
+      if (!slots.some((s) => s && typeof s.slot === 'string' && s.slot.toLowerCase() === String(key).toLowerCase())) {
+        throw new Error('the gateway did not report the requested storage slot');
+      }
       return BigInt(core.storageValue(JSON.stringify(resp), key));
     }
 
@@ -611,10 +651,15 @@ function makeClient(core) {
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
       const nonce = BigInt(this._session.slot(orderKey, reportedOrder, this._expected(expectedOrderNonce, 'expected order nonce'), true));
+      if (typeof orderSpec.layoutHash !== 'string') throw new Error('the order spec needs the layout hash the compiler emits for this entry');
+      const orderExpiry = wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX);
+      const nowSecs = BigInt(Math.floor(Date.now() / 1000));
+      core.checkOrderExpiry(orderExpiry, nowSecs);
       const order = JSON.parse(core.buildTypedOrderCall(
         chainId,
         contract,
         selectorHex,
+        orderSpec.layoutHash,
         wholeNumber(orderSpec.schemeOff, 'scheme offset', U64_MAX),
         wholeNumber(orderSpec.ptrOff, 'pointer offset', U64_MAX),
         wholeNumber(orderSpec.expiryOff, 'expiry offset', U64_MAX),

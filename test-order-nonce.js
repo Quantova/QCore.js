@@ -21,7 +21,7 @@ function client(reportedNonce, accountNonce) {
 async function sign(c, expected, layout) {
   return c.callSignedOrder(
     new Uint8Array(32).fill(0xaa), 0, CONTRACT, '00000000',
-    layout || { schemeOff: 0, ptrOff: 0, expiryOff: 0, expiry: 0, fields: [] },
+    layout || { layoutHash: '00'.repeat(32), schemeOff: 0, ptrOff: 0, expiryOff: 0, expiry: 0, fields: [] },
     new Uint8Array(32).fill(0xbb), 0, 1210, '1000', expected
   );
 }
@@ -63,7 +63,7 @@ async function sign(c, expected, layout) {
   console.log('  ok   the local nonce follows the chain and an expected nonce must match it');
 
   const ordered = client(5n, 2n);
-  const layout = { schemeOff: 120, ptrOff: 128, expiryOff: 144, expiry: 1900000000, fields: [{ offset: 136, width: 8, value: '1' }] };
+  const layout = { layoutHash: core.orderLayoutHash('00000000', JSON.stringify([{ name: 'order.step', type: 'u64', width: 8 }])), schemeOff: 120, ptrOff: 128, expiryOff: 144, expiry: Math.floor(Date.now() / 1000) + 3600, fields: [{ offset: 136, width: 8, value: '1' }] };
   const done = await sign(ordered, 5n, layout);
   assert.strictEqual(done.orderNonce, 5n);
   const caller = core.address(new Uint8Array(32).fill(0xaa), 0n);

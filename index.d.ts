@@ -18,6 +18,7 @@ export interface SignedOrder {
 }
 
 export interface OrderLayout {
+  layoutHash: string;
   schemeOff: number | bigint;
   ptrOff: number | bigint;
   expiryOff: number | bigint;
@@ -32,7 +33,14 @@ export interface SignedOrderField {
   value: string;
 }
 
+export interface OrderLayoutField {
+  name: string;
+  type: string;
+  width: number;
+}
+
 export interface SignedOrderSpec {
+  layoutHash: string;
   schemeOff: number | bigint;
   ptrOff: number | bigint;
   expiryOff: number | bigint;
@@ -62,6 +70,7 @@ export interface QCore {
     chain_id: WholeNumber,
     contract: string,
     selector_hex: string,
+    layout_hash_hex: string,
     scheme_off: WholeNumber,
     ptr_off: WholeNumber,
     expiry_off: WholeNumber,
@@ -77,6 +86,7 @@ export interface QCore {
     chain_id: WholeNumber,
     contract: string,
     selector_hex: string,
+    layout_hash_hex: string,
     scheme_off: WholeNumber,
     ptr_off: WholeNumber,
     expiry_off: WholeNumber,
@@ -98,6 +108,11 @@ export interface QCore {
   mnemonicFromSeed(seed: Uint8Array): Uint8Array;
   mnemonicFromSeedText(seed: Uint8Array): string;
   nonceSlotKey(signer_hex: string): string;
+  orderLayoutHash(selector_hex: string, fields_json: string): string;
+  checkOrderExpiry(expiry: WholeNumber, now_secs: WholeNumber): void;
+  verifyFinality(chain_id: WholeNumber, header_hex: string, certificate_hex: string, roster_json: string): string;
+  verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
+  decodeEvent(leaf_hex: string): string;
   orderSigner(seed: Uint8Array, index: WholeNumber): string;
   parseEvents(response: string): string;
   scalarSlotKey(slot: WholeNumber): string;
