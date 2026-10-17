@@ -175,6 +175,12 @@ function fail(msg) {
   if (!dropped) fail('the head floor must rise to the highest head seen');
   head = 400;
   nonceValue = 3;
+  let early = false;
+  try { await retry.transfer(seed, 0, to, '4', '1000000'); }
+  catch (e) { early = /already signed/.test(e.message); }
+  if (!early) fail('a gateway head past the deadline must not free a nonce before blocks could have been made');
+  for (const held of retry._signedNonces.values()) for (const entry of held.values()) entry.at -= 15n;
+  nonceValue = 3;
   const afterExpiry = await retry.transfer(seed, 0, to, '4', '1000000');
   if (afterExpiry.outcome.verdict !== 'accepted') fail('a held nonce whose deadline has passed must be free again');
   nonceValue = 9;

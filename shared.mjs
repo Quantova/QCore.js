@@ -32,10 +32,17 @@ const VALIDITY_BLOCKS = 300n;
 const ORDER_HOLD_UNTIL = 1n << 62n;
 const MAX_PLAUSIBLE_HEAD = 1n << 40n;
 const HEAD_BLOCKS_PER_SEC = 20n;
-const HEAD_SLACK_SECS = 60n;
+const HEAD_SLACK_BLOCKS = 240n;
 const GENESIS_FLOOR_SECS = 1735689600n;
+const TESTNET_GENESIS_SECS = 1791082813n;
 const U64_MAX = 0xffffffffffffffffn;
 const U128_MAX = (1n << 128n) - 1n;
+
+function monotonicSecs() {
+  const clock = globalThis.performance;
+  const ms = clock && typeof clock.now === 'function' ? clock.now() : Date.now();
+  return BigInt(Math.floor(ms / 1000));
+}
 
 function wholeNumber(value, label, max) {
   let n;
@@ -372,14 +379,15 @@ function makeClient(core) {
       let held = this._signedNonces.get(key);
       if (!held) { held = new Map(); this._signedNonces.set(key, held); }
       const head = until - VALIDITY_BLOCKS;
+      const now = monotonicSecs();
       for (const [slotKey, entry] of held) {
-        if (head > entry.until) held.delete(slotKey);
+        if (head > entry.until && (now - entry.at) * HEAD_BLOCKS_PER_SEC >= VALIDITY_BLOCKS) held.delete(slotKey);
       }
       const seen = held.get(String(slot));
       if (!explicit && seen != null && seen.txHex !== txHex) {
         throw new Error(`a different transaction was already signed for nonce ${slot} in this session and was neither rejected nor expired; one nonce carries one signature, pass the nonce explicitly to replace one that never landed`);
       }
-      held.set(String(slot), { txHex, until });
+      held.set(String(slot), { txHex, until, at: now });
     }
 
     _remember(key, used, outcome) {
@@ -396,19 +404,21 @@ function makeClient(core) {
       const until = validUntil(info);
       const head = until - VALIDITY_BLOCKS;
       const now = BigInt(Math.floor(Date.now() / 1000));
-      if (now > GENESIS_FLOOR_SECS) {
-        const maxHead = (now - GENESIS_FLOOR_SECS + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
+      const genesis = info && info.chain_id === 'Q-test-net-1' ? TESTNET_GENESIS_SECS : GENESIS_FLOOR_SECS;
+      if (now > genesis) {
+        const maxHead = (now - genesis) * HEAD_BLOCKS_PER_SEC + HEAD_SLACK_BLOCKS;
         if (head > maxHead) throw new Error(`the gateway reports head ${head} further ahead than wall-clock time allows, refusing to sign`);
       }
       if (this._headFloor) {
         const { height, at } = this._headFloor;
         if (head < height) throw new Error(`the gateway reports head ${head} below the ${height} it reported earlier, refusing to sign`);
-        const elapsed = now > at ? now - at : 0n;
-        const allowed = (elapsed + HEAD_SLACK_SECS) * HEAD_BLOCKS_PER_SEC;
+        const tick = monotonicSecs();
+        const elapsed = tick > at ? tick - at : 0n;
+        const allowed = elapsed * HEAD_BLOCKS_PER_SEC + HEAD_SLACK_BLOCKS;
         if (head > height + allowed) throw new Error(`the gateway head leapt from ${height} to ${head} faster than blocks are made, refusing to sign`);
       }
       core.checkValidUntil(until, head);
-      if (!this._headFloor || head > this._headFloor.height) this._headFloor = { height: head, at: now };
+      if (!this._headFloor || head > this._headFloor.height) this._headFloor = { height: head, at: monotonicSecs() };
       return until;
     }
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
