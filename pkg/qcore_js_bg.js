@@ -323,7 +323,10 @@ export function chainIdFromName(name) {
     const ptr0 = passStringToWasm0(name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.chainIdFromName(ptr0, len0);
-    return BigInt.asUintN(64, ret);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return BigInt.asUintN(64, ret[0]);
 }
 
 /**
