@@ -1054,6 +1054,29 @@ function storageValue(response, slot_key_hex) {
 exports.storageValue = storageValue;
 
 /**
+ * @param {string} response
+ * @param {string} slot_key_hex
+ * @returns {string | undefined}
+ */
+function storageValueReported(response, slot_key_hex) {
+    const ptr0 = passStringToWasm0(response, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(slot_key_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.storageValueReported(ptr0, len0, ptr1, len1);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    let v3;
+    if (ret[0] !== 0) {
+        v3 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v3;
+}
+exports.storageValueReported = storageValueReported;
+
+/**
  * @param {string} tx_hex
  * @returns {string}
  */

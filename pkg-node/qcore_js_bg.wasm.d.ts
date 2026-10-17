@@ -51,6 +51,7 @@ export const signingsession_signed: (a: number, b: number, c: number, d: bigint)
 export const signingsession_slot: (a: number, b: number, c: number, d: bigint, e: number, f: bigint, g: number) => [bigint, number, number];
 export const storageBody: (a: number, b: number) => [number, number];
 export const storageValue: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const storageValueReported: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const submit_body: (a: number, b: number) => [number, number, number, number];
 export const testnetChainId: () => bigint;
 export const testnetChainName: () => [number, number];

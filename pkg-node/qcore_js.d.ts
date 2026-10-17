@@ -96,6 +96,8 @@ export function storageBody(contract: string): string;
 
 export function storageValue(response: string, slot_key_hex: string): string;
 
+export function storageValueReported(response: string, slot_key_hex: string): string | undefined;
+
 export function submit_body(tx_hex: string): string;
 
 export function testnetChainId(): bigint;
