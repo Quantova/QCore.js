@@ -109,7 +109,8 @@ const phrase = core.mnemonicFromSeed(seed);  // the only backup, shown once and 
 ```
 
 `core.seedFromMnemonic(phrase)` restores the seed from the twenty five words as a Uint8Array. It ignores
-case and extra spacing and applies Unicode NFKD before it looks a word up, so a phrase pasted with capitals,
+case and extra spacing and folds full width and other compatibility letters through a fixed table before it
+looks a word up, so a phrase pasted with capitals,
 non breaking spaces, or full width letters restores the same seed. A standard BIP-39 phrase from another
 wallet is refused with its own error, since a Quantova phrase carries a SHA3 checksum and cannot be restored
 from it.
