@@ -46,6 +46,8 @@ export const signingsession_isHeld: (a: number, b: number, c: number, d: bigint)
 export const signingsession_new: (a: number, b: number) => [number, number, number];
 export const signingsession_nextNonce: (a: number, b: number, c: number) => [number, bigint];
 export const signingsession_outcome: (a: number, b: number, c: number, d: bigint, e: number) => void;
+export const signingsession_release: (a: number, b: number, c: number, d: bigint) => void;
+export const signingsession_releasePending: (a: number, b: number, c: number) => void;
 export const signingsession_rememberAddress: (a: number, b: number, c: number) => void;
 export const signingsession_signed: (a: number, b: number, c: number, d: bigint) => void;
 export const signingsession_slot: (a: number, b: number, c: number, d: bigint, e: number, f: bigint, g: number) => [bigint, number, number];

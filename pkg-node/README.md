@@ -155,7 +155,10 @@ than you intended.
 This comparison lives in the Client and only in the Client. The raw core.* signing functions, such as
 core.sign_transfer, take the actual fee that goes on the wire, not a ceiling, and do no gateway
 comparison at all. A developer who calls core.* directly has no fee cap, so reach for the Client whenever
-a gateway you do not control reports the fee.
+a gateway you do not control reports the fee. The raw signing functions also take the validity deadline
+ready made and do not compare it with the chain head, so call core.checkValidUntil with a head you trust
+first. A SigningSession reserves each nonce it hands out until it is signed, and a flow that stops early
+frees its nonce with release.
 
 A contract call pays one transfer fee for every started 1210 units of its meter limit, and the chain
 refuses a call that pays less. The raw call signers, core.sign_call, core.signPayableCall, and

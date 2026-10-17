@@ -66,6 +66,23 @@ export class SigningSession {
         wasm.signingsession_outcome(this.__wbg_ptr, ptr0, len0, slot, accepted);
     }
     /**
+     * @param {string} key
+     * @param {bigint} slot
+     */
+    release(key, slot) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_release(this.__wbg_ptr, ptr0, len0, slot);
+    }
+    /**
+     * @param {string} key
+     */
+    releasePending(key) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_releasePending(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
      * @param {string} address
      */
     rememberAddress(address) {

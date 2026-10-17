@@ -9,6 +9,8 @@ export class SigningSession {
     constructor(book: string[]);
     nextNonce(key: string): bigint | undefined;
     outcome(key: string, slot: bigint, accepted: boolean): void;
+    release(key: string, slot: bigint): void;
+    releasePending(key: string): void;
     rememberAddress(address: string): void;
     signed(key: string, slot: bigint): void;
     slot(key: string, reported: bigint, expected: bigint | null | undefined, order: boolean): bigint;
