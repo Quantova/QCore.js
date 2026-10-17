@@ -51,7 +51,7 @@ export type WholeNumber = bigint | number | string;
 
 export interface QCore {
   account_body(address: string): string;
-  address(seed_hex: string, index: WholeNumber): string;
+  address(seed: Uint8Array, index: WholeNumber): string;
   block_by_height_body(height: WholeNumber): string;
   buildSignedOrderCall(
     chain_id: WholeNumber,
@@ -62,7 +62,7 @@ export interface QCore {
     field_offs_csv: string,
     fields_csv: string,
     region_off: WholeNumber,
-    owner_seed_hex: string,
+    owner_seed: Uint8Array,
     owner_index: WholeNumber,
     nonce: WholeNumber,
   ): string;
@@ -74,7 +74,7 @@ export interface QCore {
     ptr_off: WholeNumber,
     region_off: WholeNumber,
     fields_json: string,
-    owner_seed_hex: string,
+    owner_seed: Uint8Array,
     owner_index: WholeNumber,
     nonce: WholeNumber,
   ): string;
@@ -86,9 +86,9 @@ export interface QCore {
   mainnetChainId(): bigint;
   mapAddrWordKey(map_domain_tag: WholeNumber, key32_hex: string, word: WholeNumber): string;
   mapSlotKey(map_domain_tag: WholeNumber, key_address_hex: string): string;
-  mnemonicFromSeed(seed_hex: string): string;
+  mnemonicFromSeed(seed: Uint8Array): string;
   nonceSlotKey(signer_hex: string): string;
-  orderSigner(seed_hex: string, index: WholeNumber): string;
+  orderSigner(seed: Uint8Array, index: WholeNumber): string;
   parseEvents(response: string): string;
   scalarSlotKey(slot: WholeNumber): string;
   tokenDecimalsSlot(): bigint;
@@ -97,9 +97,10 @@ export interface QCore {
   unpackSymbol(word: WholeNumber): string;
   assetBalanceBody(issuer: string, holder: string): string;
   assetSupplyBody(issuer: string): string;
-  seedFromMnemonic(phrase: string): string;
+  seedFromMnemonic(phrase: string): Uint8Array;
+  seedFromLegacyMnemonic(phrase: string): Uint8Array;
   signPayableCall(
-    seed_hex: string,
+    seed: Uint8Array,
     index: WholeNumber,
     target: string,
     args_hex: string,
@@ -112,7 +113,7 @@ export interface QCore {
     transfer_fee: WholeNumber,
   ): string;
   signAssetCall(
-    seed_hex: string,
+    seed: Uint8Array,
     index: WholeNumber,
     target: string,
     args_hex: string,
@@ -126,7 +127,7 @@ export interface QCore {
     transfer_fee: WholeNumber,
   ): string;
   signRegister(
-    seed_hex: string,
+    seed: Uint8Array,
     index: WholeNumber,
     nonce: WholeNumber,
     fee: WholeNumber,
@@ -134,7 +135,7 @@ export interface QCore {
     valid_until: WholeNumber,
   ): string;
   sign_call(
-    seed_hex: string,
+    seed: Uint8Array,
     index: WholeNumber,
     target: string,
     args_hex: string,
@@ -146,7 +147,7 @@ export interface QCore {
     transfer_fee: WholeNumber,
   ): string;
   sign_transfer(
-    seed_hex: string,
+    seed: Uint8Array,
     index: WholeNumber,
     to: string,
     amount: WholeNumber,
@@ -198,9 +199,9 @@ export class Client {
   container(address: string): Promise<any>;
   storage(address: string): Promise<any>;
   events(height: number | bigint): Promise<any>;
-  address(seedHex: string, index: number): string;
+  address(seed: Uint8Array, index: number): string;
   transfer(
-    seedHex: string,
+    seed: Uint8Array,
     index: number,
     to: string,
     amount: string | bigint,
@@ -208,13 +209,13 @@ export class Client {
     expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   register(
-    seedHex: string,
+    seed: Uint8Array,
     index: number,
     maxFeeQuon: string | bigint,
     expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   call(
-    seedHex: string,
+    seed: Uint8Array,
     index: number,
     target: string,
     argsHex: string,
@@ -223,7 +224,7 @@ export class Client {
     expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   assetCall(
-    seedHex: string,
+    seed: Uint8Array,
     index: number,
     target: string,
     argsHex: string,
@@ -234,7 +235,7 @@ export class Client {
     expectedNonce?: bigint | number | string,
   ): Promise<TransferResult>;
   payableCall(
-    seedHex: string,
+    seed: Uint8Array,
     index: number,
     target: string,
     argsHex: string,
@@ -246,12 +247,12 @@ export class Client {
   contractNonce(contract: string, signerHex: string): Promise<bigint>;
   contractScalar(contract: string, slot: number | bigint): Promise<bigint>;
   callSignedOrder(
-    callerSeedHex: string,
+    callerSeed: Uint8Array,
     callerIndex: number,
     contract: string,
     selectorHex: string,
     orderSpec: SignedOrderSpec,
-    ownerSeedHex: string,
+    ownerSeed: Uint8Array,
     ownerIndex: number,
     meterLimit: number | bigint,
     maxFeeQuon: string | bigint,
@@ -262,7 +263,7 @@ export class Client {
 
 export const core: QCore;
 
-export function generateSeed(): string;
+export function generateSeed(): Uint8Array;
 
 export function validUntil(nodeInfo: { head_height?: number | string | bigint }): bigint;
 

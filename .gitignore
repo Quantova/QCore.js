@@ -3,4 +3,3 @@ node_modules/
 .DS_Store
 build.log
 .npmrc
-package-lock.json

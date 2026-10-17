@@ -107,11 +107,11 @@ function decodeBech32m(text) {
 
 function parseBody(hex) {
   const r = reader(hex);
-  const sender = new TextDecoder().decode(r.take(Number(r.uint(8))));
+  const sender = hexFromBytes(r.take(Number(r.uint(8))));
   const nonce = r.uint(8);
   const meter = r.uint(8);
   const fee = r.uint(16);
-  const target = new TextDecoder().decode(r.take(Number(r.uint(8))));
+  const target = hexFromBytes(r.take(Number(r.uint(8))));
   const args = hexFromBytes(r.take(Number(r.uint(8))));
   const value = r.uint(8);
   const chainId = r.uint(8);
@@ -176,11 +176,13 @@ function transactionVector() {
 
   const want = parseBody(v.body_bytes);
   const got = parseBody(signed.tx_hex);
-  check('serialized sender field', bech32Equal(got.sender, want.sender), true);
+  check('serialized sender field', got.sender === want.sender, true);
+  check('the serialized sender is the vector sender', got.sender === hexFromBytes(decodeBech32m(v.sender).payload), true);
   check('serialized nonce field', got.nonce === want.nonce, true);
   check('serialized meter field', got.meter === want.meter, true);
   check('serialized fee field', got.fee === want.fee, true);
-  check('serialized target field', bech32Equal(got.target, want.target), true);
+  check('serialized target field', got.target === want.target, true);
+  check('the serialized target is the vector target', got.target === hexFromBytes(decodeBech32m(v.target).payload), true);
   check('serialized args field', got.args === want.args, true);
   check('serialized value field', got.value === want.value, true);
   check('serialized chain id field', got.chainId === want.chainId, true);

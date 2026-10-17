@@ -4,6 +4,31 @@
 use qtv_wipe::{Zeroize, Zeroizing};
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+mod wipe_on_free {
+    use std::alloc::{GlobalAlloc, Layout, System};
+
+    use qtv_wipe::Zeroize;
+
+    struct WipeOnFree;
+
+    unsafe impl GlobalAlloc for WipeOnFree {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            unsafe { System.alloc(layout) }
+        }
+
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+            unsafe {
+                std::slice::from_raw_parts_mut(ptr, layout.size()).zeroize();
+                System.dealloc(ptr, layout)
+            }
+        }
+    }
+
+    #[global_allocator]
+    static ALLOCATOR: WipeOnFree = WipeOnFree;
+}
+
 fn seed(bytes: &[u8]) -> Result<Zeroizing<[u8; 32]>, JsError> {
     if bytes.len() != 32 {
         return Err(JsError::new("a seed is 32 raw bytes (a Uint8Array)"));
@@ -82,12 +107,35 @@ pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
     Ok(JsValue::from_str(&phrase))
 }
 
-#[wasm_bindgen(js_name = seedFromMnemonic)]
-pub fn seed_from_mnemonic(mut phrase: String) -> Result<Vec<u8>, JsError> {
-    let derived = qcore::seed_from_mnemonic(&phrase);
+type Restore = fn(&str) -> Result<Zeroizing<[u8; 32]>, String>;
+
+#[inline(never)]
+fn restore_seed(mut phrase: String, restore: Restore) -> Result<Vec<u8>, JsError> {
+    let derived = restore(&phrase);
     phrase.zeroize();
     let seed = derived.map_err(|e| JsError::new(&e))?;
     Ok(seed[..].to_vec())
+}
+
+#[inline(never)]
+fn scrub_stack() {
+    let mut scratch = [0u8; 16384];
+    scratch.zeroize();
+    std::hint::black_box(&scratch);
+}
+
+#[wasm_bindgen(js_name = seedFromMnemonic)]
+pub fn seed_from_mnemonic(phrase: String) -> Result<Vec<u8>, JsError> {
+    let seed = restore_seed(phrase, qcore::seed_from_mnemonic);
+    scrub_stack();
+    seed
+}
+
+#[wasm_bindgen(js_name = seedFromLegacyMnemonic)]
+pub fn seed_from_legacy_mnemonic(phrase: String) -> Result<Vec<u8>, JsError> {
+    let seed = restore_seed(phrase, qcore::seed_from_legacy_mnemonic);
+    scrub_stack();
+    seed
 }
 
 #[wasm_bindgen]

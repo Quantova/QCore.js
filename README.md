@@ -104,14 +104,22 @@ Quantova shares no wire, no address, and no unit with any other chain, and QCore
 ```js
 const { generateSeed, core } = require('@quantovainc/qcore');
 
-const seed = generateSeed();                 // thirty two random bytes as hex from the platform source
+const seed = generateSeed();                 // thirty two random bytes in a Uint8Array from the platform source
 const phrase = core.mnemonicFromSeed(seed);  // the only backup, shown once and kept on the device
 ```
 
-`core.seedFromMnemonic(phrase)` restores the seed from the twenty four words. It ignores case and extra
-spacing and applies Unicode NFKD before it looks a word up, so a phrase pasted with capitals, non breaking
-spaces, or full width letters restores the same seed. A standard BIP-39 phrase from another wallet is
-refused with its own error, since a Quantova phrase carries a SHA3 checksum and cannot be restored from it.
+`core.seedFromMnemonic(phrase)` restores the seed from the twenty five words as a Uint8Array. It ignores
+case and extra spacing and applies Unicode NFKD before it looks a word up, so a phrase pasted with capitals,
+non breaking spaces, or full width letters restores the same seed. A standard BIP-39 phrase from another
+wallet is refused with its own error, since a Quantova phrase carries a SHA3 checksum and cannot be restored
+from it.
+
+A twenty four word phrase from a release before 0.3.0 is refused by `seedFromMnemonic` with an error that
+names it, and `core.seedFromLegacyMnemonic(phrase)` restores it. Back up the twenty five word phrase that
+`mnemonicFromSeed` gives for the restored seed, since the earlier phrase carries only an eight bit checksum.
+
+Every seed is a Uint8Array. Call `seed.fill(0)` when you are done with it, and never print or log any part of
+it. The WASM core wipes its own copies of a seed before it frees them.
 
 ## Using it
 
@@ -231,7 +239,7 @@ The [examples](examples) folder holds a runnable quickstart that mirrors the one
 
 Releases are published from CI by the publish workflow in `.github/workflows/publish.yml`, which runs on a pushed git tag. It runs the offline tests and publishes with npm provenance, so the published tarball carries a provenance badge that ties it to this exact public commit. The compiled client core is built from the Rust source and committed to the repository, so confirming that the shipped build matches the source means rebuilding it from this commit and comparing the bytes. Nothing is published to a registry without an explicit tag. This package handles a user's keys and a published version cannot be taken back.
 
-For the provenance publish to run, the maintainer adds an `NPM_TOKEN` automation secret to the repository, or configures npm trusted publishing for the package so the workflow authenticates over OIDC with no stored token.
+For the provenance publish to run, the maintainer configures npm trusted publishing for the package, so the workflow authenticates over OIDC with no stored token.
 
 ## Security
 

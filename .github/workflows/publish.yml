@@ -94,5 +94,6 @@ jobs:
         working-directory: QCore.js
         run: |
           set -euo pipefail
+          npm ci
           npm test
           npm publish --provenance --access public

@@ -77,6 +77,7 @@ const CORE_ARGS = {
   address: [['seed', 'seed'], ['u64', 'account index']],
   mnemonicFromSeed: [['seed', 'seed']],
   seedFromMnemonic: [['text', 'recovery phrase']],
+  seedFromLegacyMnemonic: [['text', 'recovery phrase']],
   orderSigner: [['seed', 'seed'], ['u64', 'account index']],
   sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
   signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
@@ -128,7 +129,7 @@ function validUntil(info) {
   }
   let h;
   try {
-    h = BigInt(head);
+    h = wholeNumber(head, 'head height', U64_MAX);
   } catch {
     throw new Error('the gateway reported a head height that is not a whole number');
   }
@@ -412,11 +413,11 @@ function makeClient(core) {
       return until;
     }
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
-    block(height) { return this._call('get_block', core.block_by_height_body(BigInt(height))); }
+    block(height) { return this._call('get_block', core.block_by_height_body(wholeNumber(height, 'height', U64_MAX))); }
     submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex)); }
     container(address) { return this._call('get_container', JSON.stringify({ address })); }
     storage(address) { return this._call('get_storage', JSON.stringify({ address })); }
-    events(height) { return this._call('get_events', core.eventsBody(BigInt(height))); }
+    events(height) { return this._call('get_events', core.eventsBody(wholeNumber(height, 'height', U64_MAX))); }
 
     address(seedHex, index) { return core.address(seedHex, accountIndex(index)); }
 
@@ -564,7 +565,7 @@ function makeClient(core) {
     }
 
     async contractScalar(contract, slot) {
-      return this._slotValue(contract, core.scalarSlotKey(BigInt(slot)));
+      return this._slotValue(contract, core.scalarSlotKey(wholeNumber(slot, 'slot', U64_MAX)));
     }
 
     async callSignedOrder(callerSeedHex, callerIndex, contract, selectorHex, orderSpec, ownerSeedHex, ownerIndex, meterLimit, maxFeeQuon, expectedOrderNonce, expectedNonce) {
@@ -584,7 +585,7 @@ function makeClient(core) {
       const signer = core.orderSigner(ownerSeedHex, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
-      if (expectedOrderNonce != null && BigInt(expectedOrderNonce) !== reportedOrder) {
+      if (expectedOrderNonce != null && wholeNumber(expectedOrderNonce, 'expected order nonce', U64_MAX) !== reportedOrder) {
         throw new Error(
           `the gateway reported order nonce ${reportedOrder} but you expected ${expectedOrderNonce}, refusing to sign`
         );
@@ -594,9 +595,9 @@ function makeClient(core) {
         chainId,
         contract,
         selectorHex,
-        BigInt(orderSpec.schemeOff),
-        BigInt(orderSpec.ptrOff),
-        BigInt(orderSpec.regionOff || 0),
+        wholeNumber(orderSpec.schemeOff, 'scheme offset', U64_MAX),
+        wholeNumber(orderSpec.ptrOff, 'pointer offset', U64_MAX),
+        orderSpec.regionOff == null ? 0n : wholeNumber(orderSpec.regionOff, 'region offset', U64_MAX),
         JSON.stringify(orderSpec.fields || [], (k, v) => {
           if (typeof v !== 'bigint') return v;
           if (k === 'value') return v.toString();

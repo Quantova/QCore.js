@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Quantova/QCore.rs
-          ref: e23fd1281af1da2efb610ddf5f975be04b005960
+          ref: 52f96434057f146185e98df201174e2cd1f855e3
           path: QCore.rs
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -46,6 +46,7 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
+          git diff --exit-code -- pkg pkg-node shared.mjs
       - name: supply chain gate (cargo deny)
         working-directory: QCore.js
         run: |
@@ -53,4 +54,6 @@ jobs:
           cargo deny --locked check bans sources advisories
       - name: test
         working-directory: QCore.js
-        run: npm test
+        run: |
+          npm ci
+          npm test

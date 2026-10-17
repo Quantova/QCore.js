@@ -6,8 +6,8 @@ const path = require('path');
 
 const tsc = path.join(__dirname, 'node_modules', '.bin', 'tsc');
 if (!fs.existsSync(tsc)) {
-  console.log('  skip  typescript is not installed, run npm install to check index.d.ts');
-  process.exit(0);
+  console.error('typescript is not installed, run npm ci so index.d.ts is checked');
+  process.exit(1);
 }
 try {
   execFileSync(tsc, ['--noEmit', '--skipLibCheck', 'index.d.ts'], {

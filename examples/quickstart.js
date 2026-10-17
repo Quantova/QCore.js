@@ -18,7 +18,6 @@ async function settle(client, address, ready) {
 
 async function main() {
   const seed = generateSeed();
-  console.log('seed', seed.slice(0, 8) + '...');
 
   const phrase = core.mnemonicFromSeed(seed);
   console.log('mnemonic words', phrase.split(' ').length);
@@ -58,6 +57,7 @@ async function main() {
 
   const { signed, outcome } = await client.transfer(seed, 0, to, '1000', MAX_FEE_QUON);
   console.log('submitted', signed.tx_id, outcome.verdict);
+  seed.fill(0);
 }
 
 main().catch((err) => { console.error(err.message); process.exit(1); });
