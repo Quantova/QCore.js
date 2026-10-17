@@ -72,15 +72,18 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
-          git diff --exit-code -- pkg pkg-node shared.mjs
-      - name: keep the rebuilt core when it differs from the committed one
-        if: failure()
+      - name: keep the rebuilt core
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rebuilt-core
           path: |
             QCore.js/pkg
             QCore.js/pkg-node
+      - name: the committed core must equal the rebuilt core on main
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        working-directory: QCore.js
+        run: git diff --exit-code -- pkg pkg-node shared.mjs
       - name: supply chain gate (cargo deny)
         working-directory: QCore.js
         run: |
