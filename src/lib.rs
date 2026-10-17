@@ -340,9 +340,9 @@ fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
     }
     csv.split(',')
         .map(|part| {
-            part.trim()
-                .parse::<u64>()
-                .map_err(|_| JsError::new("a list entry is not a whole number"))
+            qcore::canonical_decimal(part.trim())
+                .and_then(|n| u64::try_from(n).ok())
+                .ok_or_else(|| JsError::new("a list entry is not a canonical whole number"))
         })
         .collect()
 }
@@ -662,6 +662,16 @@ pub fn storage_value(response: &str, slot_key_hex: &str) -> Result<String, JsErr
     let slots = qcore::contract::parse_storage(response).map_err(|e| JsError::new(&e))?;
     let key = addr32(slot_key_hex)?;
     Ok(qcore::contract::storage_value(&slots, &key).to_string())
+}
+
+#[wasm_bindgen(js_name = storageValueReported)]
+pub fn storage_value_reported(
+    response: &str,
+    slot_key_hex: &str,
+) -> Result<Option<String>, JsError> {
+    let slots = qcore::contract::parse_storage(response).map_err(|e| JsError::new(&e))?;
+    let key = addr32(slot_key_hex)?;
+    Ok(qcore::contract::storage_value_reported(&slots, &key).map(|v| v.to_string()))
 }
 
 #[wasm_bindgen(js_name = parseEvents)]
@@ -1026,11 +1036,9 @@ fn parse_roster(roster_json: &str) -> Result<Vec<qcore::finality::RosterMember>,
             .get("stake")
             .and_then(|v| v.as_str())
             .ok_or_else(|| "a roster member needs a stake as a digit string".to_string())?;
-        if stake.is_empty() || !stake.bytes().all(|b| b.is_ascii_digit()) {
-            return Err("a roster stake is not a whole number".to_string());
-        }
-        let stake: u64 = stake
-            .parse()
+        let stake: u64 = qcore::canonical_decimal(stake)
+            .ok_or_else(|| "a roster stake is not a canonical whole number".to_string())?
+            .try_into()
             .map_err(|_| "a roster stake is out of range".to_string())?;
         let pk = item
             .get("attest_pk")

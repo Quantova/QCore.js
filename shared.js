@@ -100,6 +100,7 @@ const CORE_ARGS = {
   buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
   checkOrderExpiry: [['u64', 'order expiry'], ['u64', 'wall clock seconds']],
+  storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
   verifyFinality: [['u64', 'chain id'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
   verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
   decodeEvent: [['text', 'event leaf']],
@@ -610,11 +611,9 @@ function makeClient(core) {
 
     async _slotValue(contract, key) {
       const resp = await this._call('get_storage_at', JSON.stringify({ address: contract, keys: [key] }), true);
-      const slots = resp && Array.isArray(resp.slots) ? resp.slots : [];
-      if (!slots.some((s) => s && typeof s.slot === 'string' && s.slot.toLowerCase() === String(key).toLowerCase())) {
-        throw new Error('the gateway did not report the requested storage slot');
-      }
-      return BigInt(core.storageValue(JSON.stringify(resp), key));
+      const value = core.storageValueReported(JSON.stringify(resp), key);
+      if (value == null) throw new Error('the gateway did not report the requested storage slot');
+      return BigInt(value);
     }
 
     async contractNonce(contract, signerHex) {

@@ -197,6 +197,7 @@ export interface QCore {
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
+  storageValueReported(response: string, slot_key_hex: string): string | undefined;
   submit_body(tx_hex: string): string;
   testnetChainId(): bigint;
   transaction_body(tx_id: string): string;
