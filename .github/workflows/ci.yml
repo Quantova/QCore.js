@@ -47,6 +47,14 @@ jobs:
           cargo install wasm-pack --version 0.13.1 --locked
           bash scripts/build.sh
           git diff --exit-code -- pkg pkg-node shared.mjs
+      - name: keep the rebuilt core when it differs from the committed one
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rebuilt-core
+          path: |
+            QCore.js/pkg
+            QCore.js/pkg-node
       - name: supply chain gate (cargo deny)
         working-directory: QCore.js
         run: |
