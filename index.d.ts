@@ -98,7 +98,6 @@ export interface QCore {
   assetBalanceBody(issuer: string, holder: string): string;
   assetSupplyBody(issuer: string): string;
   seedFromMnemonic(phrase: string): Uint8Array;
-  seedFromLegacyMnemonic(phrase: string): Uint8Array;
   signPayableCall(
     seed: Uint8Array,
     index: WholeNumber,

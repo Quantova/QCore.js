@@ -114,10 +114,6 @@ non breaking spaces, or full width letters restores the same seed. A standard BI
 wallet is refused with its own error, since a Quantova phrase carries a SHA3 checksum and cannot be restored
 from it.
 
-A twenty four word phrase from a release before 0.3.0 is refused by `seedFromMnemonic` with an error that
-names it, and `core.seedFromLegacyMnemonic(phrase)` restores it. Back up the twenty five word phrase that
-`mnemonicFromSeed` gives for the restored seed, since the earlier phrase carries only an eight bit checksum.
-
 Every seed is a Uint8Array. Call `seed.fill(0)` when you are done with it, and never print or log any part of
 it. The WASM core wipes its own copies of a seed before it frees them.
 

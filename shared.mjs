@@ -77,7 +77,6 @@ const CORE_ARGS = {
   address: [['seed', 'seed'], ['u64', 'account index']],
   mnemonicFromSeed: [['seed', 'seed']],
   seedFromMnemonic: [['text', 'recovery phrase']],
-  seedFromLegacyMnemonic: [['text', 'recovery phrase']],
   orderSigner: [['seed', 'seed'], ['u64', 'account index']],
   sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
   signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],

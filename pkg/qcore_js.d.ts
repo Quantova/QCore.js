@@ -49,8 +49,6 @@ export function sameAddress(a: string, b: string): boolean;
 
 export function scalarSlotKey(slot: bigint): string;
 
-export function seedFromLegacyMnemonic(phrase: string): Uint8Array;
-
 export function seedFromMnemonic(phrase: string): Uint8Array;
 
 export function signAssetCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;

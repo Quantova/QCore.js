@@ -509,23 +509,6 @@ exports.scalarSlotKey = scalarSlotKey;
  * @param {string} phrase
  * @returns {Uint8Array}
  */
-function seedFromLegacyMnemonic(phrase) {
-    const ptr0 = passStringToWasm0(phrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.seedFromLegacyMnemonic(ptr0, len0);
-    if (ret[3]) {
-        throw takeFromExternrefTable0(ret[2]);
-    }
-    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v2;
-}
-exports.seedFromLegacyMnemonic = seedFromLegacyMnemonic;
-
-/**
- * @param {string} phrase
- * @returns {Uint8Array}
- */
 function seedFromMnemonic(phrase) {
     const ptr0 = passStringToWasm0(phrase, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;

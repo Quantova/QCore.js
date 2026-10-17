@@ -107,11 +107,9 @@ pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
     Ok(JsValue::from_str(&phrase))
 }
 
-type Restore = fn(&str) -> Result<Zeroizing<[u8; 32]>, String>;
-
 #[inline(never)]
-fn restore_seed(mut phrase: String, restore: Restore) -> Result<Vec<u8>, JsError> {
-    let derived = restore(&phrase);
+fn restore_seed(mut phrase: String) -> Result<Vec<u8>, JsError> {
+    let derived = qcore::seed_from_mnemonic(&phrase);
     phrase.zeroize();
     let seed = derived.map_err(|e| JsError::new(&e))?;
     Ok(seed[..].to_vec())
@@ -126,14 +124,7 @@ fn scrub_stack() {
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
 pub fn seed_from_mnemonic(phrase: String) -> Result<Vec<u8>, JsError> {
-    let seed = restore_seed(phrase, qcore::seed_from_mnemonic);
-    scrub_stack();
-    seed
-}
-
-#[wasm_bindgen(js_name = seedFromLegacyMnemonic)]
-pub fn seed_from_legacy_mnemonic(phrase: String) -> Result<Vec<u8>, JsError> {
-    let seed = restore_seed(phrase, qcore::seed_from_legacy_mnemonic);
+    let seed = restore_seed(phrase);
     scrub_stack();
     seed
 }
