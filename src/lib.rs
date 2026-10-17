@@ -722,8 +722,8 @@ pub fn block_by_height_body(height: u64) -> String {
 }
 
 #[wasm_bindgen(js_name = chainIdFromName)]
-pub fn chain_id_from_name(name: &str) -> u64 {
-    qcore::chain_id_from_name(name)
+pub fn chain_id_from_name(name: &str) -> Result<u64, JsError> {
+    qcore::checked_chain_id(name).map_err(|e| JsError::new(&e))
 }
 
 #[wasm_bindgen(js_name = localChainId)]
