@@ -102,12 +102,12 @@ function fail(msg) {
   nonceValue = 0;
   const fresh = new Client('http://127.0.0.1:' + server.address().port);
   const bounded = await fresh.transfer(seed, 0, to, '1000', '1000000');
-  const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n));
+  const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n, 0n));
   if (bounded.signed.tx_hex !== expected.tx_hex) fail('a client transfer must expire 300 blocks past the head');
-  const later = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 311n));
+  const later = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 311n, 0n));
   if (later.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
   let neverExpires = false;
-  try { core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n); } catch (e) { neverExpires = /never expires/.test(e.message); }
+  try { core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n, 0n); } catch (e) { neverExpires = /never expires/.test(e.message); }
   if (!neverExpires) fail('a deadline of zero never expires and must be refused');
 
   const before = submitted;

@@ -273,6 +273,7 @@ pub fn sign_transfer(
     fee: &str,
     chain_id: u64,
     valid_until: u64,
+    head: u64,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(to) {
@@ -289,6 +290,7 @@ pub fn sign_transfer(
         fee,
         chain_id,
         valid_until,
+        head,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -302,10 +304,11 @@ pub fn sign_register(
     fee: &str,
     chain_id: u64,
     valid_until: u64,
+    head: u64,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     let fee = whole(fee, "fee")?;
-    let signed = qcore::sign_register(&master, index, nonce, fee, chain_id, valid_until)
+    let signed = qcore::sign_register(&master, index, nonce, fee, chain_id, valid_until, head)
         .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
 }
@@ -323,6 +326,7 @@ pub fn sign_call(
     chain_id: u64,
     valid_until: u64,
     transfer_fee: Option<String>,
+    head: u64,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -341,6 +345,7 @@ pub fn sign_call(
         chain_id,
         valid_until,
         self::transfer_fee(transfer_fee)?,
+        head,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -774,6 +779,7 @@ pub fn sign_payable_call(
     chain_id: u64,
     valid_until: u64,
     transfer_fee: Option<String>,
+    head: u64,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -795,6 +801,7 @@ pub fn sign_payable_call(
         chain_id,
         valid_until,
         self::transfer_fee(transfer_fee)?,
+        head,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -815,6 +822,7 @@ pub fn sign_asset_call(
     chain_id: u64,
     valid_until: u64,
     transfer_fee: Option<String>,
+    head: u64,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -839,6 +847,7 @@ pub fn sign_asset_call(
         chain_id,
         valid_until,
         self::transfer_fee(transfer_fee)?,
+        head,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -889,6 +898,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         let second = sign_payable_call(
@@ -903,6 +913,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         assert_eq!(first, second);
@@ -926,6 +937,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         let signed_upper = sign_payable_call(
@@ -940,6 +952,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         assert_eq!(signed_lower, signed_upper);
@@ -960,6 +973,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         let b = sign_payable_call(
@@ -974,6 +988,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         assert_ne!(a, b);
@@ -994,6 +1009,7 @@ mod payable_tests {
             qtv_tx::TESTNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         let b = sign_payable_call(
@@ -1008,6 +1024,7 @@ mod payable_tests {
             qtv_tx::MAINNET_CHAIN_ID,
             300,
             Some("500".to_string()),
+            0,
         )
         .unwrap();
         assert_ne!(a, b);

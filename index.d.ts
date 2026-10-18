@@ -151,6 +151,7 @@ export interface QCore {
     chain_id: WholeNumber,
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
+    head: WholeNumber,
   ): string;
   signAssetCall(
     seed: Uint8Array,
@@ -165,6 +166,7 @@ export interface QCore {
     chain_id: WholeNumber,
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
+    head: WholeNumber,
   ): string;
   signRegister(
     seed: Uint8Array,
@@ -173,6 +175,7 @@ export interface QCore {
     fee: WholeNumber,
     chain_id: WholeNumber,
     valid_until: WholeNumber,
+    head: WholeNumber,
   ): string;
   sign_call(
     seed: Uint8Array,
@@ -185,6 +188,7 @@ export interface QCore {
     chain_id: WholeNumber,
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
+    head: WholeNumber,
   ): string;
   sign_transfer(
     seed: Uint8Array,
@@ -195,6 +199,7 @@ export interface QCore {
     fee: WholeNumber,
     chain_id: WholeNumber,
     valid_until: WholeNumber,
+    head: WholeNumber,
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;

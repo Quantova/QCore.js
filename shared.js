@@ -105,11 +105,11 @@ const CORE_ARGS = {
   boundedValidUntil: [['text', 'chain name'], ['u64', 'head height'], ['u64', 'wall clock seconds'], ['u64opt', 'head floor'], ['u64', 'head floor age']],
   checkGatewayJson: [['text', 'gateway response']],
   orderSigner: [['seed', 'seed'], ['u64', 'account index']],
-  sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
-  signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline']],
-  sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
-  signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee']],
+  sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height']],
+  signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height']],
+  sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
+  signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
+  signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
   buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
@@ -509,6 +509,7 @@ function makeClient(core) {
       const floor = this._headFloor;
       const age = floor && tick > floor.at ? tick - floor.at : 0n;
       const until = BigInt(core.boundedValidUntil(chain, head, wall, floor ? floor.height : undefined, age));
+      this._lastHead = head;
       if (!floor || head > floor.height) this._headFloor = { height: head, at: tick };
       return until;
     }
@@ -575,7 +576,7 @@ function makeClient(core) {
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until)
+        core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until, this._lastHead)
       );
       this._rememberTargets([to]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -595,7 +596,7 @@ function makeClient(core) {
       }
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until));
+      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, this._lastHead));
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
@@ -612,7 +613,7 @@ function makeClient(core) {
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
       );
       this._rememberTargets([target]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -633,7 +634,7 @@ function makeClient(core) {
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
       );
       this._rememberTargets([target, assetIssuer]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -653,7 +654,7 @@ function makeClient(core) {
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee))
+        core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee), this._lastHead)
       );
       this._rememberTargets([target]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -728,7 +729,7 @@ function makeClient(core) {
       ));
       const accountNonceUsed = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee))
+        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
       );
       this._rememberTargets([contract]);
       const outcome = await this._submitHeld([[orderKey, nonce], [from, accountNonceUsed]], signed.tx_hex);
