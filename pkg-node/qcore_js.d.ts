@@ -5,6 +5,8 @@ export class SigningSession {
     free(): void;
     [Symbol.dispose](): void;
     checkTarget(address: string): void;
+    exportState(): string;
+    importState(state: string): void;
     isHeld(key: string, slot: bigint): boolean;
     constructor(book: string[]);
     nextNonce(key: string): bigint | undefined;

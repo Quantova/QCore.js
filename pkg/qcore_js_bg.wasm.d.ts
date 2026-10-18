@@ -42,6 +42,8 @@ export const signRegister: (a: number, b: number, c: bigint, d: bigint, e: numbe
 export const sign_call: (a: number, b: number, c: bigint, d: number, e: number, f: number, g: number, h: bigint, i: bigint, j: number, k: number, l: bigint, m: bigint, n: number, o: number) => [number, number, number, number];
 export const sign_transfer: (a: number, b: number, c: bigint, d: number, e: number, f: number, g: number, h: bigint, i: number, j: number, k: bigint, l: bigint) => [number, number, number, number];
 export const signingsession_checkTarget: (a: number, b: number, c: number) => [number, number];
+export const signingsession_exportState: (a: number) => [number, number];
+export const signingsession_importState: (a: number, b: number, c: number) => [number, number];
 export const signingsession_isHeld: (a: number, b: number, c: number, d: bigint) => number;
 export const signingsession_new: (a: number, b: number) => [number, number, number];
 export const signingsession_nextNonce: (a: number, b: number, c: number) => [number, bigint];
