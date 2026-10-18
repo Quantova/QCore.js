@@ -250,7 +250,7 @@ export class Client {
   head(): Promise<any>;
   account(address: string): Promise<any>;
   transaction(txId: string): Promise<any>;
-  confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
+  confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;

@@ -1030,36 +1030,7 @@ mod payable_tests {
 }
 
 fn parse_roster(roster_json: &str) -> Result<Vec<qcore::finality::RosterMember>, String> {
-    let parsed = qcore::json::parse(roster_json)?;
-    let items = match &parsed {
-        qcore::json::Json::Array(items) => items,
-        _ => return Err("the validator roster must be a JSON array".to_string()),
-    };
-    let mut roster = Vec::with_capacity(items.len());
-    for item in items {
-        let id = item
-            .get("id")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| "a roster member needs a numeric id".to_string())?;
-        let stake = item
-            .get("stake")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| "a roster member needs a stake as a digit string".to_string())?;
-        let stake: u64 = qcore::canonical_decimal(stake)
-            .ok_or_else(|| "a roster stake is not a canonical whole number".to_string())?
-            .try_into()
-            .map_err(|_| "a roster stake is out of range".to_string())?;
-        let pk = item
-            .get("attest_pk")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| "a roster member needs an attest_pk".to_string())?;
-        roster.push(qcore::finality::RosterMember {
-            id,
-            stake,
-            attest_pk: qcore::json::from_hex(pk)?,
-        });
-    }
-    Ok(roster)
+    qcore::finality::parse_roster(roster_json)
 }
 
 fn parse_steps(steps_json: &str) -> Result<Vec<([u8; 32], bool)>, String> {
