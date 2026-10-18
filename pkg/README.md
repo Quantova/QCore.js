@@ -138,9 +138,9 @@ core.verifyFinality measures signed stake against the whole roster you pass, whi
 
 A new session does not take an order nonce above zero from the gateway alone. Name the expected order nonce, or keep `client.saveSession()` and pass it to `client.restoreSession(state)` after a restart so tracked nonces and held signatures survive. The client refuses to sign for a retired chain name such as Q-test-net-1.
 
-Call `client.confirmTransaction(txId, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the validator roster you pass and trust, then checks that the transaction is inside that block.
+Call `client.confirmTransaction(txId, genesisHash, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the genesis hash and validator roster you pass and trust, then checks that the transaction is inside that block.
 
-Call `client.trustRoster(roster)` to give the client a validator roster you trust. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
+Call `client.trustRoster(genesisHash, roster)` to give the client a genesis hash and a validator roster you trust. Every attestation signs the genesis hash, so a certificate from another network that reuses the chain name and keys never verifies. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
 
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
 through your own transport, for example one that enforces an address allow list. Without it the Client
