@@ -134,6 +134,10 @@ Pass `addressBook`, a list of Q1 addresses you trust, in the Client options, and
 a target that shares two or more leading and trailing characters with a known address, eight in all, but is a
 different address. The sending accounts and every target signed for in the session are known as well.
 
+core.verifyFinality measures signed stake against the whole roster you pass, which matches the chain when every validator in the roster sits on the committee, as on a network of main validators. Pass exactly the validators of the block's epoch. A custom `fetch` must keep TLS certificate checks on and is cut off at the same timeout as the platform fetch.
+
+Call `client.confirmTransaction(txId, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the validator roster you pass and trust, then checks that the transaction is inside that block.
+
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
 through your own transport, for example one that enforces an address allow list. Without it the Client
 uses the platform fetch, which on Node follows HTTPS_PROXY only when NODE_USE_ENV_PROXY is set. The

@@ -1297,6 +1297,30 @@ function verifyFinality(chain_id, header_hex, certificate_hex, roster_json) {
 exports.verifyFinality = verifyFinality;
 
 /**
+ * @param {string} transaction_root_hex
+ * @param {string} tx_id
+ * @param {string} leaf_hex
+ * @param {string} steps_json
+ * @returns {boolean}
+ */
+function verifyTransaction(transaction_root_hex, tx_id, leaf_hex, steps_json) {
+    const ptr0 = passStringToWasm0(transaction_root_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(tx_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(leaf_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(steps_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.verifyTransaction(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+exports.verifyTransaction = verifyTransaction;
+
+/**
  * @param {string} transfer_fee
  * @param {bigint} meter_limit
  * @returns {string}

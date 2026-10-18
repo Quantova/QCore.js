@@ -66,6 +66,7 @@ export const valid_address: (a: number, b: number) => number;
 export const validityBlocks: () => bigint;
 export const verifyEvent: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const verifyFinality: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+export const verifyTransaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number];
 export const vmCallFee: (a: number, b: number, c: bigint) => [number, number, number, number];
 export const vmDeployAddress: () => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;

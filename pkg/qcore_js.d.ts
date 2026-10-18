@@ -124,6 +124,8 @@ export function verifyEvent(event_root_hex: string, leaf_hex: string, steps_json
 
 export function verifyFinality(chain_id: bigint, header_hex: string, certificate_hex: string, roster_json: string): string;
 
+export function verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
+
 export function vmCallFee(transfer_fee: string, meter_limit: bigint): string;
 
 export function vmDeployAddress(): string;
