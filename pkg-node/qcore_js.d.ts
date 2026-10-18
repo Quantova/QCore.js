@@ -86,15 +86,15 @@ export function seedFromMnemonic(phrase: string): Uint8Array;
 
 export function seedFromMnemonicBytes(phrase: Uint8Array): Uint8Array;
 
-export function signAssetCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
+export function signAssetCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint): string;
 
-export function signPayableCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
+export function signPayableCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint): string;
 
-export function signRegister(seed_bytes: Uint8Array, index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
+export function signRegister(seed_bytes: Uint8Array, index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint): string;
 
-export function sign_call(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee?: string | null): string;
+export function sign_call(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint): string;
 
-export function sign_transfer(seed_bytes: Uint8Array, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint): string;
+export function sign_transfer(seed_bytes: Uint8Array, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint): string;
 
 export function storageBody(contract: string): string;
 
