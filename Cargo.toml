@@ -3,7 +3,7 @@
 
 [package]
 name = "qcore-js"
-version = "0.7.1"
+version = "0.8.0"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "The JavaScript binding for the Quantova client core, generated over QCore with wasm-bindgen. The core does the key derivation, the post quantum signing, and the wire, the page does the fetch."
@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 [dependencies]
 qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
-qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "6f8ffb8c6eb52fbba6e0787c4807ecea02e7c74e" }
-qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "6f8ffb8c6eb52fbba6e0787c4807ecea02e7c74e" }
-qtv-idfmt = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "6f8ffb8c6eb52fbba6e0787c4807ecea02e7c74e" }
+qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "2bc396ad5dd0bc9f57670b0c8f4b5786c9824325" }
+qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "2bc396ad5dd0bc9f57670b0c8f4b5786c9824325" }
+qtv-idfmt = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "2bc396ad5dd0bc9f57670b0c8f4b5786c9824325" }
 qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "e47d6cd94e71c13b22e2990f8c2b0a2e3a2204d0" }

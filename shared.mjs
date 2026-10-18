@@ -115,7 +115,7 @@ const CORE_ARGS = {
   orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
   checkOrderExpiry: [['u64', 'order expiry'], ['u64', 'wall clock seconds']],
   storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
-  verifyFinality: [['u64', 'chain id'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
+  verifyFinality: [['u64', 'chain id'], ['text', 'genesis hash'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
   verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
   verifyTransaction: [['text', 'transaction root'], ['text', 'transaction id'], ['text', 'transaction leaf'], ['text', 'proof steps']],
   decodeEvent: [['text', 'event leaf']],
@@ -501,7 +501,10 @@ function makeClient(core) {
       return gatewayFee(info && info.fee && info.fee.transfer_quon);
     }
 
-    trustRoster(roster) {
+    trustRoster(genesisHash, roster) {
+      if (typeof genesisHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(genesisHash)) {
+        throw new Error('the genesis hash you trust must be 64 hex characters');
+      }
       const json = typeof roster === 'string' ? roster : JSON.stringify(roster);
       let members;
       try {
@@ -513,6 +516,7 @@ function makeClient(core) {
         throw new Error('a trusted validator roster must be a non empty array');
       }
       this._trustedRoster = json;
+      this._trustedGenesis = genesisHash.toLowerCase();
     }
 
     async _verifyHead(info) {
@@ -530,7 +534,7 @@ function makeClient(core) {
       if (!finality || typeof finality.header_bytes !== 'string' || typeof finality.certificate !== 'string') {
         throw new Error('the gateway gave no finality proof for the head it reports, refusing to sign');
       }
-      const verified = JSON.parse(core.verifyFinality(chainId, finality.header_bytes, finality.certificate, roster));
+      const verified = JSON.parse(core.verifyFinality(chainId, this._trustedGenesis, finality.header_bytes, finality.certificate, roster));
       if (BigInt(verified.height) !== head) {
         throw new Error(`the gateway reports head ${head} but its finality proof is for height ${verified.height}, refusing to sign`);
       }
@@ -567,8 +571,11 @@ function makeClient(core) {
       this._session.importState(state);
     }
 
-    async confirmTransaction(txId, roster) {
+    async confirmTransaction(txId, genesisHash, roster) {
       if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
+      if (typeof genesisHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(genesisHash)) {
+        throw new Error('the genesis hash you trust must be 64 hex characters');
+      }
       const rosterJson = typeof roster === 'string' ? roster : JSON.stringify(roster);
       const info = await this.nodeInfo();
       const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
@@ -580,7 +587,7 @@ function makeClient(core) {
       const proof = await this._call('get_transaction_proof', JSON.stringify({ tx_id: txId }), true);
       const height = gatewayInteger(proof && proof.height, 'proof height');
       const finality = await this._call('get_finality', JSON.stringify({ height: Number(height) }), true);
-      const verified = JSON.parse(core.verifyFinality(chainId, String(finality.header_bytes), String(finality.certificate), rosterJson));
+      const verified = JSON.parse(core.verifyFinality(chainId, genesisHash.toLowerCase(), String(finality.header_bytes), String(finality.certificate), rosterJson));
       if (BigInt(verified.height) !== height) throw new Error('the finalized header is not at the height the proof names');
       if (!core.verifyTransaction(verified.transaction_root, txId, String(proof.leaf), JSON.stringify(proof.steps))) {
         throw new Error('the transaction is not proven inside the finalized block');

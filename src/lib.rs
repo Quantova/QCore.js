@@ -1120,6 +1120,7 @@ fn finalized_json(h: &qcore::finality::FinalizedHeader) -> String {
 #[wasm_bindgen(js_name = verifyFinality)]
 pub fn verify_finality(
     chain_id: u64,
+    genesis_hex: &str,
     header_hex: &str,
     certificate_hex: &str,
     roster_json: &str,
@@ -1127,8 +1128,13 @@ pub fn verify_finality(
     let header = qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?;
     let certificate = qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?;
     let roster = parse_roster(roster_json).map_err(|e| JsError::new(&e))?;
-    let verified = qcore::finality::verify_finality(chain_id, &header, &certificate, &roster)
-        .map_err(|e| JsError::new(&e))?;
+    let genesis: [u8; 32] = qcore::json::from_hex(genesis_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the genesis hash must be 32 bytes of hex"))?;
+    let verified =
+        qcore::finality::verify_finality(chain_id, &genesis, &header, &certificate, &roster)
+            .map_err(|e| JsError::new(&e))?;
     Ok(finalized_json(&verified))
 }
 

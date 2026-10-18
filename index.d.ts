@@ -110,7 +110,7 @@ export interface QCore {
   nonceSlotKey(signer_hex: string): string;
   orderLayoutHash(selector_hex: string, fields_json: string): string;
   checkOrderExpiry(expiry: WholeNumber, now_secs: WholeNumber): void;
-  verifyFinality(chain_id: WholeNumber, header_hex: string, certificate_hex: string, roster_json: string): string;
+  verifyFinality(chain_id: WholeNumber, genesis_hex: string, header_hex: string, certificate_hex: string, roster_json: string): string;
   verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
   verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
   decodeEvent(leaf_hex: string): string;
@@ -259,8 +259,8 @@ export class Client {
   transaction(txId: string): Promise<any>;
   saveSession(): string;
   restoreSession(state: string): void;
-  confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
-  trustRoster(roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
+  confirmTransaction(txId: string, genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
+  trustRoster(genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;
