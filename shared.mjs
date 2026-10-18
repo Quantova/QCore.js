@@ -501,6 +501,41 @@ function makeClient(core) {
       return gatewayFee(info && info.fee && info.fee.transfer_quon);
     }
 
+    trustRoster(roster) {
+      const json = typeof roster === 'string' ? roster : JSON.stringify(roster);
+      let members;
+      try {
+        members = JSON.parse(json);
+      } catch (e) {
+        throw new Error('the trusted validator roster is not valid JSON');
+      }
+      if (!Array.isArray(members) || members.length === 0) {
+        throw new Error('a trusted validator roster must be a non empty array');
+      }
+      this._trustedRoster = json;
+    }
+
+    async _verifyHead(info) {
+      const roster = this._trustedRoster;
+      if (typeof roster !== 'string') {
+        if (this.network && this.network.isMainnet === true) {
+          throw new Error('a mainnet client needs a trusted validator roster to check the head it signs against, call trustRoster first');
+        }
+        return;
+      }
+      const head = gatewayInteger(info && info.head_height, 'head height');
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const chainId = BigInt(core.chainIdFromName(name));
+      const finality = await this._call('get_finality', JSON.stringify({ height: Number(head) }), true);
+      if (!finality || typeof finality.header_bytes !== 'string' || typeof finality.certificate !== 'string') {
+        throw new Error('the gateway gave no finality proof for the head it reports, refusing to sign');
+      }
+      const verified = JSON.parse(core.verifyFinality(chainId, finality.header_bytes, finality.certificate, roster));
+      if (BigInt(verified.height) !== head) {
+        throw new Error(`the gateway reports head ${head} but its finality proof is for height ${verified.height}, refusing to sign`);
+      }
+    }
+
     _validity(info) {
       const head = gatewayInteger(info && info.head_height, 'head height');
       const chain = info && typeof info.chain_id === 'string' ? info.chain_id : '';
@@ -573,6 +608,7 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      await this._verifyHead(info);
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
@@ -594,6 +630,7 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
+      await this._verifyHead(info);
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, this._lastHead));
@@ -610,6 +647,7 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      await this._verifyHead(info);
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
@@ -631,6 +669,7 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      await this._verifyHead(info);
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
@@ -651,6 +690,7 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      await this._verifyHead(info);
       const until = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
@@ -697,6 +737,7 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      await this._verifyHead(info);
       const until = this._validity(info);
       const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;

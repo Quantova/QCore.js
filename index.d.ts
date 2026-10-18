@@ -260,6 +260,7 @@ export class Client {
   saveSession(): string;
   restoreSession(state: string): void;
   confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
+  trustRoster(roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;
