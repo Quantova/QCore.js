@@ -1134,6 +1134,24 @@ pub fn verify_finality(
     Ok(finalized_json(&verified))
 }
 
+#[wasm_bindgen(js_name = verifyTransaction)]
+pub fn verify_transaction(
+    transaction_root_hex: &str,
+    tx_id: &str,
+    leaf_hex: &str,
+    steps_json: &str,
+) -> Result<bool, JsError> {
+    let root: [u8; 32] = qcore::json::from_hex(transaction_root_hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new("the transaction root is 32 bytes of hex"))?;
+    let leaf = qcore::json::from_hex(leaf_hex).map_err(|e| JsError::new(&e))?;
+    let steps = parse_steps(steps_json).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::finality::verify_transaction(
+        &root, tx_id, &leaf, &steps,
+    ))
+}
+
 #[wasm_bindgen(js_name = verifyEvent)]
 pub fn verify_event(
     event_root_hex: &str,

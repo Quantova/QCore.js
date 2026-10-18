@@ -69,8 +69,8 @@ function requireVerifiedTls() {
 }
 
 function shown(value) {
-  const text = String(value).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]/g, '');
-  return text.length > 96 ? text.slice(0, 96) + '...' : text;
+  const chars = Array.from(String(value).replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ''));
+  return chars.length > 96 ? chars.slice(0, 96).join('') + '...' : chars.join('');
 }
 
 function coreArg(kind, label, value) {
@@ -117,6 +117,7 @@ const CORE_ARGS = {
   storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
   verifyFinality: [['u64', 'chain id'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
   verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
+  verifyTransaction: [['text', 'transaction root'], ['text', 'transaction id'], ['text', 'transaction leaf'], ['text', 'proof steps']],
   decodeEvent: [['text', 'event leaf']],
   contractAddress: [['text', 'deployer'], ['u64', 'nonce']],
   scalarSlotKey: [['u64', 'slot']],
@@ -429,14 +430,18 @@ function makeClient(core) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
-        const res = await this._fetch(this.base + '/v1/' + method, {
+        requireVerifiedTls();
+        const aborted = new Promise((_, reject) => {
+          controller.signal.addEventListener('abort', () => reject(new Error('the gateway did not answer in time')), { once: true });
+        });
+        const res = await Promise.race([this._fetch(this.base + '/v1/' + method, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: body || '{}',
           signal: controller.signal,
           redirect: 'error',
-        });
-        const text = await readBounded(res);
+        }), aborted]);
+        const text = await Promise.race([readBounded(res), aborted]);
         if (res.status === 200) core.checkGatewayJson(text);
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
@@ -518,6 +523,27 @@ function makeClient(core) {
     }
 
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
+
+    async confirmTransaction(txId, roster) {
+      if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
+      const rosterJson = typeof roster === 'string' ? roster : JSON.stringify(roster);
+      const info = await this.nodeInfo();
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const configured = this.network && this.network.chainId;
+      if (configured && name !== configured) {
+        throw new Error(`the gateway reports chain ${shown(name)} but this client is configured for ${configured}`);
+      }
+      const chainId = BigInt(core.chainIdFromName(name));
+      const proof = await this._call('get_transaction_proof', JSON.stringify({ tx_id: txId }), true);
+      const height = gatewayInteger(proof && proof.height, 'proof height');
+      const finality = await this._call('get_finality', JSON.stringify({ height: Number(height) }), true);
+      const verified = JSON.parse(core.verifyFinality(chainId, String(finality.header_bytes), String(finality.certificate), rosterJson));
+      if (BigInt(verified.height) !== height) throw new Error('the finalized header is not at the height the proof names');
+      if (!core.verifyTransaction(verified.transaction_root, txId, String(proof.leaf), JSON.stringify(proof.steps))) {
+        throw new Error('the transaction is not proven inside the finalized block');
+      }
+      return { txId, height, index: gatewayInteger(proof.index, 'proof index'), header: verified };
+    }
     block(height) { return this._call('get_block', core.block_by_height_body(wholeNumber(height, 'height', U64_MAX))); }
     submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex), true); }
     container(address) { return this._call('get_container', JSON.stringify({ address })); }

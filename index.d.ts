@@ -112,6 +112,7 @@ export interface QCore {
   checkOrderExpiry(expiry: WholeNumber, now_secs: WholeNumber): void;
   verifyFinality(chain_id: WholeNumber, header_hex: string, certificate_hex: string, roster_json: string): string;
   verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
+  verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
   decodeEvent(leaf_hex: string): string;
   orderSigner(seed: Uint8Array, index: WholeNumber): string;
   parseEvents(response: string): string;
@@ -249,6 +250,7 @@ export class Client {
   head(): Promise<any>;
   account(address: string): Promise<any>;
   transaction(txId: string): Promise<any>;
+  confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;
