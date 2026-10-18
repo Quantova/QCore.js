@@ -140,6 +140,8 @@ A new session does not take an order nonce above zero from the gateway alone. Na
 
 Call `client.confirmTransaction(txId, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the validator roster you pass and trust, then checks that the transaction is inside that block.
 
+Call `client.trustRoster(roster)` to give the client a validator roster you trust. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
+
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
 through your own transport, for example one that enforces an address allow list. Without it the Client
 uses the platform fetch, which on Node follows HTTPS_PROXY only when NODE_USE_ENV_PROXY is set. The
