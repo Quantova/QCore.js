@@ -136,6 +136,8 @@ different address. The sending accounts and every target signed for in the sessi
 
 core.verifyFinality measures signed stake against the whole roster you pass, which matches the chain when every validator in the roster sits on the committee, as on a network of main validators. Pass exactly the validators of the block's epoch. Each roster entry names the validator id, its stake, its attestation key and its sortition root with the number of slots the root covers, exactly as get_validator_set serves them, and every signer must prove its committee membership against its root. A custom `fetch` must keep TLS certificate checks on and is cut off at the same timeout as the platform fetch.
 
+A new session does not take an order nonce above zero from the gateway alone. Name the expected order nonce, or keep `client.saveSession()` and pass it to `client.restoreSession(state)` after a restart so tracked nonces and held signatures survive. The client refuses to sign for a retired chain name such as Q-test-net-1.
+
 Call `client.confirmTransaction(txId, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the validator roster you pass and trust, then checks that the transaction is inside that block.
 
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request

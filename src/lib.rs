@@ -232,6 +232,16 @@ impl SigningSession {
         self.0.release(key, slot)
     }
 
+    #[wasm_bindgen(js_name = exportState)]
+    pub fn export_state(&self) -> String {
+        self.0.export_state()
+    }
+
+    #[wasm_bindgen(js_name = importState)]
+    pub fn import_state(&mut self, state: &str) -> Result<(), JsError> {
+        self.0.import_state(state).map_err(|e| JsError::new(&e))
+    }
+
     #[wasm_bindgen(js_name = releasePending)]
     pub fn release_pending(&mut self, key: &str) {
         self.0.release_pending(key)

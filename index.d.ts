@@ -214,6 +214,8 @@ export interface SigningSession {
   checkTarget(address: string): void;
   slot(key: string, reported: bigint, expected: bigint | undefined, order: boolean): bigint;
   release(key: string, slot: bigint): void;
+  exportState(): string;
+  importState(state: string): void;
   releasePending(key: string): void;
   signed(key: string, slot: bigint): void;
   outcome(key: string, slot: bigint, accepted: boolean): void;
@@ -250,6 +252,8 @@ export class Client {
   head(): Promise<any>;
   account(address: string): Promise<any>;
   transaction(txId: string): Promise<any>;
+  saveSession(): string;
+  restoreSession(state: string): void;
   confirmTransaction(txId: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;

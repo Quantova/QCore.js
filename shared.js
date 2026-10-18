@@ -524,6 +524,13 @@ function makeClient(core) {
 
     transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
 
+    saveSession() { return this._session.exportState(); }
+
+    restoreSession(state) {
+      if (typeof state !== 'string') throw new Error('the saved session must be the string saveSession returned');
+      this._session.importState(state);
+    }
+
     async confirmTransaction(txId, roster) {
       if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
       const rosterJson = typeof roster === 'string' ? roster : JSON.stringify(roster);

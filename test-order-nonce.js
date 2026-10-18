@@ -54,7 +54,10 @@ async function sign(c, expected, layout) {
   assert(threw && threw.includes('you expected 7'),
     'an expected nonce the account has not reached is refused, the mempool admits only the reported one');
   assert.strictEqual(local.slot('k', 6n, 6n, false), 6n);
-  assert.strictEqual(local.slot('o', 2n, undefined, true), 2n);
+  threw = null;
+  try { local.slot('o', 2n, undefined, true); } catch (e) { threw = e.message; }
+  assert(threw && threw.includes('has not tracked the order nonce'), 'a fresh session does not take an order nonce from the gateway alone');
+  assert.strictEqual(local.slot('o', 2n, 2n, true), 2n);
   threw = null;
   try { local.slot('o', 9n, undefined, true); } catch (e) { threw = e.message; }
   assert(threw && threw.includes('order nonce 9'),
