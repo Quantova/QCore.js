@@ -9,7 +9,7 @@ const CONTRACT = 'Q1TC7YLRN4X6HWYU4UMX7KXLPEZNMHRYHCNDE35R2HJJWKJMVPCDGQRWGG5Q';
 function client(reportedNonce, accountNonce) {
   const Client = makeClient(core);
   const c = new Client('https://example.invalid/v1/');
-  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 1, head_height: 10 });
+  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 1, head_height: 10, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' });
   c._guardMainnet = () => {};
   c._signingChainId = () => 1n;
   c.contractNonce = async () => reportedNonce;

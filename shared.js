@@ -105,11 +105,11 @@ const CORE_ARGS = {
   boundedValidUntil: [['text', 'chain name'], ['u64', 'head height'], ['u64', 'wall clock seconds'], ['u64opt', 'head floor'], ['u64', 'head floor age']],
   checkGatewayJson: [['text', 'gateway response']],
   orderSigner: [['seed', 'seed'], ['u64', 'account index']],
-  sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height']],
-  signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height']],
-  sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
-  signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
-  signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height']],
+  sign_transfer: [['seed', 'seed'], ['u64', 'account index'], ['text', 'recipient'], ['u64s', 'amount'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height'], ['text', 'genesis hash']],
+  signRegister: [['seed', 'seed'], ['u64', 'account index'], ['u64', 'nonce'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u64', 'head height'], ['text', 'genesis hash']],
+  sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
+  signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
+  signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
   buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
@@ -155,6 +155,16 @@ function bindNetworkDefaults(core) {
     NETWORK_DEFAULTS.testnetRpcUrl = core.testnetRpcUrl();
     NETWORK_DEFAULTS.testnetChainName = core.testnetChainName();
   }
+  if (core && typeof core.testnetGenesisHash === 'function') NETWORK_DEFAULTS.testnetGenesisHash = core.testnetGenesisHash() || null;
+  if (core && typeof core.mainnetGenesisHash === 'function') NETWORK_DEFAULTS.mainnetGenesisHash = core.mainnetGenesisHash() || null;
+}
+
+function pinnedGenesis(value) {
+  if (value == null) return null;
+  if (typeof value !== 'string' || !/^[0-9a-fA-F]{64}$/.test(value)) {
+    throw new Error('a pinned genesis hash must be 64 hex characters');
+  }
+  return value.toLowerCase();
 }
 
 function requireNetworkDefaults() {
@@ -290,6 +300,7 @@ class Network {
     this.denomination = fields.denomination || DENOMINATION;
     this.decimals = fields.decimals == null ? DECIMALS : fields.decimals;
     this.isMainnet = fields.isMainnet === true;
+    this.genesisHash = pinnedGenesis(fields.genesisHash);
     Object.freeze(this);
   }
 
@@ -301,6 +312,7 @@ class Network {
       rpcUrl: defaults.testnetRpcUrl,
       explorerUrl: 'https://qvmscan.io',
       isMainnet: false,
+      genesisHash: defaults.testnetGenesisHash || null,
     });
   }
 
@@ -311,6 +323,7 @@ class Network {
       rpcUrl: null,
       explorerUrl: 'https://qvmscan.io',
       isMainnet: true,
+      genesisHash: NETWORK_DEFAULTS.mainnetGenesisHash || null,
     });
   }
 
@@ -350,6 +363,12 @@ function makeClient(core) {
         this.network = opts.network instanceof Network ? opts.network : Network.forUrl(base);
       }
       this.base = requireSafeTransport(base).replace(/\/$/, '');
+      const networkGenesis = this.network ? this.network.genesisHash : null;
+      const optionGenesis = pinnedGenesis(opts.genesisHash);
+      if (networkGenesis && optionGenesis && networkGenesis !== optionGenesis) {
+        throw new Error('the genesisHash option differs from the genesis pinned in the network, refusing to open the client');
+      }
+      this._pinnedGenesis = networkGenesis || optionGenesis;
       this.expectedChainId =
         typeof opts.expectedChainId === 'string' && opts.expectedChainId.length > 0
           ? opts.expectedChainId
@@ -522,7 +541,9 @@ function makeClient(core) {
     async _verifyHead(info) {
       const roster = this._trustedRoster;
       if (typeof roster !== 'string') {
-        if (this.network && this.network.isMainnet === true) {
+        const reported = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+        const configured = (this.network && this.network.chainId) || this.expectedChainId || '';
+        if ((this.network && this.network.isMainnet === true) || isMainnetChain(reported) || isMainnetChain(configured)) {
           throw new Error('a mainnet client needs a trusted validator roster to check the head it signs against, call trustRoster first');
         }
         return;
@@ -548,9 +569,21 @@ function makeClient(core) {
       const floor = this._headFloor;
       const age = floor && tick > floor.at ? tick - floor.at : 0n;
       const until = BigInt(core.boundedValidUntil(chain, head, wall, floor ? floor.height : undefined, age));
-      this._lastHead = head;
       if (!floor || head > floor.height) this._headFloor = { height: head, at: tick };
-      return until;
+      const genesis = info && typeof info.genesis_hash === 'string' ? info.genesis_hash : '';
+      if (!/^[0-9a-fA-F]{64}$/.test(genesis)) {
+        throw new Error('the gateway reports a genesis hash that is not 32 bytes of hex, refusing to sign');
+      }
+      const reported = genesis.toLowerCase();
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      if (this._pinnedGenesis) {
+        if (this._pinnedGenesis !== reported) {
+          throw new Error('the gateway reports a genesis hash other than the one pinned for this network, refusing to sign');
+        }
+      } else if (isPublicChain(name)) {
+        throw new Error(`no genesis hash is pinned for the public chain ${shown(name)}, pin the network genesis before signing`);
+      }
+      return { until, head, genesis: reported };
     }
 
     _callFee(info, meterLimit, ceiling, maxFeeQuon) {
@@ -616,10 +649,10 @@ function makeClient(core) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until, this._lastHead)
+        core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until, head, genesis)
       );
       this._rememberTargets([to]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -638,9 +671,9 @@ function makeClient(core) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, this._lastHead));
+      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, head, genesis));
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
@@ -655,10 +688,10 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
+        core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
       );
       this._rememberTargets([target]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -677,10 +710,10 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
+        core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
       );
       this._rememberTargets([target, assetIssuer]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -698,10 +731,10 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee), this._lastHead)
+        core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee), head, genesis)
       );
       this._rememberTargets([target]);
       const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
@@ -745,7 +778,7 @@ function makeClient(core) {
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
       await this._verifyHead(info);
-      const until = this._validity(info);
+      const { until, head, genesis } = this._validity(info);
       const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
       const orderKey = contract + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
@@ -777,7 +810,7 @@ function makeClient(core) {
       ));
       const accountNonceUsed = await this._accountSlot(from, expectedNonce);
       const signed = JSON.parse(
-        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), this._lastHead)
+        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
       );
       this._rememberTargets([contract]);
       const outcome = await this._submitHeld([[orderKey, nonce], [from, accountNonceUsed]], signed.tx_hex);

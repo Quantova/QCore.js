@@ -524,6 +524,19 @@ export function mainnetChainId() {
 }
 
 /**
+ * @returns {string | undefined}
+ */
+export function mainnetGenesisHash() {
+    const ret = wasm.mainnetGenesisHash();
+    let v1;
+    if (ret[0] !== 0) {
+        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v1;
+}
+
+/**
  * @param {bigint} map_domain_tag
  * @param {string} key32_hex
  * @param {bigint} word
@@ -817,11 +830,12 @@ export function seedFromMnemonicBytes(phrase) {
  * @param {bigint} valid_until
  * @param {string | null | undefined} transfer_fee
  * @param {bigint} head
+ * @param {string} genesis_hex
  * @returns {string}
  */
-export function signAssetCall(seed_bytes, index, target, args_hex, asset_issuer, amount, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee, head) {
-    let deferred9_0;
-    let deferred9_1;
+export function signAssetCall(seed_bytes, index, target, args_hex, asset_issuer, amount, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee, head, genesis_hex) {
+    let deferred10_0;
+    let deferred10_1;
     try {
         const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
@@ -837,7 +851,58 @@ export function signAssetCall(seed_bytes, index, target, args_hex, asset_issuer,
         const len5 = WASM_VECTOR_LEN;
         var ptr6 = isLikeNone(transfer_fee) ? 0 : passStringToWasm0(transfer_fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len6 = WASM_VECTOR_LEN;
-        const ret = wasm.signAssetCall(ptr0, len0, index, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, nonce, meter_limit, ptr5, len5, chain_id, valid_until, ptr6, len6, head);
+        const ptr7 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len7 = WASM_VECTOR_LEN;
+        const ret = wasm.signAssetCall(ptr0, len0, index, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, nonce, meter_limit, ptr5, len5, chain_id, valid_until, ptr6, len6, head, ptr7, len7);
+        var ptr9 = ret[0];
+        var len9 = ret[1];
+        if (ret[3]) {
+            ptr9 = 0; len9 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred10_0 = ptr9;
+        deferred10_1 = len9;
+        return getStringFromWasm0(ptr9, len9);
+    } finally {
+        wasm.__wbindgen_free(deferred10_0, deferred10_1, 1);
+    }
+}
+
+/**
+ * @param {Uint8Array} seed_bytes
+ * @param {bigint} index
+ * @param {string} target
+ * @param {string} args_hex
+ * @param {bigint} nonce
+ * @param {bigint} meter_limit
+ * @param {string} fee
+ * @param {string} value
+ * @param {bigint} chain_id
+ * @param {bigint} valid_until
+ * @param {string | null | undefined} transfer_fee
+ * @param {bigint} head
+ * @param {string} genesis_hex
+ * @returns {string}
+ */
+export function signPayableCall(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, value, chain_id, valid_until, transfer_fee, head, genesis_hex) {
+    let deferred9_0;
+    let deferred9_1;
+    try {
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(args_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        var ptr5 = isLikeNone(transfer_fee) ? 0 : passStringToWasm0(transfer_fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len5 = WASM_VECTOR_LEN;
+        const ptr6 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len6 = WASM_VECTOR_LEN;
+        const ret = wasm.signPayableCall(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, ptr4, len4, chain_id, valid_until, ptr5, len5, head, ptr6, len6);
         var ptr8 = ret[0];
         var len8 = ret[1];
         if (ret[3]) {
@@ -855,19 +920,55 @@ export function signAssetCall(seed_bytes, index, target, args_hex, asset_issuer,
 /**
  * @param {Uint8Array} seed_bytes
  * @param {bigint} index
+ * @param {bigint} nonce
+ * @param {string} fee
+ * @param {bigint} chain_id
+ * @param {bigint} valid_until
+ * @param {bigint} head
+ * @param {string} genesis_hex
+ * @returns {string}
+ */
+export function signRegister(seed_bytes, index, nonce, fee, chain_id, valid_until, head, genesis_hex) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.signRegister(ptr0, len0, index, nonce, ptr1, len1, chain_id, valid_until, head, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+}
+
+/**
+ * @param {Uint8Array} seed_bytes
+ * @param {bigint} index
  * @param {string} target
  * @param {string} args_hex
  * @param {bigint} nonce
  * @param {bigint} meter_limit
  * @param {string} fee
- * @param {string} value
  * @param {bigint} chain_id
  * @param {bigint} valid_until
  * @param {string | null | undefined} transfer_fee
  * @param {bigint} head
+ * @param {string} genesis_hex
  * @returns {string}
  */
-export function signPayableCall(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, value, chain_id, valid_until, transfer_fee, head) {
+export function sign_call(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee, head, genesis_hex) {
     let deferred8_0;
     let deferred8_1;
     try {
@@ -879,11 +980,11 @@ export function signPayableCall(seed_bytes, index, target, args_hex, nonce, mete
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passStringToWasm0(value, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len4 = WASM_VECTOR_LEN;
-        var ptr5 = isLikeNone(transfer_fee) ? 0 : passStringToWasm0(transfer_fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        var len5 = WASM_VECTOR_LEN;
-        const ret = wasm.signPayableCall(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, ptr4, len4, chain_id, valid_until, ptr5, len5, head);
+        var ptr4 = isLikeNone(transfer_fee) ? 0 : passStringToWasm0(transfer_fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len4 = WASM_VECTOR_LEN;
+        const ptr5 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.sign_call(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, chain_id, valid_until, ptr4, len4, head, ptr5, len5);
         var ptr7 = ret[0];
         var len7 = ret[1];
         if (ret[3]) {
@@ -901,65 +1002,31 @@ export function signPayableCall(seed_bytes, index, target, args_hex, nonce, mete
 /**
  * @param {Uint8Array} seed_bytes
  * @param {bigint} index
+ * @param {string} to
+ * @param {string} amount
  * @param {bigint} nonce
  * @param {string} fee
  * @param {bigint} chain_id
  * @param {bigint} valid_until
  * @param {bigint} head
+ * @param {string} genesis_hex
  * @returns {string}
  */
-export function signRegister(seed_bytes, index, nonce, fee, chain_id, valid_until, head) {
-    let deferred4_0;
-    let deferred4_1;
-    try {
-        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ret = wasm.signRegister(ptr0, len0, index, nonce, ptr1, len1, chain_id, valid_until, head);
-        var ptr3 = ret[0];
-        var len3 = ret[1];
-        if (ret[3]) {
-            ptr3 = 0; len3 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred4_0 = ptr3;
-        deferred4_1 = len3;
-        return getStringFromWasm0(ptr3, len3);
-    } finally {
-        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
-    }
-}
-
-/**
- * @param {Uint8Array} seed_bytes
- * @param {bigint} index
- * @param {string} target
- * @param {string} args_hex
- * @param {bigint} nonce
- * @param {bigint} meter_limit
- * @param {string} fee
- * @param {bigint} chain_id
- * @param {bigint} valid_until
- * @param {string | null | undefined} transfer_fee
- * @param {bigint} head
- * @returns {string}
- */
-export function sign_call(seed_bytes, index, target, args_hex, nonce, meter_limit, fee, chain_id, valid_until, transfer_fee, head) {
+export function sign_transfer(seed_bytes, index, to, amount, nonce, fee, chain_id, valid_until, head, genesis_hex) {
     let deferred7_0;
     let deferred7_1;
     try {
         const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(args_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(amount, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        var ptr4 = isLikeNone(transfer_fee) ? 0 : passStringToWasm0(transfer_fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        var len4 = WASM_VECTOR_LEN;
-        const ret = wasm.sign_call(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, meter_limit, ptr3, len3, chain_id, valid_until, ptr4, len4, head);
+        const ptr4 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.sign_transfer(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, ptr3, len3, chain_id, valid_until, head, ptr4, len4);
         var ptr6 = ret[0];
         var len6 = ret[1];
         if (ret[3]) {
@@ -971,45 +1038,6 @@ export function sign_call(seed_bytes, index, target, args_hex, nonce, meter_limi
         return getStringFromWasm0(ptr6, len6);
     } finally {
         wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
-    }
-}
-
-/**
- * @param {Uint8Array} seed_bytes
- * @param {bigint} index
- * @param {string} to
- * @param {string} amount
- * @param {bigint} nonce
- * @param {string} fee
- * @param {bigint} chain_id
- * @param {bigint} valid_until
- * @param {bigint} head
- * @returns {string}
- */
-export function sign_transfer(seed_bytes, index, to, amount, nonce, fee, chain_id, valid_until, head) {
-    let deferred6_0;
-    let deferred6_1;
-    try {
-        const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(amount, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(fee, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.sign_transfer(ptr0, len0, index, ptr1, len1, ptr2, len2, nonce, ptr3, len3, chain_id, valid_until, head);
-        var ptr5 = ret[0];
-        var len5 = ret[1];
-        if (ret[3]) {
-            ptr5 = 0; len5 = 0;
-            throw takeFromExternrefTable0(ret[2]);
-        }
-        deferred6_0 = ptr5;
-        deferred6_1 = len5;
-        return getStringFromWasm0(ptr5, len5);
-    } finally {
-        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
 }
 
@@ -1129,6 +1157,19 @@ export function testnetChainName() {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
+}
+
+/**
+ * @returns {string | undefined}
+ */
+export function testnetGenesisHash() {
+    const ret = wasm.testnetGenesisHash();
+    let v1;
+    if (ret[0] !== 0) {
+        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v1;
 }
 
 /**

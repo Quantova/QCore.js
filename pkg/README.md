@@ -140,6 +140,8 @@ A new session does not take an order nonce above zero from the gateway alone. Na
 
 Call `client.confirmTransaction(txId, genesisHash, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the genesis hash and validator roster you pass and trust, then checks that the transaction is inside that block.
 
+A client signs for a public network only with a pinned genesis hash, taken from `network.genesisHash` or the `genesisHash` client option, and refuses when the gateway reports a different genesis or none is pinned.
+
 Call `client.trustRoster(genesisHash, roster)` to give the client a genesis hash and a validator roster you trust. Every attestation signs the genesis hash, so a certificate from another network that reuses the chain name and keys never verifies. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
 
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
@@ -163,9 +165,10 @@ than you intended.
 This comparison lives in the Client and only in the Client. The raw core.* signing functions, such as
 core.sign_transfer, take the actual fee that goes on the wire, not a ceiling, and do no gateway
 comparison at all. A developer who calls core.* directly has no fee cap, so reach for the Client whenever
-a gateway you do not control reports the fee. The raw signing functions take the chain head as
-their last argument and refuse a validity deadline that is not past the head or lies more than 3600
-blocks beyond it. A SigningSession reserves each nonce it hands out until it is signed, and a flow that stops early
+a gateway you do not control reports the fee. The raw signing functions take the chain head and then
+the genesis hash as their last two arguments. They refuse a validity deadline that is not past the head or lies more than 3600
+blocks beyond it, and every signature covers the genesis hash, so a transaction signed for one network never verifies on
+another network that reuses its name. A SigningSession reserves each nonce it hands out until it is signed, and a flow that stops early
 frees its nonce with release.
 
 A contract call pays one transfer fee for every started 1210 units of its meter limit, and the chain

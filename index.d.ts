@@ -137,6 +137,8 @@ export interface QCore {
   checkGatewayJson(response: string): void;
   testnetRpcUrl(): string;
   testnetChainName(): string;
+  testnetGenesisHash(): string | undefined;
+  mainnetGenesisHash(): string | undefined;
   validityBlocks(): bigint;
   SigningSession: new (book: string[]) => SigningSession;
   signPayableCall(
@@ -152,6 +154,7 @@ export interface QCore {
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
     head: WholeNumber,
+    genesis_hex: string,
   ): string;
   signAssetCall(
     seed: Uint8Array,
@@ -167,6 +170,7 @@ export interface QCore {
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
     head: WholeNumber,
+    genesis_hex: string,
   ): string;
   signRegister(
     seed: Uint8Array,
@@ -176,6 +180,7 @@ export interface QCore {
     chain_id: WholeNumber,
     valid_until: WholeNumber,
     head: WholeNumber,
+    genesis_hex: string,
   ): string;
   sign_call(
     seed: Uint8Array,
@@ -189,6 +194,7 @@ export interface QCore {
     valid_until: WholeNumber,
     transfer_fee: WholeNumber,
     head: WholeNumber,
+    genesis_hex: string,
   ): string;
   sign_transfer(
     seed: Uint8Array,
@@ -200,6 +206,7 @@ export interface QCore {
     chain_id: WholeNumber,
     valid_until: WholeNumber,
     head: WholeNumber,
+    genesis_hex: string,
   ): string;
   storageBody(contract: string): string;
   storageValue(response: string, slot_key_hex: string): string;
@@ -237,6 +244,8 @@ export class Network {
   readonly denomination: string;
   readonly decimals: number;
   readonly isMainnet: boolean;
+  readonly genesisHash: string | null;
+  constructor(fields: { name: string; chainId: string | null; rpcUrl?: string | null; explorerUrl?: string | null; denomination?: string; decimals?: number; isMainnet?: boolean; genesisHash?: string | null });
   static testnet(): Network;
   static mainnet(): Network;
   static forUrl(base: string): Network;
@@ -246,6 +255,7 @@ export interface ClientOptions {
   acknowledgeMainnet?: boolean;
   network?: Network;
   expectedChainId?: string;
+  genesisHash?: string;
   addressBook?: ReadonlyArray<string>;
   fetch?: (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal; redirect: 'error' }) => Promise<Response>;
 }

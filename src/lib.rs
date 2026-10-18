@@ -153,6 +153,13 @@ pub fn genesis_secs(chain_name: &str) -> u64 {
     qcore::genesis_secs(chain_name)
 }
 
+fn genesis(hex: &str) -> Result<[u8; 32], JsError> {
+    qcore::json::from_hex(hex)
+        .ok()
+        .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
+        .ok_or_else(|| JsError::new("the genesis hash must be 32 bytes of hex"))
+}
+
 #[wasm_bindgen(js_name = headCeiling)]
 pub fn head_ceiling(chain_name: &str, wall_secs: u64) -> u64 {
     qcore::head_ceiling(chain_name, wall_secs)
@@ -178,6 +185,16 @@ pub fn check_gateway_json(response: &str) -> Result<(), JsError> {
 #[wasm_bindgen(js_name = testnetRpcUrl)]
 pub fn testnet_rpc_url() -> String {
     qcore::TESTNET_RPC_URL.to_string()
+}
+
+#[wasm_bindgen(js_name = testnetGenesisHash)]
+pub fn testnet_genesis_hash() -> Option<String> {
+    qcore::TESTNET_GENESIS_HASH.map(|hash| qcore::json::to_hex(&hash))
+}
+
+#[wasm_bindgen(js_name = mainnetGenesisHash)]
+pub fn mainnet_genesis_hash() -> Option<String> {
+    qcore::MAINNET_GENESIS_HASH.map(|hash| qcore::json::to_hex(&hash))
 }
 
 #[wasm_bindgen(js_name = testnetChainName)]
@@ -274,6 +291,7 @@ pub fn sign_transfer(
     chain_id: u64,
     valid_until: u64,
     head: u64,
+    genesis_hex: &str,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(to) {
@@ -291,12 +309,14 @@ pub fn sign_transfer(
         chain_id,
         valid_until,
         head,
+        &genesis(genesis_hex)?,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
 }
 
 #[wasm_bindgen(js_name = signRegister)]
+#[allow(clippy::too_many_arguments)]
 pub fn sign_register(
     seed_bytes: &[u8],
     index: u64,
@@ -305,11 +325,21 @@ pub fn sign_register(
     chain_id: u64,
     valid_until: u64,
     head: u64,
+    genesis_hex: &str,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     let fee = whole(fee, "fee")?;
-    let signed = qcore::sign_register(&master, index, nonce, fee, chain_id, valid_until, head)
-        .map_err(|e| JsError::new(&e))?;
+    let signed = qcore::sign_register(
+        &master,
+        index,
+        nonce,
+        fee,
+        chain_id,
+        valid_until,
+        head,
+        &genesis(genesis_hex)?,
+    )
+    .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
 }
 
@@ -327,6 +357,7 @@ pub fn sign_call(
     valid_until: u64,
     transfer_fee: Option<String>,
     head: u64,
+    genesis_hex: &str,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -346,6 +377,7 @@ pub fn sign_call(
         valid_until,
         self::transfer_fee(transfer_fee)?,
         head,
+        &genesis(genesis_hex)?,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -780,6 +812,7 @@ pub fn sign_payable_call(
     valid_until: u64,
     transfer_fee: Option<String>,
     head: u64,
+    genesis_hex: &str,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -802,6 +835,7 @@ pub fn sign_payable_call(
         valid_until,
         self::transfer_fee(transfer_fee)?,
         head,
+        &genesis(genesis_hex)?,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -823,6 +857,7 @@ pub fn sign_asset_call(
     valid_until: u64,
     transfer_fee: Option<String>,
     head: u64,
+    genesis_hex: &str,
 ) -> Result<String, JsError> {
     let master = seed(seed_bytes)?;
     if !qcore::valid_address(target) {
@@ -848,6 +883,7 @@ pub fn sign_asset_call(
         valid_until,
         self::transfer_fee(transfer_fee)?,
         head,
+        &genesis(genesis_hex)?,
     )
     .map_err(|e| JsError::new(&e))?;
     Ok(signed_json(signed))
@@ -899,6 +935,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         let second = sign_payable_call(
@@ -914,6 +951,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         assert_eq!(first, second);
@@ -938,6 +976,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         let signed_upper = sign_payable_call(
@@ -953,6 +992,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         assert_eq!(signed_lower, signed_upper);
@@ -974,6 +1014,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         let b = sign_payable_call(
@@ -989,6 +1030,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         assert_ne!(a, b);
@@ -1010,6 +1052,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         let b = sign_payable_call(
@@ -1025,6 +1068,7 @@ mod payable_tests {
             300,
             Some("500".to_string()),
             0,
+            &"00".repeat(32),
         )
         .unwrap();
         assert_ne!(a, b);
