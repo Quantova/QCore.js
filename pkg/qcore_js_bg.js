@@ -466,6 +466,14 @@ export function eventsBody(height) {
 }
 
 /**
+ * @returns {number}
+ */
+export function gatewayProtocol() {
+    const ret = wasm.gatewayProtocol();
+    return ret >>> 0;
+}
+
+/**
  * @param {string} chain_name
  * @returns {bigint}
  */
@@ -528,6 +536,19 @@ export function mainnetChainId() {
  */
 export function mainnetGenesisHash() {
     const ret = wasm.mainnetGenesisHash();
+    let v1;
+    if (ret[0] !== 0) {
+        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v1;
+}
+
+/**
+ * @returns {string | undefined}
+ */
+export function mainnetRosterCommitment() {
+    const ret = wasm.mainnetRosterCommitment();
     let v1;
     if (ret[0] !== 0) {
         v1 = getStringFromWasm0(ret[0], ret[1]).slice();
@@ -739,6 +760,32 @@ export function parseEvents(response) {
         const ptr0 = passStringToWasm0(response, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.parseEvents(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * @param {bigint} epoch
+ * @param {string} roster_json
+ * @returns {string}
+ */
+export function rosterCommitment(epoch, roster_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.rosterCommitment(epoch, ptr0, len0);
         var ptr2 = ret[0];
         var len2 = ret[1];
         if (ret[3]) {
@@ -1173,6 +1220,19 @@ export function testnetGenesisHash() {
 }
 
 /**
+ * @returns {string | undefined}
+ */
+export function testnetRosterCommitment() {
+    const ret = wasm.testnetRosterCommitment();
+    let v1;
+    if (ret[0] !== 0) {
+        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v1;
+}
+
+/**
  * @returns {string}
  */
 export function testnetRpcUrl() {
@@ -1260,6 +1320,48 @@ export function validityBlocks() {
 }
 
 /**
+ * @param {bigint} chain_id
+ * @param {string} genesis_hex
+ * @param {bigint} epoch
+ * @param {string} roster_json
+ * @param {string} address
+ * @param {string} header_hex
+ * @param {string} certificate_hex
+ * @param {string} proof_hex
+ * @returns {string}
+ */
+export function verifyAccount(chain_id, genesis_hex, epoch, roster_json, address, header_hex, certificate_hex, proof_hex) {
+    let deferred8_0;
+    let deferred8_1;
+    try {
+        const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(address, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(header_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ptr4 = passStringToWasm0(certificate_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ptr5 = passStringToWasm0(proof_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.verifyAccount(chain_id, ptr0, len0, epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+        var ptr7 = ret[0];
+        var len7 = ret[1];
+        if (ret[3]) {
+            ptr7 = 0; len7 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred8_0 = ptr7;
+        deferred8_1 = len7;
+        return getStringFromWasm0(ptr7, len7);
+    } finally {
+        wasm.__wbindgen_free(deferred8_0, deferred8_1, 1);
+    }
+}
+
+/**
  * @param {string} event_root_hex
  * @param {string} leaf_hex
  * @param {string} steps_json
@@ -1312,6 +1414,37 @@ export function verifyFinality(chain_id, genesis_hex, header_hex, certificate_he
     } finally {
         wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
     }
+}
+
+/**
+ * @param {bigint} chain_id
+ * @param {string} genesis_hex
+ * @param {bigint} current_epoch
+ * @param {string} current_roster_json
+ * @param {string} header_hex
+ * @param {string} certificate_hex
+ * @param {string} next_roster_json
+ * @param {string} proof_hex
+ * @returns {bigint}
+ */
+export function verifyNextRoster(chain_id, genesis_hex, current_epoch, current_roster_json, header_hex, certificate_hex, next_roster_json, proof_hex) {
+    const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(current_roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(header_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(certificate_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passStringToWasm0(next_roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ptr5 = passStringToWasm0(proof_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len5 = WASM_VECTOR_LEN;
+    const ret = wasm.verifyNextRoster(chain_id, ptr0, len0, current_epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return BigInt.asUintN(64, ret[0]);
 }
 
 /**

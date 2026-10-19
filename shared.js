@@ -116,6 +116,9 @@ const CORE_ARGS = {
   checkOrderExpiry: [['u64', 'order expiry'], ['u64', 'wall clock seconds']],
   storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
   verifyFinality: [['u64', 'chain id'], ['text', 'genesis hash'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
+  rosterCommitment: [['u64', 'roster epoch'], ['text', 'validator roster']],
+  verifyNextRoster: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'header'], ['text', 'certificate'], ['text', 'next validator roster'], ['text', 'roster proof']],
+  verifyAccount: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'address'], ['text', 'header'], ['text', 'certificate'], ['text', 'account proof']],
   verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
   verifyTransaction: [['text', 'transaction root'], ['text', 'transaction id'], ['text', 'transaction leaf'], ['text', 'proof steps']],
   decodeEvent: [['text', 'event leaf']],
@@ -157,6 +160,8 @@ function bindNetworkDefaults(core) {
   }
   if (core && typeof core.testnetGenesisHash === 'function') NETWORK_DEFAULTS.testnetGenesisHash = core.testnetGenesisHash() || null;
   if (core && typeof core.mainnetGenesisHash === 'function') NETWORK_DEFAULTS.mainnetGenesisHash = core.mainnetGenesisHash() || null;
+  if (core && typeof core.testnetRosterCommitment === 'function') NETWORK_DEFAULTS.testnetRosterCommitment = core.testnetRosterCommitment() || null;
+  if (core && typeof core.mainnetRosterCommitment === 'function') NETWORK_DEFAULTS.mainnetRosterCommitment = core.mainnetRosterCommitment() || null;
 }
 
 function pinnedGenesis(value) {
@@ -301,6 +306,7 @@ class Network {
     this.decimals = fields.decimals == null ? DECIMALS : fields.decimals;
     this.isMainnet = fields.isMainnet === true;
     this.genesisHash = pinnedGenesis(fields.genesisHash);
+    this.rosterCommitment = pinnedGenesis(fields.rosterCommitment);
     Object.freeze(this);
   }
 
@@ -313,6 +319,7 @@ class Network {
       explorerUrl: 'https://qvmscan.io',
       isMainnet: false,
       genesisHash: defaults.testnetGenesisHash || null,
+      rosterCommitment: defaults.testnetRosterCommitment || null,
     });
   }
 
@@ -324,6 +331,7 @@ class Network {
       explorerUrl: 'https://qvmscan.io',
       isMainnet: true,
       genesisHash: NETWORK_DEFAULTS.mainnetGenesisHash || null,
+      rosterCommitment: NETWORK_DEFAULTS.mainnetRosterCommitment || null,
     });
   }
 
@@ -474,7 +482,14 @@ function makeClient(core) {
       }
     }
 
-    nodeInfo() { return this._call('node_info', '{}', true); }
+    async nodeInfo() {
+      const info = await this._call('node_info', '{}', true);
+      const supported = core.gatewayProtocol();
+      const reported = info && info.protocol;
+      if (reported === undefined || reported === null) throw new Error('the gateway does not report its protocol version, refusing to use it');
+      if (reported !== supported) throw new Error(`the gateway speaks protocol ${shown(reported)} but this client supports protocol ${supported}, refusing to use it`);
+      return info;
+    }
     head() { return this._call('head', '{}'); }
     async account(address) {
       const acct = await this._call('get_account', core.account_body(address), true);
@@ -521,6 +536,10 @@ function makeClient(core) {
     }
 
     trustRoster(genesisHash, roster) {
+      this.trustRosterAt(genesisHash, 0, roster);
+    }
+
+    trustRosterAt(genesisHash, epoch, roster) {
       if (typeof genesisHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(genesisHash)) {
         throw new Error('the genesis hash you trust must be 64 hex characters');
       }
@@ -534,13 +553,62 @@ function makeClient(core) {
       if (!Array.isArray(members) || members.length === 0) {
         throw new Error('a trusted validator roster must be a non empty array');
       }
-      this._trustedRoster = json;
+      this._trustedRosters = new Map([[BigInt(wholeNumber(epoch, 'roster epoch', U64_MAX)), json]]);
       this._trustedGenesis = genesisHash.toLowerCase();
     }
 
+    async _anchorPinnedRoster() {
+      if (this._trustedRosters instanceof Map) return true;
+      const network = this.network;
+      if (!network || !network.genesisHash || !network.rosterCommitment) return false;
+      const answer = await this._call('get_roster_proof', JSON.stringify({ epoch: 0 }), true);
+      const members = JSON.stringify(answer && answer.members);
+      if (core.rosterCommitment(0n, members) !== network.rosterCommitment) {
+        throw new Error('the gateway offers a genesis roster other than the one pinned for this network, refusing to trust it');
+      }
+      this.trustRosterAt(network.genesisHash, 0, members);
+      return true;
+    }
+
+    async _rosterForEpoch(chainId, epoch) {
+      if (!(await this._anchorPinnedRoster())) return null;
+      const target = BigInt(epoch);
+      let start = null;
+      for (const known of this._trustedRosters.keys()) {
+        if (known <= target && (start === null || known > start)) start = known;
+      }
+      if (start === null) throw new Error(`the trusted roster starts after epoch ${target}, so that epoch cannot be checked`);
+      let current = start;
+      let roster = this._trustedRosters.get(start);
+      while (current < target) {
+        const next = current + 1n;
+        const answer = await this._call('get_roster_proof', JSON.stringify({ epoch: Number(next) }), true);
+        if (!answer || typeof answer.header_bytes !== 'string' || typeof answer.certificate !== 'string' || typeof answer.proof !== 'string') {
+          throw new Error(`the gateway gave no roster proof for epoch ${next}`);
+        }
+        const members = JSON.stringify(answer.members);
+        core.verifyNextRoster(chainId, this._trustedGenesis, current, roster, answer.header_bytes, answer.certificate, members, answer.proof);
+        current = next;
+        roster = members;
+        this._trustedRosters.set(current, roster);
+        while (this._trustedRosters.size > 32) {
+          const keys = [...this._trustedRosters.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+          this._trustedRosters.delete(keys[1]);
+        }
+      }
+      return roster;
+    }
+
+    async _certifiedAt(height) {
+      const finality = await this._call('get_finality', JSON.stringify({ height: Number(height) }), true);
+      if (!finality || typeof finality.header_bytes !== 'string' || typeof finality.certificate !== 'string') {
+        throw new Error(`the gateway gave no finality proof for height ${height}`);
+      }
+      return { epoch: gatewayInteger(finality.epoch, 'finality epoch'), header: finality.header_bytes, certificate: finality.certificate };
+    }
+
     async _verifyHead(info) {
-      const roster = this._trustedRoster;
-      if (typeof roster !== 'string') {
+      if (!(await this._anchorPinnedRoster())) {
         const reported = info && typeof info.chain_id === 'string' ? info.chain_id : '';
         const configured = (this.network && this.network.chainId) || this.expectedChainId || '';
         if ((this.network && this.network.isMainnet === true) || isMainnetChain(reported) || isMainnetChain(configured)) {
@@ -551,14 +619,42 @@ function makeClient(core) {
       const head = gatewayInteger(info && info.head_height, 'head height');
       const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
       const chainId = BigInt(core.chainIdFromName(name));
-      const finality = await this._call('get_finality', JSON.stringify({ height: Number(head) }), true);
-      if (!finality || typeof finality.header_bytes !== 'string' || typeof finality.certificate !== 'string') {
-        throw new Error('the gateway gave no finality proof for the head it reports, refusing to sign');
-      }
-      const verified = JSON.parse(core.verifyFinality(chainId, this._trustedGenesis, finality.header_bytes, finality.certificate, roster));
+      const certified = await this._certifiedAt(head);
+      const roster = await this._rosterForEpoch(chainId, certified.epoch);
+      const verified = JSON.parse(core.verifyFinality(chainId, this._trustedGenesis, certified.header, certified.certificate, roster));
       if (BigInt(verified.height) !== head) {
         throw new Error(`the gateway reports head ${head} but its finality proof is for height ${verified.height}, refusing to sign`);
       }
+    }
+
+    async verifiedAccount(address) {
+      if (typeof address !== 'string') throw new Error('the address must be a string');
+      const info = await this.nodeInfo();
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const chainId = BigInt(core.chainIdFromName(name));
+      const answer = await this._call('get_account_proof', JSON.stringify({ address }), true);
+      if (!answer || typeof answer.header_bytes !== 'string' || typeof answer.certificate !== 'string' || typeof answer.proof !== 'string') {
+        throw new Error('the gateway gave no account proof');
+      }
+      const epoch = gatewayInteger(answer.epoch, 'account proof epoch');
+      const roster = await this._rosterForEpoch(chainId, epoch);
+      if (roster === null) throw new Error('a verified balance needs a trusted validator roster, call trustRoster first');
+      const verified = JSON.parse(core.verifyAccount(chainId, this._trustedGenesis, epoch, roster, address, answer.header_bytes, answer.certificate, answer.proof));
+      return { address: verified.address, height: BigInt(verified.height), exists: verified.exists === true, balance: BigInt(verified.balance), nonce: BigInt(verified.nonce) };
+    }
+
+    async confirmTransactionTrusted(txId) {
+      if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
+      const status = await this._call('get_transaction', core.transaction_body(txId));
+      if (!status || status.status !== 'finalised') throw new Error('the transaction is not reported as finalised');
+      const height = gatewayInteger(status.height, 'transaction height');
+      const info = await this.nodeInfo();
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const chainId = BigInt(core.chainIdFromName(name));
+      const certified = await this._certifiedAt(height);
+      const roster = await this._rosterForEpoch(chainId, certified.epoch);
+      if (roster === null) throw new Error('a verified confirmation needs a trusted validator roster, call trustRoster first');
+      return this.confirmTransaction(txId, this._trustedGenesis, roster);
     }
 
     _validity(info) {
@@ -595,7 +691,13 @@ function makeClient(core) {
       return { transferFee, fee };
     }
 
-    transaction(txId) { return this._call('get_transaction', core.transaction_body(txId)); }
+    async transaction(txId) {
+      const status = await this._call('get_transaction', core.transaction_body(txId));
+      if (status && status.status === 'finalised' && (await this._anchorPinnedRoster())) {
+        await this.confirmTransactionTrusted(txId);
+      }
+      return status;
+    }
 
     saveSession() { return this._session.exportState(); }
 

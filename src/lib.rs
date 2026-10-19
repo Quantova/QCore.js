@@ -187,6 +187,11 @@ pub fn testnet_rpc_url() -> String {
     qcore::TESTNET_RPC_URL.to_string()
 }
 
+#[wasm_bindgen(js_name = gatewayProtocol)]
+pub fn gateway_protocol() -> u32 {
+    qcore::GATEWAY_PROTOCOL
+}
+
 #[wasm_bindgen(js_name = testnetGenesisHash)]
 pub fn testnet_genesis_hash() -> Option<String> {
     qcore::TESTNET_GENESIS_HASH.map(|hash| qcore::json::to_hex(&hash))
@@ -1180,6 +1185,100 @@ pub fn verify_finality(
         qcore::finality::verify_finality(chain_id, &genesis, &header, &certificate, &roster)
             .map_err(|e| JsError::new(&e))?;
     Ok(finalized_json(&verified))
+}
+
+fn hash32(hex: &str, what: &str) -> Result<[u8; 32], JsError> {
+    qcore::json::from_hex(hex)
+        .map_err(|e| JsError::new(&e))?
+        .try_into()
+        .map_err(|_| JsError::new(&format!("the {what} must be 32 bytes of hex")))
+}
+
+#[wasm_bindgen(js_name = rosterCommitment)]
+pub fn roster_commitment(epoch: u64, roster_json: &str) -> Result<String, JsError> {
+    let roster = parse_roster(roster_json).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::json::to_hex(&qcore::finality::roster_commitment_of(
+        epoch, &roster,
+    )))
+}
+
+#[wasm_bindgen(js_name = verifyNextRoster)]
+#[allow(clippy::too_many_arguments)]
+pub fn verify_next_roster(
+    chain_id: u64,
+    genesis_hex: &str,
+    current_epoch: u64,
+    current_roster_json: &str,
+    header_hex: &str,
+    certificate_hex: &str,
+    next_roster_json: &str,
+    proof_hex: &str,
+) -> Result<u64, JsError> {
+    let current = qcore::finality::VerifiedRoster {
+        epoch: current_epoch,
+        members: parse_roster(current_roster_json).map_err(|e| JsError::new(&e))?,
+    };
+    let next = qcore::finality::verify_next_roster(
+        chain_id,
+        &hash32(genesis_hex, "genesis hash")?,
+        &current,
+        &qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?,
+        &qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?,
+        parse_roster(next_roster_json).map_err(|e| JsError::new(&e))?,
+        &qcore::json::from_hex(proof_hex).map_err(|e| JsError::new(&e))?,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    Ok(next.epoch)
+}
+
+#[wasm_bindgen(js_name = verifyAccount)]
+#[allow(clippy::too_many_arguments)]
+pub fn verify_account(
+    chain_id: u64,
+    genesis_hex: &str,
+    epoch: u64,
+    roster_json: &str,
+    address: &str,
+    header_hex: &str,
+    certificate_hex: &str,
+    proof_hex: &str,
+) -> Result<String, JsError> {
+    let roster = qcore::finality::VerifiedRoster {
+        epoch,
+        members: parse_roster(roster_json).map_err(|e| JsError::new(&e))?,
+    };
+    let verified = qcore::finality::verify_account(
+        chain_id,
+        &hash32(genesis_hex, "genesis hash")?,
+        &roster,
+        address,
+        &qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?,
+        &qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?,
+        &qcore::json::from_hex(proof_hex).map_err(|e| JsError::new(&e))?,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    let (exists, balance, nonce) = match &verified.account {
+        Some(account) => (true, account.balance, account.nonce),
+        None => (false, 0, 0),
+    };
+    Ok(qcore::json::object(vec![
+        ("address", qcore::json::Json::str(&verified.address)),
+        ("height", qcore::json::Json::Int(verified.header.height)),
+        ("exists", qcore::json::Json::Bool(exists)),
+        ("balance", qcore::json::Json::str(balance.to_string())),
+        ("nonce", qcore::json::Json::str(nonce.to_string())),
+    ])
+    .render())
+}
+
+#[wasm_bindgen(js_name = testnetRosterCommitment)]
+pub fn testnet_roster_commitment() -> Option<String> {
+    qcore::TESTNET_ROSTER_COMMITMENT.map(|hash| qcore::json::to_hex(&hash))
+}
+
+#[wasm_bindgen(js_name = mainnetRosterCommitment)]
+pub fn mainnet_roster_commitment() -> Option<String> {
+    qcore::MAINNET_ROSTER_COMMITMENT.map(|hash| qcore::json::to_hex(&hash))
 }
 
 #[wasm_bindgen(js_name = verifyTransaction)]

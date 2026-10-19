@@ -137,6 +137,12 @@ export interface QCore {
   checkGatewayJson(response: string): void;
   testnetRpcUrl(): string;
   testnetChainName(): string;
+  gatewayProtocol(): number;
+  rosterCommitment(epoch: bigint, roster: string): string;
+  verifyNextRoster(chainId: bigint, genesisHash: string, epoch: bigint, roster: string, header: string, certificate: string, nextRoster: string, proof: string): bigint;
+  verifyAccount(chainId: bigint, genesisHash: string, epoch: bigint, roster: string, address: string, header: string, certificate: string, proof: string): string;
+  testnetRosterCommitment(): string | undefined;
+  mainnetRosterCommitment(): string | undefined;
   testnetGenesisHash(): string | undefined;
   mainnetGenesisHash(): string | undefined;
   validityBlocks(): bigint;
@@ -245,7 +251,8 @@ export class Network {
   readonly decimals: number;
   readonly isMainnet: boolean;
   readonly genesisHash: string | null;
-  constructor(fields: { name: string; chainId: string | null; rpcUrl?: string | null; explorerUrl?: string | null; denomination?: string; decimals?: number; isMainnet?: boolean; genesisHash?: string | null });
+  readonly rosterCommitment: string | null;
+  constructor(fields: { name: string; chainId: string | null; rpcUrl?: string | null; explorerUrl?: string | null; denomination?: string; decimals?: number; isMainnet?: boolean; genesisHash?: string | null; rosterCommitment?: string | null });
   static testnet(): Network;
   static mainnet(): Network;
   static forUrl(base: string): Network;
@@ -271,6 +278,9 @@ export class Client {
   restoreSession(state: string): void;
   confirmTransaction(txId: string, genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
   trustRoster(genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
+  trustRosterAt(genesisHash: string, epoch: number | bigint, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
+  verifiedAccount(address: string): Promise<{ address: string; height: bigint; exists: boolean; balance: bigint; nonce: bigint }>;
+  confirmTransactionTrusted(txId: string): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;

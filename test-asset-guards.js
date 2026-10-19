@@ -20,7 +20,7 @@ function fail(msg) {
     req.on('end', () => {
       if (req.url === '/v1/node_info') {
         res.end(JSON.stringify({ chain_id: chainId, head_height: 10, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000', denomination: 'Quon',
-          fee: { transfer_quon: feeQuon, quon_per_qtov: '1000000' }, version: 'test' }));
+          fee: { transfer_quon: feeQuon, quon_per_qtov: '1000000' }, version: 'test', protocol: 1 }));
       } else if (req.url === '/v1/get_account') {
         res.end(JSON.stringify({ address: JSON.parse(body).address, nonce: nonceValue, balance: '0', scheme: 1, has_key: true }));
       } else if (req.url === '/v1/submit_transaction') {

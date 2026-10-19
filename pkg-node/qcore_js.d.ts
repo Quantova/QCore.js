@@ -48,6 +48,8 @@ export function decodeEvent(leaf_hex: string): string;
 
 export function eventsBody(height: bigint): string;
 
+export function gatewayProtocol(): number;
+
 export function genesisSecs(chain_name: string): bigint;
 
 export function headCeiling(chain_name: string, wall_secs: bigint): bigint;
@@ -59,6 +61,8 @@ export function lookalikeOf(candidate: string, known: string[]): string | undefi
 export function mainnetChainId(): bigint;
 
 export function mainnetGenesisHash(): string | undefined;
+
+export function mainnetRosterCommitment(): string | undefined;
 
 export function mapAddrWordKey(map_domain_tag: bigint, key32_hex: string, word: bigint): string;
 
@@ -79,6 +83,8 @@ export function orderSigner(seed_bytes: Uint8Array, index: bigint): string;
 export function packSymbol(symbol: string): bigint;
 
 export function parseEvents(response: string): string;
+
+export function rosterCommitment(epoch: bigint, roster_json: string): string;
 
 export function sameAddress(a: string, b: string): boolean;
 
@@ -112,6 +118,8 @@ export function testnetChainName(): string;
 
 export function testnetGenesisHash(): string | undefined;
 
+export function testnetRosterCommitment(): string | undefined;
+
 export function testnetRpcUrl(): string;
 
 export function tokenDecimalsSlot(): bigint;
@@ -126,9 +134,13 @@ export function valid_address(address: string): boolean;
 
 export function validityBlocks(): bigint;
 
+export function verifyAccount(chain_id: bigint, genesis_hex: string, epoch: bigint, roster_json: string, address: string, header_hex: string, certificate_hex: string, proof_hex: string): string;
+
 export function verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
 
 export function verifyFinality(chain_id: bigint, genesis_hex: string, header_hex: string, certificate_hex: string, roster_json: string): string;
+
+export function verifyNextRoster(chain_id: bigint, genesis_hex: string, current_epoch: bigint, current_roster_json: string, header_hex: string, certificate_hex: string, next_roster_json: string, proof_hex: string): bigint;
 
 export function verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
 
