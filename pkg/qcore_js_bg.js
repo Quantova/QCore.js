@@ -373,6 +373,18 @@ export function chainIdFromName(name) {
 }
 
 /**
+ * @param {string} base
+ */
+export function checkEndpoint(base) {
+    const ptr0 = passStringToWasm0(base, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.checkEndpoint(ptr0, len0);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
+}
+
+/**
  * @param {string} response
  */
 export function checkGatewayJson(response) {
@@ -1530,7 +1542,7 @@ export function __wbg___wbindgen_string_get_b0ca35b86a603356(arg0, arg1) {
 export function __wbg___wbindgen_throw_344f42d3211c4765(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 }
-export function __wbg_getRandomValues_1e6565b46f7f727b() { return handleError(function (arg0, arg1) {
+export function __wbg_getRandomValues_e9023ac49e94b453() { return handleError(function (arg0, arg1) {
     const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
     return ret;
 }, arguments); }

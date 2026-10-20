@@ -11,6 +11,7 @@ export const boundedValidUntil: (a: number, b: number, c: bigint, d: bigint, e: 
 export const buildSignedOrderCall: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number, h: bigint, i: bigint, j: bigint, k: number, l: number, m: number, n: number, o: bigint, p: number, q: number, r: bigint, s: bigint, t: bigint) => [number, number, number, number];
 export const buildTypedOrderCall: (a: bigint, b: number, c: number, d: number, e: number, f: number, g: number, h: bigint, i: bigint, j: bigint, k: bigint, l: number, m: number, n: number, o: number, p: bigint, q: bigint, r: bigint) => [number, number, number, number];
 export const chainIdFromName: (a: number, b: number) => [bigint, number, number];
+export const checkEndpoint: (a: number, b: number) => [number, number];
 export const checkGatewayJson: (a: number, b: number) => [number, number];
 export const checkOrderExpiry: (a: bigint, b: bigint) => [number, number];
 export const checkValidUntil: (a: bigint, b: bigint) => [number, number];

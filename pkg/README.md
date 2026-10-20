@@ -18,7 +18,7 @@ npm install @quantovainc/qcore
 ```js
 const { Client, Network, core, generateSeed } = require('@quantovainc/qcore');
 
-const GATEWAY = 'https://rpc-testnet.quantova.org';
+const GATEWAY = 'https://q-test-net-01.quantova.org';
 
 async function main() {
   // Create an account. The seed is the only backup and it never leaves the device.

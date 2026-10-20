@@ -36,6 +36,8 @@ export function buildTypedOrderCall(chain_id: bigint, contract: string, selector
 
 export function chainIdFromName(name: string): bigint;
 
+export function checkEndpoint(base: string): void;
+
 export function checkGatewayJson(response: string): void;
 
 export function checkOrderExpiry(expiry: bigint, now_secs: bigint): void;

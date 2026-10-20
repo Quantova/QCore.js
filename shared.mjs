@@ -371,6 +371,7 @@ function makeClient(core) {
         this.network = opts.network instanceof Network ? opts.network : Network.forUrl(base);
       }
       this.base = requireSafeTransport(base).replace(/\/$/, '');
+      if (typeof core.checkEndpoint === 'function') core.checkEndpoint(this.base);
       const networkGenesis = this.network ? this.network.genesisHash : null;
       const optionGenesis = pinnedGenesis(opts.genesisHash);
       if (networkGenesis && optionGenesis && networkGenesis !== optionGenesis) {
