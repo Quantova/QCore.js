@@ -197,6 +197,11 @@ pub fn check_gateway_json(response: &str) -> Result<(), JsError> {
     qcore::check_gateway_json(response).map_err(|e| JsError::new(&e))
 }
 
+#[wasm_bindgen(js_name = checkEndpoint)]
+pub fn check_endpoint(base: &str) -> Result<(), JsError> {
+    qcore::check_endpoint(base).map_err(|e| JsError::new(&e))
+}
+
 #[wasm_bindgen(js_name = testnetRpcUrl)]
 pub fn testnet_rpc_url() -> String {
     qcore::TESTNET_RPC_URL.to_string()

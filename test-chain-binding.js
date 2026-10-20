@@ -9,7 +9,7 @@ function threw(fn) {
   try { fn(); return null; } catch (e) { return e.message; }
 }
 
-const bound = new Client('https://rpc-testnet.quantova.org', { expectedChainId: 'Q-test-net-01' });
+const bound = new Client('https://q-test-net-01.quantova.org', { expectedChainId: 'Q-test-net-01' });
 const msg = threw(() => bound._signingChainId({ chain_id: 'Q-test-net-3' }));
 assert(msg && msg.includes('refusing to sign'), 'a gateway naming another chain must be refused');
 assert(msg.includes('Q-test-net-3') && msg.includes('Q-test-net-01'), 'the error names both chains');

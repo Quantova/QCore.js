@@ -15,7 +15,7 @@ function throws(label, fn) {
 
 const testnet = Network.testnet();
 ok('testnet chain id', testnet.chainId === 'Q-test-net-01');
-ok('testnet rpc url', testnet.rpcUrl === 'https://rpc-testnet.quantova.org');
+ok('testnet rpc url', testnet.rpcUrl === 'https://q-test-net-01.quantova.org');
 ok('testnet denomination', testnet.denomination === 'Quon');
 ok('testnet decimals are six', testnet.decimals === 6);
 ok('testnet is not mainnet', testnet.isMainnet === false);
@@ -31,7 +31,9 @@ let acked = null;
 try { acked = new Client(liveMainnet, { acknowledgeMainnet: true }); } catch { acked = null; }
 ok('mainnet client opens with acknowledgement', acked !== null);
 
-const overUrl = new Client('https://rpc-testnet.quantova.org');
+throws('the retired testnet host is refused', () => new Client('https://rpc-testnet.quantova.org'));
+throws('the retired testnet host is refused in any spelling', () => new Client('https://RPC-Testnet.quantova.org./v1'));
+const overUrl = new Client('https://q-test-net-01.quantova.org');
 ok('a plain url client is not forced to acknowledge mainnet by any gateway string', overUrl._guardMainnet() === undefined);
 const hostileMainnet = new Client('https://rpc.quantova.org', { network: Network.mainnet() });
 throws('a configured mainnet network is refused when not acknowledged, whatever the gateway reports', () => hostileMainnet._guardMainnet());

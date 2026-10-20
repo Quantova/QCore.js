@@ -135,6 +135,7 @@ export interface QCore {
     floor_age_secs: WholeNumber,
   ): bigint;
   checkGatewayJson(response: string): void;
+  checkEndpoint(base: string): void;
   testnetRpcUrl(): string;
   testnetChainName(): string;
   gatewayProtocol(): number;

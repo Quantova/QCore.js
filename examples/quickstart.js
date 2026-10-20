@@ -5,7 +5,7 @@ const { Client, Network, core, generateSeed } = require('@quantovainc/qcore');
 
 const MAX_FEE_QUON = '2000';
 
-const GATEWAY = process.env.QTV_GATEWAY || 'https://rpc-testnet.quantova.org';
+const GATEWAY = process.env.QTV_GATEWAY || 'https://q-test-net-01.quantova.org';
 
 async function settle(client, address, ready) {
   for (let i = 0; i < 40; i += 1) {
