@@ -29,6 +29,21 @@ mod wipe_on_free {
     static ALLOCATOR: WipeOnFree = WipeOnFree;
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(catch, js_namespace = ["globalThis", "crypto"], js_name = getRandomValues)]
+    fn web_crypto_fill(buf: &mut [u8]) -> Result<JsValue, JsValue>;
+}
+
+fn fill_from_web_crypto(buf: &mut [u8]) -> bool {
+    web_crypto_fill(buf).is_ok()
+}
+
+#[wasm_bindgen(start)]
+pub fn start() {
+    qcore::set_entropy_source(fill_from_web_crypto);
+}
+
 fn seed(bytes: &[u8]) -> Result<Zeroizing<[u8; 32]>, JsError> {
     if bytes.len() != 32 {
         return Err(JsError::new("a seed is 32 raw bytes (a Uint8Array)"));

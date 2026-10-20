@@ -8,6 +8,7 @@ const core = require('./pkg-node/qcore_js.js');
 const dir = path.join(__dirname, 'conformance');
 const load = (name) => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
 const sb = (h) => Uint8Array.from(h.match(/../g).map((x) => parseInt(x, 16)));
+const unsigned = (hex) => hex.slice(0, hex.length - 2 * (1 + 8 + 3309));
 
 let failures = 0;
 function check(label, got, want) {
@@ -195,11 +196,11 @@ function transactionVector() {
   const again = JSON.parse(
     core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
   );
-  check('signing is deterministic', again.tx_hex === signed.tx_hex, true);
+  check('signing twice binds the same body', unsigned(again.tx_hex) === unsigned(signed.tx_hex), true);
+  check('each signing draws fresh randomness', again.tx_hex !== signed.tx_hex, true);
   check('the transaction id is a qtx identifier', /^qtx1[0-9a-z]+$/i.test(signed.tx_id), true);
   check('the transaction id is rendered uppercase Q1', signed.tx_id === signed.tx_id.toUpperCase(), true);
-  check('the transfer helper matches the bounded tx id', signed.tx_id === b.tx_id, true);
-  check('the transfer helper matches the bounded tx hex byte for byte', signed.tx_hex === b.tx_hex, true);
+  check('the transfer helper matches the bounded body byte for byte', unsigned(signed.tx_hex) === unsigned(b.tx_hex), true);
 }
 
 function payableVector() {
@@ -233,8 +234,7 @@ function payableVector() {
     ),
   );
   check('the payable helper matches the frozen from', signed.from === v.sender, true);
-  check('the payable helper matches the bounded tx id', signed.tx_id === b.tx_id, true);
-  check('the payable helper matches the bounded tx hex byte for byte', signed.tx_hex === b.tx_hex, true);
+  check('the payable helper matches the bounded body byte for byte', unsigned(signed.tx_hex) === unsigned(b.tx_hex), true);
 
   const got = parsePayableBody(signed.tx_hex);
   const bodyHex = v.tx_hex.slice(0, 2 * (got.length + 17));
@@ -256,8 +256,8 @@ function payableVector() {
   const signedUpper = JSON.parse(
     core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
   );
-  check('signing a lowercase and an uppercase target binds the same bytes', signedLower.tx_hex === signedUpper.tx_hex, true);
-  check('signing a differently cased target still matches the bounded vector', signedLower.tx_hex === b.tx_hex, true);
+  check('signing a lowercase and an uppercase target binds the same bytes', unsigned(signedLower.tx_hex) === unsigned(signedUpper.tx_hex), true);
+  check('signing a differently cased target still matches the bounded vector', unsigned(signedLower.tx_hex) === unsigned(b.tx_hex), true);
 }
 
 addressVector();

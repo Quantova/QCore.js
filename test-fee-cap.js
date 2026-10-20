@@ -103,7 +103,8 @@ function fail(msg) {
   const fresh = new Client('http://127.0.0.1:' + server.address().port);
   const bounded = await fresh.transfer(seed, 0, to, '1000', '1000000');
   const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n, 0n, '00'.repeat(32)));
-  if (bounded.signed.tx_hex !== expected.tx_hex) fail('a client transfer must expire 300 blocks past the head');
+  const unsigned = (hex) => hex.slice(0, hex.length - 2 * (1 + 8 + 3309));
+  if (unsigned(bounded.signed.tx_hex) !== unsigned(expected.tx_hex)) fail('a client transfer must expire 300 blocks past the head');
   const later = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 311n, 0n, '00'.repeat(32)));
   if (later.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
   let neverExpires = false;

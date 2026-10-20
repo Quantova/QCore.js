@@ -104,6 +104,8 @@ export function sign_call(seed_bytes: Uint8Array, index: bigint, target: string,
 
 export function sign_transfer(seed_bytes: Uint8Array, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint, genesis_hex: string): string;
 
+export function start(): void;
+
 export function storageBody(contract: string): string;
 
 export function storageValue(response: string, slot_key_hex: string): string;

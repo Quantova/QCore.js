@@ -1088,6 +1088,10 @@ export function sign_transfer(seed_bytes, index, to, amount, nonce, fee, chain_i
     }
 }
 
+export function start() {
+    wasm.start();
+}
+
 /**
  * @param {string} contract
  * @returns {string}
@@ -1526,6 +1530,10 @@ export function __wbg___wbindgen_string_get_b0ca35b86a603356(arg0, arg1) {
 export function __wbg___wbindgen_throw_344f42d3211c4765(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 }
+export function __wbg_getRandomValues_5866cef4afc56066() { return handleError(function (arg0, arg1) {
+    const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
+    return ret;
+}, arguments); }
 export function __wbindgen_cast_0000000000000001(arg0, arg1) {
     // Cast intrinsic for `Ref(String) -> Externref`.
     const ret = getStringFromWasm0(arg0, arg1);
@@ -1573,6 +1581,15 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_exn_store(idx);
+    }
 }
 
 function isLikeNone(x) {
