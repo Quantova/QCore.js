@@ -1602,7 +1602,7 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
-        __wbg_getRandomValues_27a35c1553fcdfcb: function() { return handleError(function (arg0, arg1) {
+        __wbg_getRandomValues_1e6565b46f7f727b: function() { return handleError(function (arg0, arg1) {
             const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
             return ret;
         }, arguments); },
