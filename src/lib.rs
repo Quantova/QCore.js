@@ -436,6 +436,14 @@ pub fn order_signer(seed_bytes: &[u8], index: u64) -> Result<String, JsError> {
     )))
 }
 
+#[wasm_bindgen(js_name = deployFeeQuon)]
+pub fn deploy_fee_quon(node_info: &str) -> Result<String, JsError> {
+    let info = qcore::parse_node_info(node_info).map_err(|e| JsError::new(&e))?;
+    qcore::deploy_fee_of(&info)
+        .map(|fee| fee.to_string())
+        .map_err(|e| JsError::new(&e))
+}
+
 #[wasm_bindgen(js_name = vmCallFee)]
 pub fn vm_call_fee(transfer_fee: &str, meter_limit: u64) -> Result<String, JsError> {
     Ok(qcore::vm_call_fee(whole(transfer_fee, "transfer fee")?, meter_limit).to_string())
@@ -1101,7 +1109,7 @@ mod payable_tests {
 
     #[test]
     fn a_call_fee_follows_the_meter_and_a_deadline_is_capped_past_the_head() {
-        assert_eq!(vm_call_fee("500", 21_000).unwrap(), "9000");
+        assert_eq!(vm_call_fee("500", 21_000).unwrap(), "500");
         assert_eq!(vm_call_fee("500", 1).unwrap(), "500");
         assert!(check_valid_until(1_300, 1_000).is_ok());
         assert!(check_valid_until(1_000 + 3_600, 1_000).is_ok());

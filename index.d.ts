@@ -225,6 +225,7 @@ export interface QCore {
   sameAddress(a: string, b: string): boolean;
   lookalikeOf(candidate: string, known: string[]): string | undefined;
   vmCallFee(transfer_fee: WholeNumber, meter_limit: WholeNumber): bigint;
+  deployFeeQuon(node_info: string): string;
   vmDeployAddress(): string;
 }
 

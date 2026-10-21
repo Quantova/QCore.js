@@ -130,6 +130,7 @@ const CORE_ARGS = {
   eventsBody: [['u64', 'height']],
   block_by_height_body: [['u64', 'height']],
   vmCallFee: [['u128s', 'transfer fee'], ['u64', 'meter limit']],
+  deployFeeQuon: [['text', 'node info']],
   checkValidUntil: [['u64', 'validity deadline'], ['u64', 'head height']],
 };
 
@@ -683,9 +684,10 @@ function makeClient(core) {
       return { until, head, genesis: reported };
     }
 
-    _callFee(info, meterLimit, ceiling, maxFeeQuon) {
+    _callFee(info, meterLimit, ceiling, maxFeeQuon, target) {
       const transferFee = this._transferFee(info);
-      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit)));
+      const deployFee = target === core.vmDeployAddress() ? BigInt(core.deployFeeQuon(JSON.stringify(info))) : 0n;
+      const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit))) + deployFee;
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
@@ -789,7 +791,7 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
       await this._verifyHead(info);
       const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
@@ -811,7 +813,7 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
       await this._verifyHead(info);
       const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
@@ -832,7 +834,7 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
       await this._verifyHead(info);
       const { until, head, genesis } = this._validity(info);
       const nonce = await this._accountSlot(from, expectedNonce);
@@ -879,7 +881,7 @@ function makeClient(core) {
       const info = await this.nodeInfo();
       this._guardMainnet();
       const chainId = this._signingChainId(info);
-      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon);
+      const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, contract);
       await this._verifyHead(info);
       const { until, head, genesis } = this._validity(info);
       const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
