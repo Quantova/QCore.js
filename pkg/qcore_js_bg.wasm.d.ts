@@ -17,6 +17,7 @@ export const checkOrderExpiry: (a: bigint, b: bigint) => [number, number];
 export const checkValidUntil: (a: bigint, b: bigint) => [number, number];
 export const contractAddress: (a: number, b: number, c: bigint) => [number, number];
 export const decodeEvent: (a: number, b: number) => [number, number, number, number];
+export const deployFeeQuon: (a: number, b: number) => [number, number, number, number];
 export const eventsBody: (a: bigint) => [number, number];
 export const gatewayProtocol: () => number;
 export const genesisSecs: (a: number, b: number) => bigint;

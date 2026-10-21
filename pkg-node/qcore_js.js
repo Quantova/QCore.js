@@ -479,6 +479,32 @@ function decodeEvent(leaf_hex) {
 exports.decodeEvent = decodeEvent;
 
 /**
+ * @param {string} node_info
+ * @returns {string}
+ */
+function deployFeeQuon(node_info) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(node_info, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.deployFeeQuon(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.deployFeeQuon = deployFeeQuon;
+
+/**
  * @param {bigint} height
  * @returns {string}
  */
@@ -1615,7 +1641,7 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
-        __wbg_getRandomValues_e9023ac49e94b453: function() { return handleError(function (arg0, arg1) {
+        __wbg_getRandomValues_d20a3446be66dcdf: function() { return handleError(function (arg0, arg1) {
             const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
             return ret;
         }, arguments); },

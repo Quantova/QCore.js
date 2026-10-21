@@ -167,11 +167,11 @@ function transactionVector() {
   const b = v.bounded;
   check(
     'the never expiring deadline the frozen vector was signed at is refused',
-    refused(() => core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n, b.transfer_fee, 0n, '00'.repeat(32))),
+    refused(() => core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), 0n, String(v.fee), 0n, '00'.repeat(32))),
     true,
   );
   const signed = JSON.parse(
-    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
+    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), String(v.fee), 0n, '00'.repeat(32)),
   );
   check('the signer address is the vector sender', bech32Equal(signed.from, v.sender), true);
 
@@ -194,7 +194,7 @@ function transactionVector() {
   check('the body is the frozen body with only its deadline moved', signed.tx_hex.startsWith(withDeadline(v.body_bytes, b.valid_until)), true);
 
   const again = JSON.parse(
-    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
+    core.sign_call(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), core.localChainId(), BigInt(b.valid_until), String(v.fee), 0n, '00'.repeat(32)),
   );
   check('signing twice binds the same body', unsigned(again.tx_hex) === unsigned(signed.tx_hex), true);
   check('each signing draws fresh randomness', again.tx_hex !== signed.tx_hex, true);
@@ -215,7 +215,7 @@ function payableVector() {
   const b = v.bounded;
   check(
     'the never expiring deadline the frozen vector was signed at is refused',
-    refused(() => core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n, b.transfer_fee, 0n, '00'.repeat(32))),
+    refused(() => core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), target, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), 0n, String(v.fee), 0n, '00'.repeat(32))),
     true,
   );
   const signed = JSON.parse(
@@ -230,7 +230,7 @@ function payableVector() {
       String(v.value),
       BigInt(v.chain_id),
       BigInt(b.valid_until),
-      b.transfer_fee, 0n, '00'.repeat(32)
+      String(v.fee), 0n, '00'.repeat(32)
     ),
   );
   check('the payable helper matches the frozen from', signed.from === v.sender, true);
@@ -251,10 +251,10 @@ function payableVector() {
   const lower = target.toLowerCase();
   const upper = target.toUpperCase();
   const signedLower = JSON.parse(
-    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
+    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), lower, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), String(v.fee), 0n, '00'.repeat(32)),
   );
   const signedUpper = JSON.parse(
-    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), b.transfer_fee, 0n, '00'.repeat(32)),
+    core.signPayableCall(sb(v.master_seed), BigInt(v.sender_index), upper, v.args, BigInt(v.nonce), BigInt(v.meter_limit), String(v.fee), String(v.value), BigInt(v.chain_id), BigInt(b.valid_until), String(v.fee), 0n, '00'.repeat(32)),
   );
   check('signing a lowercase and an uppercase target binds the same bytes', unsigned(signedLower.tx_hex) === unsigned(signedUpper.tx_hex), true);
   check('signing a differently cased target still matches the bounded vector', unsigned(signedLower.tx_hex) === unsigned(b.tx_hex), true);

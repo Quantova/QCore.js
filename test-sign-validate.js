@@ -92,19 +92,21 @@ const forever = refusal(() => core.sign_transfer(seed, 0n, good, '5', 0n, '1', c
 if (!forever || !/never expires/.test(forever)) fail('a validity deadline of zero must be refused: ' + forever);
 if (!refusal(() => core.signRegister(seed, 0n, 0n, '1', core.localChainId(), 0n, 0n, '00'.repeat(32)))) fail('a registration with a zero deadline must be refused');
 
-if (vmCallFee('500', 21000n) !== 9000n || core.vmCallFee(500, 1210) !== 500n || core.vmCallFee('500', 1n) !== 500n) {
-  fail('the call fee is one transfer fee per started 1210 meter');
+if (vmCallFee('500', 21000n) !== 500n || core.vmCallFee(500, 12500000) !== 500n || core.vmCallFee('500', 1n) !== 500n) {
+  fail('every call pays the one locked fee whatever its meter');
 }
 const meterLow = refusal(() => core.sign_call(seed, 0n, good, '', 0n, 1209n, '500', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
 if (!meterLow || !/meter limit/.test(meterLow)) fail('a meter below 1210 must be refused: ' + meterLow);
 const meterHigh = refusal(() => core.signPayableCall(seed, 0n, good, '', 0n, 12500001n, vmCallFee('500', 12500001n), '0', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
 if (!meterHigh || !/meter limit/.test(meterHigh)) fail('a meter above 12500000 must be refused: ' + meterHigh);
 if (!JSON.parse(core.sign_call(seed, 0n, good, '', 0n, 12500000n, vmCallFee('500', 12500000n), core.localChainId(), until, '500', 0n, '00'.repeat(32))).tx_hex) fail('the chain meter ceiling must sign');
-const bigArgs = refusal(() => core.sign_call(seed, 0n, good, '00'.repeat(128 * 1024 + 1), 0n, 21000n, '9000', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
+const bigArgs = refusal(() => core.sign_call(seed, 0n, good, '00'.repeat(128 * 1024 + 1), 0n, 21000n, '500', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
 if (!bigArgs || !/byte cap/.test(bigArgs)) fail('call arguments above 128 KiB must be refused: ' + bigArgs);
-const cheap = refusal(() => core.signAssetCall(seed, 0n, good, '', good, '1', 0n, 21000n, '500', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
-if (!cheap || !/below/.test(cheap)) fail('a call priced at one transfer fee for 21000 meter must be refused: ' + cheap);
-const noNetworkFee = refusal(() => core.sign_call(seed, 0n, good, '', 0n, 21000n, '9000', core.localChainId(), until, undefined, 0n, '00'.repeat(32)));
+const cheap = refusal(() => core.signAssetCall(seed, 0n, good, '', good, '1', 0n, 21000n, '499', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
+if (!cheap || !/below/.test(cheap)) fail('a call priced below the locked fee must be refused: ' + cheap);
+const dear = refusal(() => core.signAssetCall(seed, 0n, good, '', good, '1', 0n, 21000n, '9000', core.localChainId(), until, '500', 0n, '00'.repeat(32)));
+if (!dear || !/above/.test(dear)) fail('a call priced above the locked fee must be refused: ' + dear);
+const noNetworkFee = refusal(() => core.sign_call(seed, 0n, good, '', 0n, 21000n, '500', core.localChainId(), until, undefined, 0n, '00'.repeat(32)));
 if (!noNetworkFee || !/transfer fee/.test(noNetworkFee)) fail('a call signed without the network transfer fee must be refused: ' + noNetworkFee);
 
 if (core.testnetChainId() !== core.chainIdFromName(Network.testnet().chainId)) fail('the testnet chain id must follow the testnet network');

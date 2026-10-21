@@ -135,9 +135,9 @@ function fail(msg) {
   nonceValue = 0;
   client = new Client('http://127.0.0.1:' + server.address().port);
   let underpaid = false;
-  try { await client.call(seed, 0, to, '01', 21000n, '1000', 0n); }
-  catch (e) { underpaid = true; if (!/above the maximum/.test(e.message)) fail('unclear meter fee error: ' + e.message); }
-  if (!underpaid) fail('a call whose meter fee passes the ceiling must be refused');
+  try { await client.call(seed, 0, to, '01', 21000n, '99', 0n); }
+  catch (e) { underpaid = true; if (!/above the maximum/.test(e.message)) fail('unclear locked fee error: ' + e.message); }
+  if (!underpaid) fail('a call whose locked fee passes the ceiling must be refused');
   const agreed = await client.call(seed, 0, to, '01', 21000n, '1000000', 0n);
   if (agreed.outcome.verdict !== 'accepted') fail('an agreed expected nonce signs');
 

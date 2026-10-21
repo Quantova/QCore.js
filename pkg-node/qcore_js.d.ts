@@ -48,6 +48,8 @@ export function contractAddress(deployer: string, nonce: bigint): string | undef
 
 export function decodeEvent(leaf_hex: string): string;
 
+export function deployFeeQuon(node_info: string): string;
+
 export function eventsBody(height: bigint): string;
 
 export function gatewayProtocol(): number;
