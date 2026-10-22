@@ -36,6 +36,21 @@ export class SigningSession {
         }
     }
     /**
+     * @param {string} chain
+     * @returns {BigUint64Array | undefined}
+     */
+    headFloor(chain) {
+        const ptr0 = passStringToWasm0(chain, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.signingsession_headFloor(this.__wbg_ptr, ptr0, len0);
+        let v2;
+        if (ret[0] !== 0) {
+            v2 = getArrayU64FromWasm0(ret[0], ret[1]).slice();
+            wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        }
+        return v2;
+    }
+    /**
      * @param {string} state
      */
     importState(state) {
@@ -80,6 +95,16 @@ export class SigningSession {
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.signingsession_nextNonce(this.__wbg_ptr, ptr0, len0);
         return ret[0] === 0 ? undefined : BigInt.asUintN(64, ret[1]);
+    }
+    /**
+     * @param {string} chain
+     * @param {bigint} height
+     * @param {bigint} wall_secs
+     */
+    noteHead(chain, height, wall_secs) {
+        const ptr0 = passStringToWasm0(chain, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_noteHead(this.__wbg_ptr, ptr0, len0, height, wall_secs);
     }
     /**
      * @param {string} key
@@ -259,6 +284,24 @@ export function boundedValidUntil(chain_name, head, wall_secs, floor, floor_age_
     const ptr0 = passStringToWasm0(chain_name, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.boundedValidUntil(ptr0, len0, head, wall_secs, !isLikeNone(floor), isLikeNone(floor) ? BigInt(0) : floor, floor_age_secs);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return BigInt.asUintN(64, ret[0]);
+}
+
+/**
+ * @param {bigint | null | undefined} genesis_secs
+ * @param {bigint | null | undefined} blocks_per_sec
+ * @param {boolean} verified
+ * @param {bigint} head
+ * @param {bigint} wall_secs
+ * @param {bigint | null | undefined} floor
+ * @param {bigint} floor_age_secs
+ * @returns {bigint}
+ */
+export function boundedValidUntilFor(genesis_secs, blocks_per_sec, verified, head, wall_secs, floor, floor_age_secs) {
+    const ret = wasm.boundedValidUntilFor(!isLikeNone(genesis_secs), isLikeNone(genesis_secs) ? BigInt(0) : genesis_secs, !isLikeNone(blocks_per_sec), isLikeNone(blocks_per_sec) ? BigInt(0) : blocks_per_sec, verified, head, wall_secs, !isLikeNone(floor), isLikeNone(floor) ? BigInt(0) : floor, floor_age_secs);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -534,6 +577,35 @@ export function headCeiling(chain_name, wall_secs) {
 }
 
 /**
+ * @param {string} header_hex
+ * @returns {bigint}
+ */
+export function headerHeight(header_hex) {
+    const ptr0 = passStringToWasm0(header_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.headerHeight(ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return BigInt.asUintN(64, ret[0]);
+}
+
+/**
+ * @param {bigint} index
+ * @param {string} steps_json
+ * @returns {boolean}
+ */
+export function indexFitsPath(index, steps_json) {
+    const ptr0 = passStringToWasm0(steps_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.indexFitsPath(index, ptr0, len0);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return ret[0] !== 0;
+}
+
+/**
  * @returns {bigint}
  */
 export function localChainId() {
@@ -566,6 +638,14 @@ export function lookalikeOf(candidate, known) {
 export function mainnetChainId() {
     const ret = wasm.mainnetChainId();
     return BigInt.asUintN(64, ret);
+}
+
+/**
+ * @returns {bigint | undefined}
+ */
+export function mainnetEpochLength() {
+    const ret = wasm.mainnetEpochLength();
+    return ret[0] === 0 ? undefined : BigInt.asUintN(64, ret[1]);
 }
 
 /**
@@ -809,6 +889,17 @@ export function parseEvents(response) {
     } finally {
         wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
+}
+
+/**
+ * @param {string} method
+ * @returns {bigint}
+ */
+export function responseCap(method) {
+    const ptr0 = passStringToWasm0(method, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.responseCap(ptr0, len0);
+    return BigInt.asUintN(64, ret);
 }
 
 /**
@@ -1226,6 +1317,14 @@ export function submit_body(tx_hex) {
 /**
  * @returns {bigint}
  */
+export function testnetBlocksPerSec() {
+    const ret = wasm.testnetBlocksPerSec();
+    return BigInt.asUintN(64, ret);
+}
+
+/**
+ * @returns {bigint}
+ */
 export function testnetChainId() {
     const ret = wasm.testnetChainId();
     return BigInt.asUintN(64, ret);
@@ -1248,6 +1347,14 @@ export function testnetChainName() {
 }
 
 /**
+ * @returns {bigint | undefined}
+ */
+export function testnetEpochLength() {
+    const ret = wasm.testnetEpochLength();
+    return ret[0] === 0 ? undefined : BigInt.asUintN(64, ret[1]);
+}
+
+/**
  * @returns {string | undefined}
  */
 export function testnetGenesisHash() {
@@ -1258,6 +1365,14 @@ export function testnetGenesisHash() {
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v1;
+}
+
+/**
+ * @returns {bigint}
+ */
+export function testnetGenesisSecs() {
+    const ret = wasm.testnetGenesisSecs();
+    return BigInt.asUintN(64, ret);
 }
 
 /**
@@ -1303,6 +1418,31 @@ export function tokenDecimalsSlot() {
 export function tokenSymbolSlot() {
     const ret = wasm.tokenSymbolSlot();
     return BigInt.asUintN(64, ret);
+}
+
+/**
+ * @param {string} leaf_hex
+ * @returns {string}
+ */
+export function transactionKind(leaf_hex) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(leaf_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.transactionKind(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
 }
 
 /**
@@ -1363,6 +1503,7 @@ export function validityBlocks() {
 /**
  * @param {bigint} chain_id
  * @param {string} genesis_hex
+ * @param {bigint} epoch_length
  * @param {bigint} epoch
  * @param {string} roster_json
  * @param {string} address
@@ -1371,7 +1512,7 @@ export function validityBlocks() {
  * @param {string} proof_hex
  * @returns {string}
  */
-export function verifyAccount(chain_id, genesis_hex, epoch, roster_json, address, header_hex, certificate_hex, proof_hex) {
+export function verifyAccount(chain_id, genesis_hex, epoch_length, epoch, roster_json, address, header_hex, certificate_hex, proof_hex) {
     let deferred8_0;
     let deferred8_1;
     try {
@@ -1387,7 +1528,7 @@ export function verifyAccount(chain_id, genesis_hex, epoch, roster_json, address
         const len4 = WASM_VECTOR_LEN;
         const ptr5 = passStringToWasm0(proof_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len5 = WASM_VECTOR_LEN;
-        const ret = wasm.verifyAccount(chain_id, ptr0, len0, epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+        const ret = wasm.verifyAccount(chain_id, ptr0, len0, epoch_length, epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
         var ptr7 = ret[0];
         var len7 = ret[1];
         if (ret[3]) {
@@ -1460,6 +1601,44 @@ export function verifyFinality(chain_id, genesis_hex, header_hex, certificate_he
 /**
  * @param {bigint} chain_id
  * @param {string} genesis_hex
+ * @param {bigint} epoch_length
+ * @param {bigint} epoch
+ * @param {string} header_hex
+ * @param {string} certificate_hex
+ * @param {string} roster_json
+ * @returns {string}
+ */
+export function verifyFinalityInEpoch(chain_id, genesis_hex, epoch_length, epoch, header_hex, certificate_hex, roster_json) {
+    let deferred6_0;
+    let deferred6_1;
+    try {
+        const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(header_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(certificate_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passStringToWasm0(roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.verifyFinalityInEpoch(chain_id, ptr0, len0, epoch_length, epoch, ptr1, len1, ptr2, len2, ptr3, len3);
+        var ptr5 = ret[0];
+        var len5 = ret[1];
+        if (ret[3]) {
+            ptr5 = 0; len5 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred6_0 = ptr5;
+        deferred6_1 = len5;
+        return getStringFromWasm0(ptr5, len5);
+    } finally {
+        wasm.__wbindgen_free(deferred6_0, deferred6_1, 1);
+    }
+}
+
+/**
+ * @param {bigint} chain_id
+ * @param {string} genesis_hex
+ * @param {bigint} epoch_length
  * @param {bigint} current_epoch
  * @param {string} current_roster_json
  * @param {string} header_hex
@@ -1468,7 +1647,7 @@ export function verifyFinality(chain_id, genesis_hex, header_hex, certificate_he
  * @param {string} proof_hex
  * @returns {bigint}
  */
-export function verifyNextRoster(chain_id, genesis_hex, current_epoch, current_roster_json, header_hex, certificate_hex, next_roster_json, proof_hex) {
+export function verifyNextRoster(chain_id, genesis_hex, epoch_length, current_epoch, current_roster_json, header_hex, certificate_hex, next_roster_json, proof_hex) {
     const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ptr1 = passStringToWasm0(current_roster_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -1481,7 +1660,7 @@ export function verifyNextRoster(chain_id, genesis_hex, current_epoch, current_r
     const len4 = WASM_VECTOR_LEN;
     const ptr5 = passStringToWasm0(proof_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len5 = WASM_VECTOR_LEN;
-    const ret = wasm.verifyNextRoster(chain_id, ptr0, len0, current_epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
+    const ret = wasm.verifyNextRoster(chain_id, ptr0, len0, epoch_length, current_epoch, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -1595,9 +1774,22 @@ function addToExternrefTable0(obj) {
     return idx;
 }
 
+function getArrayU64FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getBigUint64ArrayMemory0().subarray(ptr / 8, ptr / 8 + len);
+}
+
 function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
+}
+
+let cachedBigUint64ArrayMemory0 = null;
+function getBigUint64ArrayMemory0() {
+    if (cachedBigUint64ArrayMemory0 === null || cachedBigUint64ArrayMemory0.byteLength === 0) {
+        cachedBigUint64ArrayMemory0 = new BigUint64Array(wasm.memory.buffer);
+    }
+    return cachedBigUint64ArrayMemory0;
 }
 
 let cachedDataViewMemory0 = null;

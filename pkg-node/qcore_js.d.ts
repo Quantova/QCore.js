@@ -6,10 +6,12 @@ export class SigningSession {
     [Symbol.dispose](): void;
     checkTarget(address: string): void;
     exportState(): string;
+    headFloor(chain: string): BigUint64Array | undefined;
     importState(state: string): void;
     isHeld(key: string, slot: bigint): boolean;
     constructor(book: string[]);
     nextNonce(key: string): bigint | undefined;
+    noteHead(chain: string, height: bigint, wall_secs: bigint): void;
     outcome(key: string, slot: bigint, accepted: boolean): void;
     release(key: string, slot: bigint): void;
     releasePending(key: string): void;
@@ -29,6 +31,8 @@ export function assetSupplyBody(issuer: string): string;
 export function block_by_height_body(height: bigint): string;
 
 export function boundedValidUntil(chain_name: string, head: bigint, wall_secs: bigint, floor: bigint | null | undefined, floor_age_secs: bigint): bigint;
+
+export function boundedValidUntilFor(genesis_secs: bigint | null | undefined, blocks_per_sec: bigint | null | undefined, verified: boolean, head: bigint, wall_secs: bigint, floor: bigint | null | undefined, floor_age_secs: bigint): bigint;
 
 export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
@@ -58,11 +62,17 @@ export function genesisSecs(chain_name: string): bigint;
 
 export function headCeiling(chain_name: string, wall_secs: bigint): bigint;
 
+export function headerHeight(header_hex: string): bigint;
+
+export function indexFitsPath(index: bigint, steps_json: string): boolean;
+
 export function localChainId(): bigint;
 
 export function lookalikeOf(candidate: string, known: string[]): string | undefined;
 
 export function mainnetChainId(): bigint;
+
+export function mainnetEpochLength(): bigint | undefined;
 
 export function mainnetGenesisHash(): string | undefined;
 
@@ -87,6 +97,8 @@ export function orderSigner(seed_bytes: Uint8Array, index: bigint): string;
 export function packSymbol(symbol: string): bigint;
 
 export function parseEvents(response: string): string;
+
+export function responseCap(method: string): bigint;
 
 export function rosterCommitment(epoch: bigint, roster_json: string): string;
 
@@ -118,11 +130,17 @@ export function storageValueReported(response: string, slot_key_hex: string): st
 
 export function submit_body(tx_hex: string): string;
 
+export function testnetBlocksPerSec(): bigint;
+
 export function testnetChainId(): bigint;
 
 export function testnetChainName(): string;
 
+export function testnetEpochLength(): bigint | undefined;
+
 export function testnetGenesisHash(): string | undefined;
+
+export function testnetGenesisSecs(): bigint;
 
 export function testnetRosterCommitment(): string | undefined;
 
@@ -132,6 +150,8 @@ export function tokenDecimalsSlot(): bigint;
 
 export function tokenSymbolSlot(): bigint;
 
+export function transactionKind(leaf_hex: string): string;
+
 export function transaction_body(tx_id: string): string;
 
 export function unpackSymbol(word: bigint): string;
@@ -140,13 +160,15 @@ export function valid_address(address: string): boolean;
 
 export function validityBlocks(): bigint;
 
-export function verifyAccount(chain_id: bigint, genesis_hex: string, epoch: bigint, roster_json: string, address: string, header_hex: string, certificate_hex: string, proof_hex: string): string;
+export function verifyAccount(chain_id: bigint, genesis_hex: string, epoch_length: bigint, epoch: bigint, roster_json: string, address: string, header_hex: string, certificate_hex: string, proof_hex: string): string;
 
 export function verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
 
 export function verifyFinality(chain_id: bigint, genesis_hex: string, header_hex: string, certificate_hex: string, roster_json: string): string;
 
-export function verifyNextRoster(chain_id: bigint, genesis_hex: string, current_epoch: bigint, current_roster_json: string, header_hex: string, certificate_hex: string, next_roster_json: string, proof_hex: string): bigint;
+export function verifyFinalityInEpoch(chain_id: bigint, genesis_hex: string, epoch_length: bigint, epoch: bigint, header_hex: string, certificate_hex: string, roster_json: string): string;
+
+export function verifyNextRoster(chain_id: bigint, genesis_hex: string, epoch_length: bigint, current_epoch: bigint, current_roster_json: string, header_hex: string, certificate_hex: string, next_roster_json: string, proof_hex: string): bigint;
 
 export function verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
 

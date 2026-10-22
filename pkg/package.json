@@ -6,7 +6,7 @@
   "license": "Apache-2.0 OR MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Quantova/QCore-JS"
+    "url": "https://github.com/Quantova/QCore.js"
   },
   "files": [
     "LICENSE-APACHE",

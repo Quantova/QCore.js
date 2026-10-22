@@ -124,9 +124,13 @@ a caller that must display them, and a JavaScript string can never be wiped, so 
 ## Using it
 
 The Client checks every number the gateway reports before it signs. A fee or balance must be a string of
-the ASCII digits zero to nine, a nonce or head height must be a JSON integer, and the head is bounded by the
-time since the genesis of the named network, a constant the Client reads from the compiled core so all three
-QCore clients share one value. The Client keeps a signing session in memory. A nonce it signed once is not
+the ASCII digits zero to nine, a nonce or head height must be a JSON integer, and the head is either verified
+against a trusted validator roster or bounded by the genesis time and block rate of the network. The testnet
+carries both in the compiled core; on a private chain pass `genesisSecs` and `blocksPerSec` in the Network, and
+a client with neither a roster nor a chain clock refuses to sign. A public network always needs a verified head.
+Every Client in a process shares one signing session per chain and account, so two clients never sign two
+transactions at one nonce, and a nonce the gateway reports below the one already reached is refused unless you
+name it as the expected nonce. A nonce it signed once is not
 signed again until you pass that nonce as the expected nonce, which is how you say the first transaction never
 landed, and a gateway that rejects a transaction and then reports a later nonce is refused for the same reason.
 An order nonce the gateway raises above the one the session tracked needs the expected order nonce as well.
@@ -134,13 +138,15 @@ Pass `addressBook`, a list of Q1 addresses you trust, in the Client options, and
 a target that shares two or more leading and trailing characters with a known address, eight in all, but is a
 different address. The sending accounts and every target signed for in the session are known as well.
 
-core.verifyFinality measures signed stake against the whole roster you pass, which matches the chain when every validator in the roster sits on the committee, as on a network of main validators. Pass exactly the validators of the block's epoch. Each roster entry names the validator id, its stake, its attestation key and its sortition root with the number of slots the root covers, exactly as get_validator_set serves them, and every signer must prove its committee membership against its root. A custom `fetch` must keep TLS certificate checks on and is cut off at the same timeout as the platform fetch.
+core.verifyFinality measures signed stake against the active set of the roster you pass and verifies only when the signers hold strictly more than two thirds of it; a roster that gives two validators one attestation key is refused. The Client chooses the roster for a block from its verified height and the network `epochLength`, never from the epoch the gateway names, and core.verifyFinalityInEpoch applies the same check. Each roster entry names the validator id, its stake, its attestation key and its sortition root with the number of slots the root covers, exactly as get_validator_set serves them, and every signer must prove its committee membership against its root. A custom `fetch` must keep TLS certificate checks on and is cut off at the same timeout as the platform fetch.
 
 A new session does not take an order nonce above zero from the gateway alone. Name the expected order nonce, or keep `client.saveSession()` and pass it to `client.restoreSession(state)` after a restart so tracked nonces and held signatures survive. The client refuses to sign for a retired chain name such as Q-test-net-1.
 
-Call `client.confirmTransaction(txId, genesisHash, roster)` to confirm a transaction without trusting the gateway. It checks the finality certificate of the transaction's block against the genesis hash and validator roster you pass and trust, then checks that the transaction is inside that block.
+Call `client.confirmInclusion(txId, genesisHash, roster, epoch)` to prove a transaction is inside a finalized block without trusting the gateway. It checks the finality certificate of the block against the genesis hash and the validator roster of that epoch you pass and trust, then checks the transaction and its position against that block. The chain includes and charges a contract call even when it reverts, so `client.confirmTransaction` confirms only a transfer or a key registration and refuses a contract call; confirm a call with `client.confirmCallEvent(txId, contract, selectorHex)`, which proves the event the contract emits in that block. `client.transaction(txId)` reports a status checked against a trusted roster with `verified: true`, reports an unchecked one as `unverified`, and refuses an unchecked status on mainnet.
 
 A client signs for a public network only with a pinned genesis hash, taken from `network.genesisHash` or the `genesisHash` client option, and refuses when the gateway reports a different genesis or none is pinned.
+
+One account key signs both transactions and contract orders. The two never collide, because a transaction signs under the transaction domain and an order signs a message that starts with its own tag under the machine verify context, and the contract checks the chain id, its own address and the entry selector named in the order.
 
 Call `client.trustRoster(genesisHash, roster)` to give the client a genesis hash and a validator roster you trust. Every attestation signs the genesis hash, so a certificate from another network that reuses the chain name and keys never verifies. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
 
@@ -217,17 +223,18 @@ A call that also moves value, such as a payable contract call, reaches for `core
 directly. It takes the value and the chain id as explicit arguments, the value as a decimal string or a
 BigInt for the same reason as an amount, and the chain id from `core.localChainId()`,
 `core.mainnetChainId()`, or `core.testnetChainId()` so the network is never a magic number. It also
-takes the validity deadline, the height after which the chain drops the transaction, from `validUntil`,
-and the transfer fee the gateway reports so the call fee can be checked against the meter limit.
+takes the validity deadline, the height after which the chain drops the transaction, from a head you have
+verified, and the transfer fee the gateway reports so the call fee can be checked against the meter limit.
+`validUntil` trusts the head the gateway reports and is deprecated; sign through the Client when you can.
 
 ```js
-const { core, validUntil, vmCallFee } = require('@quantovainc/qcore');
+const { core, vmCallFee } = require('@quantovainc/qcore');
 
 const info = await client.nodeInfo();
 const transferFee = info.fee.transfer_quon;
 const fee = vmCallFee(transferFee, meterLimit);
 const signed = JSON.parse(
-  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId(), validUntil(info), transferFee),
+  core.signPayableCall(seed, 0n, contract, argsHex, nonce, meterLimit, fee, '1000', core.testnetChainId(), verifiedHead + 300n, transferFee, verifiedHead, genesisHash),
 );
 ```
 
