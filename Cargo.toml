@@ -15,9 +15,9 @@ crate-type = ["cdylib"]
 [dependencies]
 qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
-qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "f183c25c2a56e8ab93758c7552d5c29328942c08" }
-qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "f183c25c2a56e8ab93758c7552d5c29328942c08" }
-qtv-idfmt = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "f183c25c2a56e8ab93758c7552d5c29328942c08" }
+qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "9cabd50a4f88d0ce47a0f54517ace18e6975c879" }
+qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "9cabd50a4f88d0ce47a0f54517ace18e6975c879" }
+qtv-idfmt = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "9cabd50a4f88d0ce47a0f54517ace18e6975c879" }
 qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "4e37c52984740f345f96e2c8536803bce5f3b805" }
 
 [profile.release]
