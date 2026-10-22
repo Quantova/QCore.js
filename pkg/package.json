@@ -1,5 +1,5 @@
 {
-  "name": "qcore-js",
+  "name": "@quantovainc/qcore-js",
   "type": "module",
   "description": "The JavaScript binding for the Quantova client core, generated over QCore with wasm-bindgen. The core does the key derivation, the post quantum signing, and the wire, the page does the fetch.",
   "version": "0.10.0",
@@ -21,5 +21,6 @@
   "sideEffects": [
     "./qcore_js.js",
     "./snippets/*"
-  ]
+  ],
+  "private": true
 }

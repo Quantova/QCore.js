@@ -10,5 +10,5 @@ FLAGS="--remap-path-prefix=$STACK_ROOT=/qcore --remap-path-prefix=$CARGO_HOME_DI
 
 RUSTFLAGS="$FLAGS" wasm-pack build --target bundler --out-dir pkg -- --locked
 RUSTFLAGS="$FLAGS" wasm-pack build --target nodejs --out-dir pkg-node -- --locked
-node -e 'const fs = require("fs"); for (const dir of ["pkg", "pkg-node"]) { const file = dir + "/package.json"; const manifest = JSON.parse(fs.readFileSync(file, "utf8")); manifest.files.sort(); fs.writeFileSync(file, JSON.stringify(manifest, null, 2)); }'
+node -e 'const fs = require("fs"); for (const dir of ["pkg", "pkg-node"]) { const file = dir + "/package.json"; const manifest = JSON.parse(fs.readFileSync(file, "utf8")); manifest.name = "@quantovainc/qcore-js"; manifest.private = true; manifest.files.sort(); fs.writeFileSync(file, JSON.stringify(manifest, null, 2)); }'
 sed 's/^module\.exports = {\(.*\)};$/export {\1};/' shared.js > shared.mjs
