@@ -88,7 +88,7 @@ fn signed_json(signed: qcore::SignedTransfer) -> String {
 
 #[wasm_bindgen]
 pub fn address(seed_bytes: &[u8], index: u64) -> Result<String, JsError> {
-    Ok(qcore::account_address(&*seed(seed_bytes)?, index))
+    scrubbed(|| Ok(qcore::account_address(&*seed(seed_bytes)?, index)))
 }
 
 #[wasm_bindgen]
@@ -118,14 +118,18 @@ pub fn contract_address(deployer: &str, nonce: u64) -> Option<String> {
 
 #[wasm_bindgen(js_name = mnemonicFromSeed)]
 pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<Vec<u8>, JsError> {
-    let phrase = qcore::mnemonic_bytes_from_seed(&*seed(seed_bytes)?);
-    Ok(phrase.to_vec())
+    scrubbed(|| {
+        let phrase = qcore::mnemonic_bytes_from_seed(&*seed(seed_bytes)?);
+        Ok(phrase.to_vec())
+    })
 }
 
 #[wasm_bindgen(js_name = mnemonicFromSeedText)]
 pub fn mnemonic_from_seed_text(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
-    let phrase = qcore::mnemonic_from_seed(&*seed(seed_bytes)?);
-    Ok(JsValue::from_str(&phrase))
+    scrubbed(|| {
+        let phrase = qcore::mnemonic_from_seed(&*seed(seed_bytes)?);
+        Ok(JsValue::from_str(&phrase))
+    })
 }
 
 #[inline(never)]
@@ -138,9 +142,20 @@ fn restore_seed(mut phrase: String) -> Result<Vec<u8>, JsError> {
 
 #[inline(never)]
 fn scrub_stack() {
-    let mut scratch = [0u8; 16384];
+    let mut scratch = [0u8; 262144];
     scratch.zeroize();
     std::hint::black_box(&scratch);
+}
+
+#[inline(never)]
+fn isolated<T>(work: impl FnOnce() -> T) -> T {
+    work()
+}
+
+fn scrubbed<T>(work: impl FnOnce() -> T) -> T {
+    let result = isolated(work);
+    scrub_stack();
+    result
 }
 
 #[wasm_bindgen(js_name = seedFromMnemonic)]
@@ -190,6 +205,38 @@ pub fn bounded_valid_until(
 ) -> Result<u64, JsError> {
     qcore::bounded_valid_until(chain_name, head, wall_secs, floor, floor_age_secs)
         .map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = boundedValidUntilFor)]
+pub fn bounded_valid_until_for(
+    genesis_secs: Option<u64>,
+    blocks_per_sec: Option<u64>,
+    verified: bool,
+    head: u64,
+    wall_secs: u64,
+    floor: Option<u64>,
+    floor_age_secs: u64,
+) -> Result<u64, JsError> {
+    let clock = match (genesis_secs, blocks_per_sec) {
+        (Some(genesis), Some(rate)) => {
+            Some(qcore::ChainClock::new(genesis, rate).map_err(|e| JsError::new(&e))?)
+        }
+        (None, None) => None,
+        _ => {
+            return Err(JsError::new(
+                "a chain clock needs both a genesis time and a block rate",
+            ))
+        }
+    };
+    qcore::bounded_valid_until_for(
+        clock.as_ref(),
+        verified,
+        head,
+        wall_secs,
+        floor,
+        floor_age_secs,
+    )
+    .map_err(|e| JsError::new(&e))
 }
 
 #[wasm_bindgen(js_name = checkGatewayJson)]
@@ -298,6 +345,18 @@ impl SigningSession {
         self.0.next_nonce(key)
     }
 
+    #[wasm_bindgen(js_name = headFloor)]
+    pub fn head_floor(&self, chain: &str) -> Option<Vec<u64>> {
+        self.0
+            .head_floor(chain)
+            .map(|(height, at)| vec![height, at])
+    }
+
+    #[wasm_bindgen(js_name = noteHead)]
+    pub fn note_head(&mut self, chain: &str, height: u64, wall_secs: u64) {
+        self.0.note_head(chain, height, wall_secs)
+    }
+
     #[wasm_bindgen(js_name = isHeld)]
     pub fn is_held(&self, key: &str, slot: u64) -> bool {
         self.0.is_held(key, slot)
@@ -318,26 +377,28 @@ pub fn sign_transfer(
     head: u64,
     genesis_hex: &str,
 ) -> Result<String, JsError> {
-    let master = seed(seed_bytes)?;
-    if !qcore::valid_address(to) {
-        return Err(JsError::new("the recipient is not a q1 address"));
-    }
-    let amount = whole_u64(amount, "amount")?;
-    let fee = whole(fee, "fee")?;
-    let signed = qcore::sign_transfer(
-        &master,
-        index,
-        to,
-        amount,
-        nonce,
-        fee,
-        chain_id,
-        valid_until,
-        head,
-        &genesis(genesis_hex)?,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(signed_json(signed))
+    scrubbed(|| {
+        let master = seed(seed_bytes)?;
+        if !qcore::valid_address(to) {
+            return Err(JsError::new("the recipient is not a q1 address"));
+        }
+        let amount = whole_u64(amount, "amount")?;
+        let fee = whole(fee, "fee")?;
+        let signed = qcore::sign_transfer(
+            &master,
+            index,
+            to,
+            amount,
+            nonce,
+            fee,
+            chain_id,
+            valid_until,
+            head,
+            &genesis(genesis_hex)?,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(signed_json(signed))
+    })
 }
 
 #[wasm_bindgen(js_name = signRegister)]
@@ -352,20 +413,22 @@ pub fn sign_register(
     head: u64,
     genesis_hex: &str,
 ) -> Result<String, JsError> {
-    let master = seed(seed_bytes)?;
-    let fee = whole(fee, "fee")?;
-    let signed = qcore::sign_register(
-        &master,
-        index,
-        nonce,
-        fee,
-        chain_id,
-        valid_until,
-        head,
-        &genesis(genesis_hex)?,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(signed_json(signed))
+    scrubbed(|| {
+        let master = seed(seed_bytes)?;
+        let fee = whole(fee, "fee")?;
+        let signed = qcore::sign_register(
+            &master,
+            index,
+            nonce,
+            fee,
+            chain_id,
+            valid_until,
+            head,
+            &genesis(genesis_hex)?,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(signed_json(signed))
+    })
 }
 
 #[wasm_bindgen]
@@ -384,28 +447,30 @@ pub fn sign_call(
     head: u64,
     genesis_hex: &str,
 ) -> Result<String, JsError> {
-    let master = seed(seed_bytes)?;
-    if !qcore::valid_address(target) {
-        return Err(JsError::new("the target is not a q1 address"));
-    }
-    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee = whole(fee, "fee")?;
-    let signed = qcore::sign_call(
-        &master,
-        index,
-        target,
-        args,
-        nonce,
-        meter_limit,
-        fee,
-        chain_id,
-        valid_until,
-        self::transfer_fee(transfer_fee)?,
-        head,
-        &genesis(genesis_hex)?,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(signed_json(signed))
+    scrubbed(|| {
+        let master = seed(seed_bytes)?;
+        if !qcore::valid_address(target) {
+            return Err(JsError::new("the target is not a q1 address"));
+        }
+        let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+        let fee = whole(fee, "fee")?;
+        let signed = qcore::sign_call(
+            &master,
+            index,
+            target,
+            args,
+            nonce,
+            meter_limit,
+            fee,
+            chain_id,
+            valid_until,
+            self::transfer_fee(transfer_fee)?,
+            head,
+            &genesis(genesis_hex)?,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(signed_json(signed))
+    })
 }
 
 fn addr32(hex: &str) -> Result<[u8; 32], JsError> {
@@ -430,10 +495,12 @@ fn u64_list(csv: &str) -> Result<Vec<u64>, JsError> {
 
 #[wasm_bindgen(js_name = orderSigner)]
 pub fn order_signer(seed_bytes: &[u8], index: u64) -> Result<String, JsError> {
-    Ok(qcore::json::to_hex(&qcore::contract::order_signer(
-        &*seed(seed_bytes)?,
-        index,
-    )))
+    scrubbed(|| {
+        Ok(qcore::json::to_hex(&qcore::contract::order_signer(
+            &*seed(seed_bytes)?,
+            index,
+        )))
+    })
 }
 
 #[wasm_bindgen(js_name = deployFeeQuon)]
@@ -540,61 +607,63 @@ pub fn build_signed_order_call(
     nonce: u64,
     expiry: u64,
 ) -> Result<String, JsError> {
-    let owner = seed(owner_seed_bytes)?;
-    let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
-        .map_err(|e| JsError::new(&e))?
-        .try_into()
-        .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
-    let layout_hash =
-        qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
-    let mut layout = qcore::contract::OrderLayout::new(
-        scheme_off,
-        ptr_off,
-        expiry_off,
-        u64_list(field_offs_csv)?,
-        expiry,
-        layout_hash,
-    );
-    if region_off != 0 {
-        layout.region_off = region_off;
-    }
-    let fields = u64_list(fields_csv)?;
-    let order = qcore::contract::build_signed_order_call(
-        chain_id,
-        contract,
-        selector,
-        &layout,
-        &fields,
-        &owner,
-        owner_index,
-        nonce,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        (
-            "call_args",
-            qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
-        ),
-        (
-            "message",
-            qcore::json::Json::str(qcore::json::to_hex(&order.message)),
-        ),
-        (
-            "signature",
-            qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
-        ),
-        (
-            "public_key",
-            qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
-        ),
-        (
-            "signer",
-            qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
-        ),
-        ("nonce", qcore::json::Json::Int(order.nonce)),
-        ("expiry", qcore::json::Json::Int(order.expiry)),
-    ])
-    .render())
+    scrubbed(|| {
+        let owner = seed(owner_seed_bytes)?;
+        let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
+            .map_err(|e| JsError::new(&e))?
+            .try_into()
+            .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+        let layout_hash =
+            qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
+        let mut layout = qcore::contract::OrderLayout::new(
+            scheme_off,
+            ptr_off,
+            expiry_off,
+            u64_list(field_offs_csv)?,
+            expiry,
+            layout_hash,
+        );
+        if region_off != 0 {
+            layout.region_off = region_off;
+        }
+        let fields = u64_list(fields_csv)?;
+        let order = qcore::contract::build_signed_order_call(
+            chain_id,
+            contract,
+            selector,
+            &layout,
+            &fields,
+            &owner,
+            owner_index,
+            nonce,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(qcore::json::object(vec![
+            (
+                "call_args",
+                qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
+            ),
+            (
+                "message",
+                qcore::json::Json::str(qcore::json::to_hex(&order.message)),
+            ),
+            (
+                "signature",
+                qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
+            ),
+            (
+                "public_key",
+                qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
+            ),
+            (
+                "signer",
+                qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
+            ),
+            ("nonce", qcore::json::Json::Int(order.nonce)),
+            ("expiry", qcore::json::Json::Int(order.expiry)),
+        ])
+        .render())
+    })
 }
 
 #[wasm_bindgen(js_name = buildTypedOrderCall)]
@@ -614,55 +683,57 @@ pub fn build_typed_order_call(
     nonce: u64,
     expiry: u64,
 ) -> Result<String, JsError> {
-    let owner = seed(owner_seed_bytes)?;
-    let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
-        .map_err(|e| JsError::new(&e))?
-        .try_into()
-        .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
-    let layout_hash =
-        qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
-    let fields = parse_typed_fields(fields_json)?;
-    let order = qcore::contract::build_order_from_typed(
-        chain_id,
-        contract,
-        selector,
-        &layout_hash,
-        scheme_off,
-        ptr_off,
-        expiry_off,
-        region_off,
-        &fields,
-        &owner,
-        owner_index,
-        nonce,
-        expiry,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(qcore::json::object(vec![
-        (
-            "call_args",
-            qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
-        ),
-        (
-            "message",
-            qcore::json::Json::str(qcore::json::to_hex(&order.message)),
-        ),
-        (
-            "signature",
-            qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
-        ),
-        (
-            "public_key",
-            qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
-        ),
-        (
-            "signer",
-            qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
-        ),
-        ("nonce", qcore::json::Json::Int(order.nonce)),
-        ("expiry", qcore::json::Json::Int(order.expiry)),
-    ])
-    .render())
+    scrubbed(|| {
+        let owner = seed(owner_seed_bytes)?;
+        let selector: [u8; 4] = qcore::json::from_hex(selector_hex)
+            .map_err(|e| JsError::new(&e))?
+            .try_into()
+            .map_err(|_| JsError::new("the selector is 4 bytes of hex"))?;
+        let layout_hash =
+            qcore::contract::layout_hash_from_hex(layout_hash_hex).map_err(|e| JsError::new(&e))?;
+        let fields = parse_typed_fields(fields_json)?;
+        let order = qcore::contract::build_order_from_typed(
+            chain_id,
+            contract,
+            selector,
+            &layout_hash,
+            scheme_off,
+            ptr_off,
+            expiry_off,
+            region_off,
+            &fields,
+            &owner,
+            owner_index,
+            nonce,
+            expiry,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(qcore::json::object(vec![
+            (
+                "call_args",
+                qcore::json::Json::str(qcore::json::to_hex(&order.call_args)),
+            ),
+            (
+                "message",
+                qcore::json::Json::str(qcore::json::to_hex(&order.message)),
+            ),
+            (
+                "signature",
+                qcore::json::Json::str(qcore::json::to_hex(&order.signature)),
+            ),
+            (
+                "public_key",
+                qcore::json::Json::str(qcore::json::to_hex(&order.public_key)),
+            ),
+            (
+                "signer",
+                qcore::json::Json::str(qcore::json::to_hex(&order.signer)),
+            ),
+            ("nonce", qcore::json::Json::Int(order.nonce)),
+            ("expiry", qcore::json::Json::Int(order.expiry)),
+        ])
+        .render())
+    })
 }
 
 #[wasm_bindgen(js_name = checkOrderExpiry)]
@@ -847,31 +918,33 @@ pub fn sign_payable_call(
     head: u64,
     genesis_hex: &str,
 ) -> Result<String, JsError> {
-    let master = seed(seed_bytes)?;
-    if !qcore::valid_address(target) {
-        return Err(JsError::new("the target is not a q1 address"));
-    }
-    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee = whole(fee, "fee")?;
-    let value = whole_u64(value, "value")?;
+    scrubbed(|| {
+        let master = seed(seed_bytes)?;
+        if !qcore::valid_address(target) {
+            return Err(JsError::new("the target is not a q1 address"));
+        }
+        let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+        let fee = whole(fee, "fee")?;
+        let value = whole_u64(value, "value")?;
 
-    let signed = qcore::sign_payable_call(
-        &master,
-        index,
-        target,
-        args,
-        value,
-        nonce,
-        meter_limit,
-        fee,
-        chain_id,
-        valid_until,
-        self::transfer_fee(transfer_fee)?,
-        head,
-        &genesis(genesis_hex)?,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(signed_json(signed))
+        let signed = qcore::sign_payable_call(
+            &master,
+            index,
+            target,
+            args,
+            value,
+            nonce,
+            meter_limit,
+            fee,
+            chain_id,
+            valid_until,
+            self::transfer_fee(transfer_fee)?,
+            head,
+            &genesis(genesis_hex)?,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(signed_json(signed))
+    })
 }
 
 #[wasm_bindgen(js_name = signAssetCall)]
@@ -892,34 +965,36 @@ pub fn sign_asset_call(
     head: u64,
     genesis_hex: &str,
 ) -> Result<String, JsError> {
-    let master = seed(seed_bytes)?;
-    if !qcore::valid_address(target) {
-        return Err(JsError::new("the target is not a q1 address"));
-    }
-    if !qcore::valid_address(asset_issuer) {
-        return Err(JsError::new("the asset issuer is not a q1 address"));
-    }
-    let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
-    let fee = whole(fee, "fee")?;
-    let amount = whole_u64(amount, "amount")?;
-    let signed = qcore::sign_asset_call(
-        &master,
-        index,
-        target,
-        args,
-        asset_issuer,
-        amount,
-        nonce,
-        meter_limit,
-        fee,
-        chain_id,
-        valid_until,
-        self::transfer_fee(transfer_fee)?,
-        head,
-        &genesis(genesis_hex)?,
-    )
-    .map_err(|e| JsError::new(&e))?;
-    Ok(signed_json(signed))
+    scrubbed(|| {
+        let master = seed(seed_bytes)?;
+        if !qcore::valid_address(target) {
+            return Err(JsError::new("the target is not a q1 address"));
+        }
+        if !qcore::valid_address(asset_issuer) {
+            return Err(JsError::new("the asset issuer is not a q1 address"));
+        }
+        let args = qcore::json::from_hex(args_hex).map_err(|e| JsError::new(&e))?;
+        let fee = whole(fee, "fee")?;
+        let amount = whole_u64(amount, "amount")?;
+        let signed = qcore::sign_asset_call(
+            &master,
+            index,
+            target,
+            args,
+            asset_issuer,
+            amount,
+            nonce,
+            meter_limit,
+            fee,
+            chain_id,
+            valid_until,
+            self::transfer_fee(transfer_fee)?,
+            head,
+            &genesis(genesis_hex)?,
+        )
+        .map_err(|e| JsError::new(&e))?;
+        Ok(signed_json(signed))
+    })
 }
 
 #[cfg(test)]
@@ -1235,6 +1310,7 @@ pub fn roster_commitment(epoch: u64, roster_json: &str) -> Result<String, JsErro
 pub fn verify_next_roster(
     chain_id: u64,
     genesis_hex: &str,
+    epoch_length: u64,
     current_epoch: u64,
     current_roster_json: &str,
     header_hex: &str,
@@ -1249,6 +1325,7 @@ pub fn verify_next_roster(
     let next = qcore::finality::verify_next_roster(
         chain_id,
         &hash32(genesis_hex, "genesis hash")?,
+        epoch_length,
         &current,
         &qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?,
         &qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?,
@@ -1264,6 +1341,7 @@ pub fn verify_next_roster(
 pub fn verify_account(
     chain_id: u64,
     genesis_hex: &str,
+    epoch_length: u64,
     epoch: u64,
     roster_json: &str,
     address: &str,
@@ -1278,6 +1356,7 @@ pub fn verify_account(
     let verified = qcore::finality::verify_account(
         chain_id,
         &hash32(genesis_hex, "genesis hash")?,
+        epoch_length,
         &roster,
         address,
         &qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?,
@@ -1297,6 +1376,82 @@ pub fn verify_account(
         ("nonce", qcore::json::Json::str(nonce.to_string())),
     ])
     .render())
+}
+
+#[wasm_bindgen(js_name = verifyFinalityInEpoch)]
+#[allow(clippy::too_many_arguments)]
+pub fn verify_finality_in_epoch(
+    chain_id: u64,
+    genesis_hex: &str,
+    epoch_length: u64,
+    epoch: u64,
+    header_hex: &str,
+    certificate_hex: &str,
+    roster_json: &str,
+) -> Result<String, JsError> {
+    let roster = qcore::finality::VerifiedRoster {
+        epoch,
+        members: parse_roster(roster_json).map_err(|e| JsError::new(&e))?,
+    };
+    let verified = qcore::finality::verify_finality_in_epoch(
+        chain_id,
+        &hash32(genesis_hex, "genesis hash")?,
+        epoch_length,
+        &roster,
+        &qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?,
+        &qcore::json::from_hex(certificate_hex).map_err(|e| JsError::new(&e))?,
+    )
+    .map_err(|e| JsError::new(&e))?;
+    Ok(finalized_json(&verified))
+}
+
+#[wasm_bindgen(js_name = headerHeight)]
+pub fn header_height(header_hex: &str) -> Result<u64, JsError> {
+    let header = qcore::json::from_hex(header_hex).map_err(|e| JsError::new(&e))?;
+    qcore::finality::header_height(&header).map_err(|e| JsError::new(&e))
+}
+
+#[wasm_bindgen(js_name = transactionKind)]
+pub fn transaction_kind(leaf_hex: &str) -> Result<String, JsError> {
+    let leaf = qcore::json::from_hex(leaf_hex).map_err(|e| JsError::new(&e))?;
+    Ok(
+        match qcore::finality::transaction_kind(&leaf).map_err(|e| JsError::new(&e))? {
+            qcore::finality::TxKind::Transfer => "transfer",
+            qcore::finality::TxKind::Call => "call",
+        }
+        .to_string(),
+    )
+}
+
+#[wasm_bindgen(js_name = indexFitsPath)]
+pub fn index_fits_path(index: u64, steps_json: &str) -> Result<bool, JsError> {
+    let steps = parse_steps(steps_json).map_err(|e| JsError::new(&e))?;
+    Ok(qcore::finality::index_fits_path(index, &steps))
+}
+
+#[wasm_bindgen(js_name = testnetEpochLength)]
+pub fn testnet_epoch_length() -> Option<u64> {
+    qcore::TESTNET_EPOCH_LENGTH
+}
+
+#[wasm_bindgen(js_name = mainnetEpochLength)]
+pub fn mainnet_epoch_length() -> Option<u64> {
+    qcore::MAINNET_EPOCH_LENGTH
+}
+
+#[wasm_bindgen(js_name = testnetGenesisSecs)]
+pub fn testnet_genesis_secs() -> u64 {
+    qcore::TESTNET_GENESIS_SECS
+}
+
+#[wasm_bindgen(js_name = testnetBlocksPerSec)]
+pub fn testnet_blocks_per_sec() -> u64 {
+    qcore::TESTNET_BLOCKS_PER_SEC
+}
+
+#[wasm_bindgen(js_name = responseCap)]
+pub fn response_cap(method: &str) -> u64 {
+    qcore::response_cap(method) as u64
 }
 
 #[wasm_bindgen(js_name = testnetRosterCommitment)]
