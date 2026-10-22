@@ -9,8 +9,10 @@ const CONTRACT = 'Q1TC7YLRN4X6HWYU4UMX7KXLPEZNMHRYHCNDE35R2HJJWKJMVPCDGQRWGG5Q';
 function client(reportedNonce, accountNonce) {
   const Client = makeClient(core);
   const c = new Client('https://example.invalid/v1/');
-  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 1, head_height: 10, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' });
+  c.nodeInfo = async () => ({ fee: { transfer_quon: '500' }, chain_id: 'Q-dev-net-1', head_height: 10, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' });
   c._guardMainnet = () => {};
+  c._verifyHead = async () => false;
+  c._validity = () => ({ until: 310n, head: 10n, genesis: '00'.repeat(32) });
   c._signingChainId = () => 1n;
   c.contractNonce = async () => reportedNonce;
   c.submit = async () => ({ verdict: 'accepted', state: 'fresh', tx_id: 'Qtx' });
@@ -18,9 +20,9 @@ function client(reportedNonce, accountNonce) {
   return c;
 }
 
-async function sign(c, expected, layout) {
+async function sign(c, expected, layout, contract) {
   return c.callSignedOrder(
-    new Uint8Array(32).fill(0xaa), 0, CONTRACT, '00000000',
+    new Uint8Array(32).fill(0xaa), 0, contract || CONTRACT, '00000000',
     layout || { layoutHash: '00'.repeat(32), schemeOff: 0, ptrOff: 0, expiryOff: 0, expiry: 0, fields: [] },
     new Uint8Array(32).fill(0xbb), 0, 1210, '1000', expected
   );
@@ -69,11 +71,14 @@ async function sign(c, expected, layout) {
   const layout = { layoutHash: core.orderLayoutHash('00000000', JSON.stringify([{ name: 'order.step', type: 'u64', width: 8 }])), schemeOff: 120, ptrOff: 128, expiryOff: 144, expiry: Math.floor(Date.now() / 1000) + 3600, fields: [{ offset: 136, width: 8, value: '1' }] };
   const done = await sign(ordered, 5n, layout);
   assert.strictEqual(done.orderNonce, 5n);
-  const caller = core.address(new Uint8Array(32).fill(0xaa), 0n);
-  const orderKey = CONTRACT + '/' + core.orderSigner(new Uint8Array(32).fill(0xbb), 0n);
-  assert(ordered._session.isHeld(caller, 2n) && !ordered._session.isHeld(caller, 5n),
+  const caller = 'Q-dev-net-1/' + core.address(new Uint8Array(32).fill(0xaa), 0n);
+  const orderKey = 'Q-dev-net-1/' + CONTRACT + '/' + core.orderSigner(new Uint8Array(32).fill(0xbb), 0n);
+  assert(ordered._nonces.isHeld(caller, 2n) && !ordered._nonces.isHeld(caller, 5n),
     'the signature is held against the account nonce it was signed at, not the order nonce');
-  assert(ordered._session.isHeld(orderKey, 5n), 'the order nonce is held under its own key');
+  assert(ordered._nonces.isHeld(orderKey, 5n), 'the order nonce is held under its own key');
+  const lowered = client(6n, 3n);
+  await sign(lowered, 6n, layout, CONTRACT.toLowerCase());
+  assert(lowered._nonces.isHeld(orderKey, 6n), 'a lowercase contract spelling keys the same order nonce');
   console.log('  ok   a signed order holds the account nonce it used');
 
   const Client = makeClient(core);

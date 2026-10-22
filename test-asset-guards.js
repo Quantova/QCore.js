@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 const http = require('node:http');
-const { Client, core } = require('./index.js');
+const { Client, core, Network } = require('./index.js');
 
 function fail(msg) {
   console.error('FAIL ' + msg);
@@ -34,7 +34,8 @@ function fail(msg) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
-  const client = new Client(`http://127.0.0.1:${port}`);
+  const url = `http://127.0.0.1:${port}`;
+  const client = new Client(url, { network: new Network({ name: 'custom', rpcUrl: url, genesisSecs: Math.floor(Date.now() / 1000) - 1000, blocksPerSec: 1 }) });
   const seed = new Uint8Array(32).fill(0x11);
   const target = core.address(seed, 2n);
   const issuer = core.address(seed, 3n);

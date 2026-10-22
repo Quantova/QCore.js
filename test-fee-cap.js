@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 const http = require('node:http');
-const { Client } = require('./index.js');
+const { Client, Network } = require('./index.js');
 
 function fail(msg) {
   console.error('FAIL ' + msg);
@@ -42,7 +42,9 @@ function fail(msg) {
     });
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  let client = new Client('http://127.0.0.1:' + server.address().port);
+  const url = 'http://127.0.0.1:' + server.address().port;
+  const clocked = () => new Client(url, { network: new Network({ name: 'custom', chainId: 'Q-dev-net-1', rpcUrl: url, genesisSecs: Math.floor(Date.now() / 1000) - 1000, blocksPerSec: 1 }) });
+  let client = clocked();
   const seed = new Uint8Array(32).fill(0x0b);
   const to = client.address(seed, 1);
 
@@ -93,19 +95,22 @@ function fail(msg) {
   }
   if (submitted !== held) fail('a refused nonce must never submit');
 
-  nonceValue = 0;
+  nonceValue = 2;
   const okNonce = await client.transfer(seed, 0, to, '1000', '1000000');
   if (okNonce.outcome.verdict !== 'accepted' || submitted !== held + 1) fail('a normal nonce must still submit');
 
   const { core } = require('./index.js');
   const chainId = core.chainIdFromName('Q-dev-net-1');
   nonceValue = 0;
-  const fresh = new Client('http://127.0.0.1:' + server.address().port);
-  const bounded = await fresh.transfer(seed, 0, to, '1000', '1000000');
-  const expected = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 310n, 0n, '00'.repeat(32)));
+  let twice = false;
+  try { await clocked().transfer(seed, 0, to, '1000', '1000000'); } catch (e) { twice = /already reached/.test(e.message); }
+  if (!twice) fail('a second client in the process must not sign again at a nonce the first one used');
+  const fresh = clocked();
+  const bounded = await fresh.transfer(seed, 2, to, '1000', '1000000');
+  const expected = JSON.parse(core.sign_transfer(seed, 2n, to, '1000', 0n, '100', chainId, 310n, 0n, '00'.repeat(32)));
   const unsigned = (hex) => hex.slice(0, hex.length - 2 * (1 + 8 + 3309));
   if (unsigned(bounded.signed.tx_hex) !== unsigned(expected.tx_hex)) fail('a client transfer must expire 300 blocks past the head');
-  const later = JSON.parse(core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 311n, 0n, '00'.repeat(32)));
+  const later = JSON.parse(core.sign_transfer(seed, 2n, to, '1000', 0n, '100', chainId, 311n, 0n, '00'.repeat(32)));
   if (later.tx_hex === expected.tx_hex) fail('the validity window must be part of what is signed');
   let neverExpires = false;
   try { core.sign_transfer(seed, 0n, to, '1000', 0n, '100', chainId, 0n, 0n, '00'.repeat(32)); } catch (e) { neverExpires = /never expires/.test(e.message); }
@@ -133,7 +138,7 @@ function fail(msg) {
   }
   if (submitted !== before) fail('a contradicted expected nonce must never submit');
   nonceValue = 0;
-  client = new Client('http://127.0.0.1:' + server.address().port);
+  client = clocked();
   let underpaid = false;
   try { await client.call(seed, 0, to, '01', 21000n, '99', 0n); }
   catch (e) { underpaid = true; if (!/above the maximum/.test(e.message)) fail('unclear locked fee error: ' + e.message); }
@@ -141,6 +146,7 @@ function fail(msg) {
   const agreed = await client.call(seed, 0, to, '01', 21000n, '1000000', 0n);
   if (agreed.outcome.verdict !== 'accepted') fail('an agreed expected nonce signs');
 
+  nonceValue = 3;
   for (const meter of [-1n, 1n << 64n, 2 ** 60, 1209n, 12500001n]) {
     let refusedMeter = false;
     const beforeMeter = submitted;
@@ -150,7 +156,7 @@ function fail(msg) {
     if (submitted !== beforeMeter) fail('a refused meter limit must never submit');
   }
 
-  const retry = new Client('http://127.0.0.1:' + server.address().port);
+  const retry = clocked();
   feeQuon = '100';
   nonceValue = 3;
   verdict = 'rejected';
@@ -164,21 +170,21 @@ function fail(msg) {
   nonceValue = 3;
   const replaced = await retry.transfer(seed, 0, to, '2', '1000000', 3n);
   if (replaced.outcome.verdict !== 'accepted') fail('naming the nonce explicitly must override the hold');
-  if (retry._session.nextNonce(replaced.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
+  if (retry._nonces.nextNonce('Q-dev-net-1/' + replaced.signed.from) !== 4n) fail('an accepted send raises the local next nonce');
   nonceValue = 3;
   let holding = false;
   try { await retry.transfer(seed, 0, to, '3', '1000000'); }
-  catch (e) { holding = /already signed/.test(e.message); }
+  catch (e) { holding = /already signed|already reached/.test(e.message); }
   if (!holding) fail('an accepted send the chain has not passed still holds its nonce');
-  retry._validity({ head_height: 250, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' });
+  retry._validity({ chain_id: 'Q-dev-net-1', head_height: 250, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' });
   let dropped = false;
-  try { retry._validity({ head_height: 200, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' }); } catch (e) { dropped = /below the 250/.test(e.message); }
+  try { retry._validity({ chain_id: 'Q-dev-net-1', head_height: 200, genesis_hash: '0000000000000000000000000000000000000000000000000000000000000000' }); } catch (e) { dropped = /below the 250/.test(e.message); }
   if (!dropped) fail('the head floor must rise to the highest head seen');
   head = 400;
   nonceValue = 3;
   let early = false;
   try { await retry.transfer(seed, 0, to, '4', '1000000'); }
-  catch (e) { early = /already signed/.test(e.message); }
+  catch (e) { early = /already signed|already reached/.test(e.message); }
   if (!early) fail('a gateway head past the deadline must never free a signed nonce');
   nonceValue = 4;
   const advanced = await retry.transfer(seed, 0, to, '4', '1000000');
@@ -186,7 +192,7 @@ function fail(msg) {
   nonceValue = 9;
   const ahead = await retry.transfer(seed, 0, to, '5', '1000000');
   if (ahead.outcome.verdict !== 'accepted') fail('a gateway nonce ahead of the local one must be signed at, not refused');
-  if (retry._session.nextNonce(ahead.signed.from) !== 10n) fail('the local next nonce follows the highest nonce seen');
+  if (retry._nonces.nextNonce('Q-dev-net-1/' + ahead.signed.from) !== 10n) fail('the local next nonce follows the highest nonce seen');
   nonceValue = 10;
   verdict = 'rejected';
   await retry.transfer(seed, 0, to, '6', '1000000');

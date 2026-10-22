@@ -106,6 +106,7 @@ export interface QCore {
   mapAddrWordKey(map_domain_tag: WholeNumber, key32_hex: string, word: WholeNumber): string;
   mapSlotKey(map_domain_tag: WholeNumber, key_address_hex: string): string;
   mnemonicFromSeed(seed: Uint8Array): Uint8Array;
+  /** @deprecated a JavaScript string cannot be wiped, use mnemonicFromSeed */
   mnemonicFromSeedText(seed: Uint8Array): string;
   nonceSlotKey(signer_hex: string): string;
   orderLayoutHash(selector_hex: string, fields_json: string): string;
@@ -140,8 +141,14 @@ export interface QCore {
   testnetChainName(): string;
   gatewayProtocol(): number;
   rosterCommitment(epoch: bigint, roster: string): string;
-  verifyNextRoster(chainId: bigint, genesisHash: string, epoch: bigint, roster: string, header: string, certificate: string, nextRoster: string, proof: string): bigint;
-  verifyAccount(chainId: bigint, genesisHash: string, epoch: bigint, roster: string, address: string, header: string, certificate: string, proof: string): string;
+  verifyNextRoster(chainId: bigint, genesisHash: string, epochLength: bigint, epoch: bigint, roster: string, header: string, certificate: string, nextRoster: string, proof: string): bigint;
+  verifyAccount(chainId: bigint, genesisHash: string, epochLength: bigint, epoch: bigint, roster: string, address: string, header: string, certificate: string, proof: string): string;
+  verifyFinalityInEpoch(chainId: bigint, genesisHash: string, epochLength: bigint, epoch: bigint, header: string, certificate: string, roster: string): string;
+  headerHeight(header: string): bigint;
+  transactionKind(leaf: string): 'transfer' | 'call';
+  indexFitsPath(index: bigint, steps: string): boolean;
+  boundedValidUntilFor(genesisSecs: bigint | undefined, blocksPerSec: bigint | undefined, verified: boolean, head: bigint, wallSecs: bigint, floor: bigint | undefined, floorAgeSecs: bigint): bigint;
+  responseCap(method: string): bigint;
   testnetRosterCommitment(): string | undefined;
   mainnetRosterCommitment(): string | undefined;
   testnetGenesisHash(): string | undefined;
@@ -254,7 +261,10 @@ export class Network {
   readonly isMainnet: boolean;
   readonly genesisHash: string | null;
   readonly rosterCommitment: string | null;
-  constructor(fields: { name: string; chainId: string | null; rpcUrl?: string | null; explorerUrl?: string | null; denomination?: string; decimals?: number; isMainnet?: boolean; genesisHash?: string | null; rosterCommitment?: string | null });
+  readonly epochLength: bigint | null;
+  readonly genesisSecs: bigint | null;
+  readonly blocksPerSec: bigint | null;
+  constructor(fields: { name: string; chainId: string | null; rpcUrl?: string | null; explorerUrl?: string | null; denomination?: string; decimals?: number; isMainnet?: boolean; genesisHash?: string | null; rosterCommitment?: string | null; epochLength?: number | bigint | null; genesisSecs?: number | bigint | null; blocksPerSec?: number | bigint | null });
   static testnet(): Network;
   static mainnet(): Network;
   static forUrl(base: string): Network;
@@ -269,6 +279,16 @@ export interface ClientOptions {
   fetch?: (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal; redirect: 'error' }) => Promise<Response>;
 }
 
+export interface ConfirmedTransaction {
+  txId: string;
+  height: bigint;
+  index: bigint;
+  header: any;
+  kind: 'transfer' | 'call';
+  outcome: 'applied' | 'included outcome unproven' | 'event proven';
+  eventIndex?: bigint;
+}
+
 export class Client {
   constructor(target: string | Network, options?: ClientOptions);
   readonly network: Network;
@@ -278,11 +298,14 @@ export class Client {
   transaction(txId: string): Promise<any>;
   saveSession(): string;
   restoreSession(state: string): void;
-  confirmTransaction(txId: string, genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
+  confirmTransaction(txId: string, genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>, epoch?: number | bigint): Promise<ConfirmedTransaction>;
+  confirmInclusion(txId: string, genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>, epoch?: number | bigint): Promise<ConfirmedTransaction>;
+  confirmInclusionTrusted(txId: string): Promise<ConfirmedTransaction>;
+  confirmCallEvent(txId: string, contract: string, selectorHex: string, dataHex?: string): Promise<ConfirmedTransaction>;
   trustRoster(genesisHash: string, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
   trustRosterAt(genesisHash: string, epoch: number | bigint, roster: string | ReadonlyArray<{ id: number; stake: string; attest_pk: string; root: string; root_slots: string }>): void;
   verifiedAccount(address: string): Promise<{ address: string; height: bigint; exists: boolean; balance: bigint; nonce: bigint }>;
-  confirmTransactionTrusted(txId: string): Promise<{ txId: string; height: bigint; index: bigint; header: any }>;
+  confirmTransactionTrusted(txId: string): Promise<ConfirmedTransaction>;
   block(height: number | bigint): Promise<any>;
   submit(txHex: string): Promise<any>;
   container(address: string): Promise<any>;
@@ -356,6 +379,7 @@ export const core: QCore;
 
 export function generateSeed(): Uint8Array;
 
+/** @deprecated the gateway head is unverified, sign through Client */
 export function validUntil(nodeInfo: { head_height?: number | bigint }): bigint;
 
 export function vmCallFee(transferFee: WholeNumber, meterLimit: WholeNumber): bigint;

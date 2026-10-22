@@ -87,6 +87,10 @@ function coreArg(kind, label, value) {
     if (value.length !== 32) throw new Error(`the ${label} must be 32 bytes`);
     return value;
   }
+  if (kind === 'bool') {
+    if (typeof value !== 'boolean') throw new Error(`the ${label} must be true or false`);
+    return value;
+  }
   if (kind === 'u64') return wholeNumber(value, label, U64_MAX);
   if (kind === 'u64opt') return value == null ? undefined : wholeNumber(value, label, U64_MAX);
   if (kind === 'u64s') return wholeNumber(value, label, U64_MAX).toString();
@@ -117,8 +121,9 @@ const CORE_ARGS = {
   storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
   verifyFinality: [['u64', 'chain id'], ['text', 'genesis hash'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
   rosterCommitment: [['u64', 'roster epoch'], ['text', 'validator roster']],
-  verifyNextRoster: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'header'], ['text', 'certificate'], ['text', 'next validator roster'], ['text', 'roster proof']],
-  verifyAccount: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'address'], ['text', 'header'], ['text', 'certificate'], ['text', 'account proof']],
+  verifyFinalityInEpoch: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'epoch length'], ['u64', 'roster epoch'], ['text', 'header'], ['text', 'certificate'], ['text', 'validator roster']],
+  verifyNextRoster: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'epoch length'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'header'], ['text', 'certificate'], ['text', 'next validator roster'], ['text', 'roster proof']],
+  verifyAccount: [['u64', 'chain id'], ['text', 'genesis hash'], ['u64', 'epoch length'], ['u64', 'roster epoch'], ['text', 'validator roster'], ['text', 'address'], ['text', 'header'], ['text', 'certificate'], ['text', 'account proof']],
   verifyEvent: [['text', 'event root'], ['text', 'event leaf'], ['text', 'proof steps']],
   verifyTransaction: [['text', 'transaction root'], ['text', 'transaction id'], ['text', 'transaction leaf'], ['text', 'proof steps']],
   decodeEvent: [['text', 'event leaf']],
@@ -132,14 +137,58 @@ const CORE_ARGS = {
   vmCallFee: [['u128s', 'transfer fee'], ['u64', 'meter limit']],
   deployFeeQuon: [['text', 'node info']],
   checkValidUntil: [['u64', 'validity deadline'], ['u64', 'head height']],
+  boundedValidUntilFor: [['u64opt', 'genesis time'], ['u64opt', 'block rate'], ['bool', 'verified'], ['u64', 'head height'], ['u64', 'wall clock seconds'], ['u64opt', 'head floor'], ['u64', 'head floor age']],
+  indexFitsPath: [['u64', 'transaction index'], ['text', 'proof steps']],
 };
+
+const STRING_ARGS = {
+  account_body: [0], assetBalanceBody: [0, 1], assetSupplyBody: [0], boundedValidUntil: [0],
+  buildSignedOrderCall: [1, 2, 3, 7, 8], buildTypedOrderCall: [1, 2, 3, 8], chainIdFromName: [0],
+  checkEndpoint: [0], checkGatewayJson: [0], contractAddress: [0], decodeEvent: [0], deployFeeQuon: [0],
+  genesisSecs: [0], headCeiling: [0], lookalikeOf: [0], mapAddrWordKey: [1], mapSlotKey: [1], nameKey: [0],
+  nonceSlotKey: [0], orderLayoutHash: [0, 1], packSymbol: [0], parseEvents: [0], rosterCommitment: [1],
+  sameAddress: [0, 1], seedFromMnemonic: [0], signAssetCall: [2, 3, 4, 5, 8, 13], signPayableCall: [2, 3, 6, 7, 12],
+  signRegister: [3, 7], sign_call: [2, 3, 6, 11], sign_transfer: [2, 3, 5, 9], storageBody: [0], storageValue: [0, 1],
+  storageValueReported: [0, 1], submit_body: [0], transaction_body: [0], valid_address: [0],
+  verifyAccount: [1, 4, 5, 6, 7, 8], verifyEvent: [0, 1, 2], verifyFinality: [1, 2, 3, 4],
+  verifyFinalityInEpoch: [1, 4, 5, 6], verifyNextRoster: [1, 4, 5, 6, 7, 8], verifyTransaction: [0, 1, 2, 3],
+  vmCallFee: [0], headerHeight: [0], transactionKind: [0], indexFitsPath: [1], responseCap: [0],
+};
+
+function stringsChecked(name, fn) {
+  const positions = STRING_ARGS[name];
+  if (!positions) return fn;
+  return (...args) => {
+    for (const at of positions) {
+      if (typeof args[at] !== 'string') {
+        throw new Error(`${name} takes a string as argument ${at + 1}, not ${args[at] === null ? 'null' : typeof args[at]}`);
+      }
+    }
+    return fn(...args);
+  };
+}
+
+let warnedText = false;
 
 function wrapCore(raw) {
   const core = Object.assign({}, raw);
+  for (const name of Object.keys(STRING_ARGS)) {
+    if (typeof raw[name] === 'function') core[name] = stringsChecked(name, raw[name]);
+  }
   for (const [name, kinds] of Object.entries(CORE_ARGS)) {
-    const fn = raw[name];
+    const fn = core[name];
     if (typeof fn !== 'function') continue;
     core[name] = (...args) => fn(...kinds.map(([kind, label], i) => coreArg(kind, label, args[i])));
+  }
+  const textPhrase = core.mnemonicFromSeedText;
+  if (typeof textPhrase === 'function') {
+    core.mnemonicFromSeedText = (seed) => {
+      if (!warnedText && typeof process !== 'undefined' && process && typeof process.emitWarning === 'function') {
+        warnedText = true;
+        process.emitWarning('mnemonicFromSeedText returns a JavaScript string that cannot be wiped, use mnemonicFromSeed, which returns a Uint8Array you can fill with zeros', 'DeprecationWarning');
+      }
+      return textPhrase(seed);
+    };
   }
   const fee = core.vmCallFee;
   if (typeof fee === 'function') core.vmCallFee = (transferFee, meterLimit) => BigInt(fee(transferFee, meterLimit));
@@ -163,6 +212,30 @@ function bindNetworkDefaults(core) {
   if (core && typeof core.mainnetGenesisHash === 'function') NETWORK_DEFAULTS.mainnetGenesisHash = core.mainnetGenesisHash() || null;
   if (core && typeof core.testnetRosterCommitment === 'function') NETWORK_DEFAULTS.testnetRosterCommitment = core.testnetRosterCommitment() || null;
   if (core && typeof core.mainnetRosterCommitment === 'function') NETWORK_DEFAULTS.mainnetRosterCommitment = core.mainnetRosterCommitment() || null;
+  if (core && typeof core.testnetEpochLength === 'function') NETWORK_DEFAULTS.testnetEpochLength = core.testnetEpochLength() || null;
+  if (core && typeof core.mainnetEpochLength === 'function') NETWORK_DEFAULTS.mainnetEpochLength = core.mainnetEpochLength() || null;
+  if (core && typeof core.testnetGenesisSecs === 'function') NETWORK_DEFAULTS.testnetGenesisSecs = core.testnetGenesisSecs();
+  if (core && typeof core.testnetBlocksPerSec === 'function') NETWORK_DEFAULTS.testnetBlocksPerSec = core.testnetBlocksPerSec();
+}
+
+function optionalWhole(value, label) {
+  if (value == null) return null;
+  return wholeNumber(value, label, U64_MAX);
+}
+
+const SHARED_SESSIONS = new Map();
+
+function sharedSession(core) {
+  let session = SHARED_SESSIONS.get(core.SigningSession);
+  if (!session) {
+    session = new core.SigningSession([]);
+    SHARED_SESSIONS.set(core.SigningSession, session);
+  }
+  return session;
+}
+
+function canonicalAddress(address) {
+  return String(address).toUpperCase();
 }
 
 function pinnedGenesis(value) {
@@ -209,7 +282,13 @@ function meterLimitOf(meterLimit) {
   return wholeNumber(meterLimit, 'meter limit', U64_MAX);
 }
 
+let warnedValidUntil = false;
+
 function validUntil(info) {
+  if (!warnedValidUntil && typeof process !== 'undefined' && process && typeof process.emitWarning === 'function') {
+    warnedValidUntil = true;
+    process.emitWarning('validUntil trusts the head the gateway reports, sign through Client so the deadline is bounded by a verified head or a known chain clock', 'DeprecationWarning');
+  }
   const h = gatewayInteger(info && info.head_height, 'head height');
   if (h > MAX_PLAUSIBLE_HEAD) {
     throw new Error('the gateway reported a head height past any height this chain can have reached');
@@ -308,6 +387,12 @@ class Network {
     this.isMainnet = fields.isMainnet === true;
     this.genesisHash = pinnedGenesis(fields.genesisHash);
     this.rosterCommitment = pinnedGenesis(fields.rosterCommitment);
+    this.epochLength = optionalWhole(fields.epochLength, 'epoch length');
+    this.genesisSecs = optionalWhole(fields.genesisSecs, 'genesis time');
+    this.blocksPerSec = optionalWhole(fields.blocksPerSec, 'block rate');
+    if ((this.genesisSecs === null) !== (this.blocksPerSec === null)) {
+      throw new Error('a network names a genesis time and a block rate together or neither');
+    }
     Object.freeze(this);
   }
 
@@ -321,6 +406,9 @@ class Network {
       isMainnet: false,
       genesisHash: defaults.testnetGenesisHash || null,
       rosterCommitment: defaults.testnetRosterCommitment || null,
+      epochLength: defaults.testnetEpochLength || null,
+      genesisSecs: defaults.testnetGenesisSecs == null ? null : defaults.testnetGenesisSecs,
+      blocksPerSec: defaults.testnetBlocksPerSec == null ? null : defaults.testnetBlocksPerSec,
     });
   }
 
@@ -333,6 +421,7 @@ class Network {
       isMainnet: true,
       genesisHash: NETWORK_DEFAULTS.mainnetGenesisHash || null,
       rosterCommitment: NETWORK_DEFAULTS.mainnetRosterCommitment || null,
+      epochLength: NETWORK_DEFAULTS.mainnetEpochLength || null,
     });
   }
 
@@ -385,6 +474,7 @@ function makeClient(core) {
           : null;
       const book = opts.addressBook == null ? [] : Array.from(opts.addressBook, String);
       this._session = new core.SigningSession(book);
+      this._nonces = sharedSession(core);
       this._pinnedChainName = null;
       this._headFloor = null;
       if (opts.fetch != null && typeof opts.fetch !== 'function') throw new Error('the fetch option must be a function with the fetch signature');
@@ -404,7 +494,7 @@ function makeClient(core) {
         const run = () => order(callerSeed, callerIndex, contract, selectorHex, orderSpec, ownerSeed, ownerIndex, ...rest);
         let keys;
         try {
-          keys = [core.address(callerSeed, callerIndex), String(contract) + '/' + core.orderSigner(ownerSeed, ownerIndex)];
+          keys = [core.address(callerSeed, callerIndex), canonicalAddress(contract) + '/' + core.orderSigner(ownerSeed, ownerIndex)];
         } catch (e) {
           return run();
         }
@@ -471,6 +561,9 @@ function makeClient(core) {
           redirect: 'error',
         }), aborted]);
         const text = await Promise.race([readBounded(res), aborted]);
+        if (typeof core.responseCap === 'function' && text.length > Number(core.responseCap(method))) {
+          throw new Error(`the gateway answered ${method} with ${text.length} characters, above what that answer can need, refusing to read it`);
+        }
         if (res.status === 200) core.checkGatewayJson(text);
         let data;
         try { data = JSON.parse(text); } catch { throw new Error('the node returned a non JSON response'); }
@@ -517,19 +610,29 @@ function makeClient(core) {
       return value == null ? undefined : wholeNumber(value, label, U64_MAX);
     }
 
-    async _accountSlot(from, expectedNonce) {
+    async _accountSlot(info, from, expectedNonce) {
       const acct = await this.account(from);
       const reported = gatewayInteger(acct.nonce, 'nonce');
-      this._session.releasePending(from);
-      return BigInt(this._session.slot(from, reported, this._expected(expectedNonce, 'expected nonce'), false));
+      const key = info.chain_id + '/' + from;
+      const nonce = BigInt(this._nonces.slot(key, reported, this._expected(expectedNonce, 'expected nonce'), false));
+      return { key, nonce };
+    }
+
+    _released(slots, sign) {
+      try {
+        return sign();
+      } catch (e) {
+        for (const [key, slot] of slots) this._nonces.release(key, slot);
+        throw e;
+      }
     }
 
     async _submitHeld(slots, txHex) {
-      for (const [key, slot] of slots) this._session.signed(key, slot);
+      for (const [key, slot] of slots) this._nonces.signed(key, slot);
       const outcome = await this.submit(txHex);
       const verdict = outcome && outcome.verdict;
       if (verdict !== 'accepted' && verdict !== 'rejected') throw new Error(`unknown verdict ${shown(verdict)}`);
-      for (const [key, slot] of slots) this._session.outcome(key, slot, verdict === 'accepted');
+      for (const [key, slot] of slots) this._nonces.outcome(key, slot, verdict === 'accepted');
       return outcome;
     }
 
@@ -572,6 +675,32 @@ function makeClient(core) {
       return true;
     }
 
+    _epochLength() {
+      const length = this.network && this.network.epochLength;
+      if (length == null || length === 0n) {
+        throw new Error(`no epoch length is pinned for the ${this.network ? this.network.name : 'custom'} network, so the validator roster for a height cannot be chosen without trusting the gateway; set the network epochLength`);
+      }
+      return length;
+    }
+
+    _epochOfHeader(headerHex, reported) {
+      const height = BigInt(core.headerHeight(headerHex));
+      const epoch = height / this._epochLength();
+      if (reported != null && gatewayInteger(reported, 'epoch') !== epoch) {
+        throw new Error(`the gateway names epoch ${shown(reported)} for height ${height}, which lies in epoch ${epoch}, refusing to choose a roster on its word`);
+      }
+      return { height, epoch };
+    }
+
+    _checkedChain(info) {
+      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      const configured = this.expectedChainId || (this.network && this.network.chainId) || null;
+      if (configured && name !== configured) {
+        throw new Error(`the gateway reports chain ${shown(name)} but this client is configured for ${configured}`);
+      }
+      return BigInt(core.chainIdFromName(name));
+    }
+
     async _rosterForEpoch(chainId, epoch) {
       if (!(await this._anchorPinnedRoster())) return null;
       const target = BigInt(epoch);
@@ -580,6 +709,7 @@ function makeClient(core) {
         if (known <= target && (start === null || known > start)) start = known;
       }
       if (start === null) throw new Error(`the trusted roster starts after epoch ${target}, so that epoch cannot be checked`);
+      const length = this._epochLength();
       let current = start;
       let roster = this._trustedRosters.get(start);
       while (current < target) {
@@ -588,8 +718,9 @@ function makeClient(core) {
         if (!answer || typeof answer.header_bytes !== 'string' || typeof answer.certificate !== 'string' || typeof answer.proof !== 'string') {
           throw new Error(`the gateway gave no roster proof for epoch ${next}`);
         }
+        if (answer.epoch !== Number(next)) throw new Error(`the gateway answered a roster proof for another epoch when asked for epoch ${next}`);
         const members = JSON.stringify(answer.members);
-        core.verifyNextRoster(chainId, this._trustedGenesis, current, roster, answer.header_bytes, answer.certificate, members, answer.proof);
+        core.verifyNextRoster(chainId, this._trustedGenesis, length, current, roster, answer.header_bytes, answer.certificate, members, answer.proof);
         current = next;
         roster = members;
         this._trustedRosters.set(current, roster);
@@ -606,7 +737,9 @@ function makeClient(core) {
       if (!finality || typeof finality.header_bytes !== 'string' || typeof finality.certificate !== 'string') {
         throw new Error(`the gateway gave no finality proof for height ${height}`);
       }
-      return { epoch: gatewayInteger(finality.epoch, 'finality epoch'), header: finality.header_bytes, certificate: finality.certificate };
+      const at = this._epochOfHeader(finality.header_bytes, finality.epoch);
+      if (at.height !== BigInt(height)) throw new Error(`the gateway answered a finality proof for another height when asked for height ${height}`);
+      return { epoch: at.epoch, header: finality.header_bytes, certificate: finality.certificate };
     }
 
     async _verifyHead(info) {
@@ -616,77 +749,162 @@ function makeClient(core) {
         if ((this.network && this.network.isMainnet === true) || isMainnetChain(reported) || isMainnetChain(configured)) {
           throw new Error('a mainnet client needs a trusted validator roster to check the head it signs against, call trustRoster first');
         }
-        return;
+        return false;
       }
       const head = gatewayInteger(info && info.head_height, 'head height');
       const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
       const chainId = BigInt(core.chainIdFromName(name));
       const certified = await this._certifiedAt(head);
       const roster = await this._rosterForEpoch(chainId, certified.epoch);
-      const verified = JSON.parse(core.verifyFinality(chainId, this._trustedGenesis, certified.header, certified.certificate, roster));
+      const verified = JSON.parse(core.verifyFinalityInEpoch(chainId, this._trustedGenesis, this._epochLength(), certified.epoch, certified.header, certified.certificate, roster));
       if (BigInt(verified.height) !== head) {
         throw new Error(`the gateway reports head ${head} but its finality proof is for height ${verified.height}, refusing to sign`);
       }
+      return true;
     }
 
     async verifiedAccount(address) {
       if (typeof address !== 'string') throw new Error('the address must be a string');
       const info = await this.nodeInfo();
-      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
-      const chainId = BigInt(core.chainIdFromName(name));
+      const chainId = this._checkedChain(info);
       const answer = await this._call('get_account_proof', JSON.stringify({ address }), true);
       if (!answer || typeof answer.header_bytes !== 'string' || typeof answer.certificate !== 'string' || typeof answer.proof !== 'string') {
         throw new Error('the gateway gave no account proof');
       }
-      const epoch = gatewayInteger(answer.epoch, 'account proof epoch');
+      const { epoch } = this._epochOfHeader(answer.header_bytes, answer.epoch);
       const roster = await this._rosterForEpoch(chainId, epoch);
       if (roster === null) throw new Error('a verified balance needs a trusted validator roster, call trustRoster first');
-      const verified = JSON.parse(core.verifyAccount(chainId, this._trustedGenesis, epoch, roster, address, answer.header_bytes, answer.certificate, answer.proof));
+      const verified = JSON.parse(core.verifyAccount(chainId, this._trustedGenesis, this._epochLength(), epoch, roster, address, answer.header_bytes, answer.certificate, answer.proof));
       return { address: verified.address, height: BigInt(verified.height), exists: verified.exists === true, balance: BigInt(verified.balance), nonce: BigInt(verified.nonce) };
     }
 
-    async confirmTransactionTrusted(txId) {
+    async _inclusion(txId, trusted) {
       if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
-      const status = await this._call('get_transaction', core.transaction_body(txId));
-      if (!status || status.status !== 'finalised') throw new Error('the transaction is not reported as finalised');
-      const height = gatewayInteger(status.height, 'transaction height');
       const info = await this.nodeInfo();
-      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
-      const chainId = BigInt(core.chainIdFromName(name));
+      const chainId = this._checkedChain(info);
+      const proof = await this._call('get_transaction_proof', JSON.stringify({ tx_id: txId }), true);
+      const height = gatewayInteger(proof && proof.height, 'proof height');
+      const index = gatewayInteger(proof && proof.index, 'proof index');
+      if (typeof proof.leaf !== 'string') throw new Error('the transaction proof carries no leaf');
+      const steps = JSON.stringify(proof.steps);
       const certified = await this._certifiedAt(height);
-      const roster = await this._rosterForEpoch(chainId, certified.epoch);
-      if (roster === null) throw new Error('a verified confirmation needs a trusted validator roster, call trustRoster first');
-      return this.confirmTransaction(txId, this._trustedGenesis, roster);
+      let genesis;
+      let epoch;
+      let roster;
+      if (trusted) {
+        ({ genesis, epoch, roster } = trusted);
+      } else {
+        roster = await this._rosterForEpoch(chainId, certified.epoch);
+        if (roster === null) throw new Error('a verified confirmation needs a trusted validator roster, call trustRoster first');
+        genesis = this._trustedGenesis;
+        epoch = certified.epoch;
+      }
+      const verified = JSON.parse(core.verifyFinalityInEpoch(chainId, genesis, this._epochLength(), epoch, certified.header, certified.certificate, roster));
+      if (BigInt(verified.height) !== height) throw new Error('the finalized header is not at the height the proof names');
+      if (!core.verifyTransaction(verified.transaction_root, txId, proof.leaf, steps)) {
+        throw new Error('the transaction is not proven inside the finalized block');
+      }
+      if (!core.indexFitsPath(index, steps)) {
+        throw new Error(`the gateway names position ${index} for the transaction, which its verified inclusion path cannot reach`);
+      }
+      const kind = core.transactionKind(proof.leaf);
+      return { txId, height, index, header: verified, kind, outcome: kind === 'transfer' ? 'applied' : 'included outcome unproven' };
     }
 
-    _validity(info) {
+    _trustedArgs(genesisHash, roster, epoch) {
+      if (typeof genesisHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(genesisHash)) {
+        throw new Error('the genesis hash you trust must be 64 hex characters');
+      }
+      return {
+        genesis: genesisHash.toLowerCase(),
+        epoch: wholeNumber(epoch == null ? 0n : epoch, 'roster epoch', U64_MAX),
+        roster: typeof roster === 'string' ? roster : JSON.stringify(roster),
+      };
+    }
+
+    confirmInclusion(txId, genesisHash, roster, epoch) {
+      return this._inclusion(txId, this._trustedArgs(genesisHash, roster, epoch));
+    }
+
+    confirmInclusionTrusted(txId) {
+      return this._inclusion(txId, null);
+    }
+
+    _settled(confirmed) {
+      if (confirmed.kind !== 'transfer') {
+        throw new Error(`${confirmed.txId} is a contract call, which the chain includes and charges even when it reverts, so inclusion does not prove it ran; prove the event it emits with confirmCallEvent, or use confirmInclusion for inclusion alone`);
+      }
+      return confirmed;
+    }
+
+    async confirmTransaction(txId, genesisHash, roster, epoch) {
+      return this._settled(await this.confirmInclusion(txId, genesisHash, roster, epoch));
+    }
+
+    async confirmTransactionTrusted(txId) {
+      return this._settled(await this.confirmInclusionTrusted(txId));
+    }
+
+    async confirmCallEvent(txId, contract, selectorHex, dataHex) {
+      if (typeof contract !== 'string' || typeof selectorHex !== 'string') throw new Error('the contract and selector must be strings');
+      if (dataHex != null && typeof dataHex !== 'string') throw new Error('the event data must be a hex string');
+      const confirmed = await this.confirmInclusionTrusted(txId);
+      const height = confirmed.height;
+      const listed = JSON.parse(core.parseEvents(JSON.stringify(await this.events(height))));
+      const selector = selectorHex.toLowerCase();
+      const data = dataHex == null ? null : dataHex.toLowerCase();
+      for (const [position, event] of listed.entries()) {
+        if (!core.sameAddress(event.contract, contract) || event.selector !== selector || (data !== null && event.data !== data)) continue;
+        const answer = await this._call('get_event_proof', JSON.stringify({ height: Number(height), index: position }), true);
+        if (!answer || typeof answer.leaf !== 'string') continue;
+        if (!core.verifyEvent(confirmed.header.event_root, answer.leaf, JSON.stringify(answer.steps))) continue;
+        const proven = JSON.parse(core.decodeEvent(answer.leaf));
+        if (core.sameAddress(proven.contract, contract) && proven.selector === selector && (data === null || proven.data === data)) {
+          return Object.assign({}, confirmed, { outcome: 'event proven', eventIndex: BigInt(position) });
+        }
+      }
+      throw new Error(`the block that holds ${txId} carries no proven event of that contract and selector, so the call is not shown to have run`);
+    }
+
+    _validity(info, verified) {
       const head = gatewayInteger(info && info.head_height, 'head height');
       const chain = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      if (!verified && ((this.network && this.network.isMainnet === true) || isPublicChain(chain))) {
+        throw new Error(`the head of the public chain ${shown(chain)} must be verified against a trusted validator roster before signing, pin the network roster commitment or call trustRoster`);
+      }
+      let genesisSecs = this.network ? this.network.genesisSecs : null;
+      let blocksPerSec = this.network ? this.network.blocksPerSec : null;
+      if (genesisSecs === null && chain === NETWORK_DEFAULTS.testnetChainName && NETWORK_DEFAULTS.testnetBlocksPerSec != null) {
+        genesisSecs = BigInt(NETWORK_DEFAULTS.testnetGenesisSecs);
+        blocksPerSec = BigInt(NETWORK_DEFAULTS.testnetBlocksPerSec);
+      }
       const wall = BigInt(Math.floor(Date.now() / 1000));
-      const tick = monotonicSecs();
-      const floor = this._headFloor;
-      const age = floor && tick > floor.at ? tick - floor.at : 0n;
-      const until = BigInt(core.boundedValidUntil(chain, head, wall, floor ? floor.height : undefined, age));
-      if (!floor || head > floor.height) this._headFloor = { height: head, at: tick };
+      const floor = this._nonces.headFloor(chain);
+      const floorHeight = floor ? BigInt(floor[0]) : undefined;
+      const age = floor && wall > BigInt(floor[1]) ? wall - BigInt(floor[1]) : 0n;
+      const until = BigInt(core.boundedValidUntilFor(genesisSecs === null ? undefined : genesisSecs, blocksPerSec === null ? undefined : blocksPerSec, verified === true, head, wall, floorHeight, age));
+      this._nonces.noteHead(chain, head, wall);
       const genesis = info && typeof info.genesis_hash === 'string' ? info.genesis_hash : '';
       if (!/^[0-9a-fA-F]{64}$/.test(genesis)) {
         throw new Error('the gateway reports a genesis hash that is not 32 bytes of hex, refusing to sign');
       }
       const reported = genesis.toLowerCase();
-      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
+      if (this._trustedGenesis && this._trustedGenesis !== reported) {
+        throw new Error('the gateway reports a genesis hash other than the one whose validator roster this client trusts, refusing to sign');
+      }
       if (this._pinnedGenesis) {
         if (this._pinnedGenesis !== reported) {
           throw new Error('the gateway reports a genesis hash other than the one pinned for this network, refusing to sign');
         }
-      } else if (isPublicChain(name)) {
-        throw new Error(`no genesis hash is pinned for the public chain ${shown(name)}, pin the network genesis before signing`);
+      } else if (isPublicChain(chain)) {
+        throw new Error(`no genesis hash is pinned for the public chain ${shown(chain)}, pin the network genesis before signing`);
       }
-      return { until, head, genesis: reported };
+      return { until, head, genesis: this._trustedGenesis || reported };
     }
 
     _callFee(info, meterLimit, ceiling, maxFeeQuon, target) {
       const transferFee = this._transferFee(info);
-      const deployFee = target === core.vmDeployAddress() ? BigInt(core.deployFeeQuon(JSON.stringify(info))) : 0n;
+      const deployFee = core.sameAddress(target, core.vmDeployAddress()) ? BigInt(core.deployFeeQuon(JSON.stringify(info))) : 0n;
       const fee = BigInt(core.vmCallFee(String(transferFee), meterLimitOf(meterLimit))) + deployFee;
       if (fee > ceiling) {
         throw new Error(`the fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
@@ -696,42 +914,25 @@ function makeClient(core) {
 
     async transaction(txId) {
       const status = await this._call('get_transaction', core.transaction_body(txId));
-      if (status && status.status === 'finalised' && (await this._anchorPinnedRoster())) {
-        await this.confirmTransactionTrusted(txId);
+      if (!status || status.status !== 'finalised') return status;
+      if (await this._anchorPinnedRoster()) {
+        const confirmed = await this.confirmInclusionTrusted(txId);
+        return Object.assign({}, status, { height: Number(confirmed.height), block: confirmed.header.hash, verified: true });
       }
-      return status;
+      const configuredMainnet = (this.network && this.network.isMainnet === true) || isMainnetChain((this.network && this.network.chainId) || '');
+      if (configuredMainnet || isMainnetChain(String((await this.nodeInfo()).chain_id || ''))) {
+        throw new Error("a mainnet transaction status needs a trusted validator roster, the gateway's word alone is not proof of finality, call trustRoster first");
+      }
+      return Object.assign({}, status, { status: 'unverified', reportedStatus: 'finalised', verified: false });
     }
 
-    saveSession() { return this._session.exportState(); }
+    saveSession() { return this._nonces.exportState(); }
 
     restoreSession(state) {
       if (typeof state !== 'string') throw new Error('the saved session must be the string saveSession returned');
-      this._session.importState(state);
+      this._nonces.importState(state);
     }
 
-    async confirmTransaction(txId, genesisHash, roster) {
-      if (typeof txId !== 'string') throw new Error('the transaction id must be a string');
-      if (typeof genesisHash !== 'string' || !/^[0-9a-fA-F]{64}$/.test(genesisHash)) {
-        throw new Error('the genesis hash you trust must be 64 hex characters');
-      }
-      const rosterJson = typeof roster === 'string' ? roster : JSON.stringify(roster);
-      const info = await this.nodeInfo();
-      const name = info && typeof info.chain_id === 'string' ? info.chain_id : '';
-      const configured = this.network && this.network.chainId;
-      if (configured && name !== configured) {
-        throw new Error(`the gateway reports chain ${shown(name)} but this client is configured for ${configured}`);
-      }
-      const chainId = BigInt(core.chainIdFromName(name));
-      const proof = await this._call('get_transaction_proof', JSON.stringify({ tx_id: txId }), true);
-      const height = gatewayInteger(proof && proof.height, 'proof height');
-      const finality = await this._call('get_finality', JSON.stringify({ height: Number(height) }), true);
-      const verified = JSON.parse(core.verifyFinality(chainId, genesisHash.toLowerCase(), String(finality.header_bytes), String(finality.certificate), rosterJson));
-      if (BigInt(verified.height) !== height) throw new Error('the finalized header is not at the height the proof names');
-      if (!core.verifyTransaction(verified.transaction_root, txId, String(proof.leaf), JSON.stringify(proof.steps))) {
-        throw new Error('the transaction is not proven inside the finalized block');
-      }
-      return { txId, height, index: gatewayInteger(proof.index, 'proof index'), header: verified };
-    }
     block(height) { return this._call('get_block', core.block_by_height_body(wholeNumber(height, 'height', U64_MAX))); }
     submit(txHex) { return this._call('submit_transaction', core.submit_body(txHex), true); }
     container(address) { return this._call('get_container', JSON.stringify({ address })); }
@@ -753,14 +954,14 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
-      const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
+      const { key, nonce } = await this._accountSlot(info, from, expectedNonce);
+      const signed = this._released([[key, nonce]], () => JSON.parse(
         core.sign_transfer(seed, accountIndex(index), to, String(amount), nonce, String(fee), chainId, until, head, genesis)
-      );
+      ));
       this._rememberTargets([to]);
-      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
+      const outcome = await this._submitHeld([[key, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
@@ -775,11 +976,11 @@ function makeClient(core) {
       if (fee > ceiling) {
         throw new Error(`the gateway fee ${fee} is above the maximum you allowed ${maxFeeQuon}, refusing to sign`);
       }
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
-      const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, head, genesis));
-      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
+      const { key, nonce } = await this._accountSlot(info, from, expectedNonce);
+      const signed = this._released([[key, nonce]], () => JSON.parse(core.signRegister(seed, accountIndex(index), nonce, String(fee), chainId, until, head, genesis)));
+      const outcome = await this._submitHeld([[key, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
@@ -792,14 +993,14 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
-      const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
+      const { key, nonce } = await this._accountSlot(info, from, expectedNonce);
+      const signed = this._released([[key, nonce]], () => JSON.parse(
         core.sign_call(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
-      );
+      ));
       this._rememberTargets([target]);
-      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
+      const outcome = await this._submitHeld([[key, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
@@ -814,14 +1015,14 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
-      const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
+      const { key, nonce } = await this._accountSlot(info, from, expectedNonce);
+      const signed = this._released([[key, nonce]], () => JSON.parse(
         core.signAssetCall(seed, accountIndex(index), target, argsHex, assetIssuer, String(amount), nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
-      );
+      ));
       this._rememberTargets([target, assetIssuer]);
-      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
+      const outcome = await this._submitHeld([[key, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
@@ -835,14 +1036,14 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, target);
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
-      const nonce = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
+      const { key, nonce } = await this._accountSlot(info, from, expectedNonce);
+      const signed = this._released([[key, nonce]], () => JSON.parse(
         core.signPayableCall(seed, accountIndex(index), target, argsHex, nonce, meterLimitOf(meterLimit), String(fee), String(value), chainId, until, String(transferFee), head, genesis)
-      );
+      ));
       this._rememberTargets([target]);
-      const outcome = await this._submitHeld([[from, nonce]], signed.tx_hex);
+      const outcome = await this._submitHeld([[key, nonce]], signed.tx_hex);
       return { signed, outcome };
     }
 
@@ -882,44 +1083,50 @@ function makeClient(core) {
       this._guardMainnet();
       const chainId = this._signingChainId(info);
       const { transferFee, fee } = this._callFee(info, meterLimit, ceiling, maxFeeQuon, contract);
-      await this._verifyHead(info);
-      const { until, head, genesis } = this._validity(info);
+      const verified = await this._verifyHead(info);
+      const { until, head, genesis } = this._validity(info, verified);
       const signer = core.orderSigner(ownerSeed, accountIndex(ownerIndex));
-      const orderKey = contract + '/' + signer;
+      const orderKey = info.chain_id + '/' + canonicalAddress(contract) + '/' + signer;
       const reportedOrder = await this.contractNonce(contract, signer);
-      this._session.releasePending(orderKey);
-      const nonce = BigInt(this._session.slot(orderKey, reportedOrder, this._expected(expectedOrderNonce, 'expected order nonce'), true));
-      if (typeof orderSpec.layoutHash !== 'string') throw new Error('the order spec needs the layout hash the compiler emits for this entry');
-      const orderExpiry = wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX);
-      const nowSecs = BigInt(Math.floor(Date.now() / 1000));
-      core.checkOrderExpiry(orderExpiry, nowSecs);
-      const order = JSON.parse(core.buildTypedOrderCall(
-        chainId,
-        contract,
-        selectorHex,
-        orderSpec.layoutHash,
-        wholeNumber(orderSpec.schemeOff, 'scheme offset', U64_MAX),
-        wholeNumber(orderSpec.ptrOff, 'pointer offset', U64_MAX),
-        wholeNumber(orderSpec.expiryOff, 'expiry offset', U64_MAX),
-        orderSpec.regionOff == null ? 0n : wholeNumber(orderSpec.regionOff, 'region offset', U64_MAX),
-        JSON.stringify(orderSpec.fields || [], (k, v) => {
-          if (typeof v !== 'bigint') return v;
-          if (k === 'value') return v.toString();
-          if (v > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`the order field ${k} ${v} is too large to carry`);
-          return Number(v);
-        }),
-        ownerSeed,
-        accountIndex(ownerIndex),
-        nonce,
-        wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX),
-      ));
-      const accountNonceUsed = await this._accountSlot(from, expectedNonce);
-      const signed = JSON.parse(
-        core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, accountNonceUsed, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
-      );
-      this._rememberTargets([contract]);
-      const outcome = await this._submitHeld([[orderKey, nonce], [from, accountNonceUsed]], signed.tx_hex);
-      return { order, signed, outcome, orderNonce: nonce };
+      const nonce = BigInt(this._nonces.slot(orderKey, reportedOrder, this._expected(expectedOrderNonce, 'expected order nonce'), true));
+      const slots = [[orderKey, nonce]];
+      try {
+        if (typeof orderSpec.layoutHash !== 'string') throw new Error('the order spec needs the layout hash the compiler emits for this entry');
+        const orderExpiry = wholeNumber(orderSpec.expiry, 'order expiry', U64_MAX);
+        const nowSecs = BigInt(Math.floor(Date.now() / 1000));
+        core.checkOrderExpiry(orderExpiry, nowSecs);
+        const order = JSON.parse(core.buildTypedOrderCall(
+          chainId,
+          contract,
+          selectorHex,
+          orderSpec.layoutHash,
+          wholeNumber(orderSpec.schemeOff, 'scheme offset', U64_MAX),
+          wholeNumber(orderSpec.ptrOff, 'pointer offset', U64_MAX),
+          wholeNumber(orderSpec.expiryOff, 'expiry offset', U64_MAX),
+          orderSpec.regionOff == null ? 0n : wholeNumber(orderSpec.regionOff, 'region offset', U64_MAX),
+          JSON.stringify(orderSpec.fields || [], (k, v) => {
+            if (typeof v !== 'bigint') return v;
+            if (k === 'value') return v.toString();
+            if (v > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`the order field ${k} ${v} is too large to carry`);
+            return Number(v);
+          }),
+          ownerSeed,
+          accountIndex(ownerIndex),
+          nonce,
+          orderExpiry,
+        ));
+        const account = await this._accountSlot(info, from, expectedNonce);
+        slots.push([account.key, account.nonce]);
+        const signed = JSON.parse(
+          core.sign_call(callerSeed, accountIndex(callerIndex), contract, order.call_args, account.nonce, meterLimitOf(meterLimit), String(fee), chainId, until, String(transferFee), head, genesis)
+        );
+        this._rememberTargets([contract]);
+        const outcome = await this._submitHeld(slots, signed.tx_hex);
+        return { order, signed, outcome, orderNonce: nonce };
+      } catch (e) {
+        for (const [key, slot] of slots) this._nonces.release(key, slot);
+        throw e;
+      }
     }
   };
 }
