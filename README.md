@@ -146,6 +146,8 @@ Call `client.confirmInclusion(txId, genesisHash, roster, epoch)` to prove a tran
 
 A client signs for a public network only with a pinned genesis hash, taken from `network.genesisHash` or the `genesisHash` client option, and refuses when the gateway reports a different genesis or none is pinned.
 
+One account key signs both transactions and contract orders. The two never collide, because a transaction signs under the transaction domain and an order signs a message that starts with its own tag under the machine verify context, and the contract checks the chain id, its own address and the entry selector named in the order.
+
 Call `client.trustRoster(genesisHash, roster)` to give the client a genesis hash and a validator roster you trust. Every attestation signs the genesis hash, so a certificate from another network that reuses the chain name and keys never verifies. From then on the client checks the head the gateway reports against the finality certificate of that block before it signs, so a gateway cannot move a deadline by lying about the head. A mainnet client refuses to sign until it has a trusted roster.
 
 Pass `fetch`, a function with the fetch signature, in the Client options to route every gateway request
