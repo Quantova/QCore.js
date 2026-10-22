@@ -32,7 +32,7 @@ dependencies = [
 [[package]]
 name = "q-vrf"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=394669e469a36867fb4f8ae3a58350163abf72e8#394669e469a36867fb4f8ae3a58350163abf72e8"
+source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=1c0ae3504f9ba07e69d39e8df5fcbccf65248b12#1c0ae3504f9ba07e69d39e8df5fcbccf65248b12"
 dependencies = [
  "qtv-crypto",
 ]
@@ -69,7 +69,7 @@ dependencies = [
 [[package]]
 name = "qtv-account"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 dependencies = [
  "qtv-crypto",
  "qtv-idfmt",
@@ -79,7 +79,7 @@ dependencies = [
 [[package]]
 name = "qtv-attest"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=394669e469a36867fb4f8ae3a58350163abf72e8#394669e469a36867fb4f8ae3a58350163abf72e8"
+source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=1c0ae3504f9ba07e69d39e8df5fcbccf65248b12#1c0ae3504f9ba07e69d39e8df5fcbccf65248b12"
 dependencies = [
  "qtv-bft",
  "qtv-crypto",
@@ -89,7 +89,7 @@ dependencies = [
 [[package]]
 name = "qtv-bft"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=394669e469a36867fb4f8ae3a58350163abf72e8#394669e469a36867fb4f8ae3a58350163abf72e8"
+source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=1c0ae3504f9ba07e69d39e8df5fcbccf65248b12#1c0ae3504f9ba07e69d39e8df5fcbccf65248b12"
 dependencies = [
  "qtv-crypto",
 ]
@@ -97,7 +97,7 @@ dependencies = [
 [[package]]
 name = "qtv-block"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 dependencies = [
  "qtv-codec",
  "qtv-crypto",
@@ -108,22 +108,22 @@ dependencies = [
 [[package]]
 name = "qtv-codec"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 
 [[package]]
 name = "qtv-crypto"
-version = "0.3.0"
-source = "git+https://github.com/Quantova/Q-Crypto.git?rev=4e37c52984740f345f96e2c8536803bce5f3b805#4e37c52984740f345f96e2c8536803bce5f3b805"
+version = "0.6.0"
+source = "git+https://github.com/Quantova/Q-Crypto.git?rev=28c0fff8f620c1663663f4bd271b7bae3dbddc80#28c0fff8f620c1663663f4bd271b7bae3dbddc80"
 
 [[package]]
 name = "qtv-idfmt"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 
 [[package]]
 name = "qtv-sampler"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=394669e469a36867fb4f8ae3a58350163abf72e8#394669e469a36867fb4f8ae3a58350163abf72e8"
+source = "git+https://github.com/Quantova/QRC-CONSENSUS.git?rev=1c0ae3504f9ba07e69d39e8df5fcbccf65248b12#1c0ae3504f9ba07e69d39e8df5fcbccf65248b12"
 dependencies = [
  "q-vrf",
  "qtv-crypto",
@@ -132,7 +132,7 @@ dependencies = [
 [[package]]
 name = "qtv-state"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 dependencies = [
  "qtv-codec",
  "qtv-crypto",
@@ -141,7 +141,7 @@ dependencies = [
 [[package]]
 name = "qtv-tx"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 dependencies = [
  "qtv-account",
  "qtv-codec",
@@ -153,7 +153,7 @@ dependencies = [
 [[package]]
 name = "qtv-vm"
 version = "0.2.0"
-source = "git+https://github.com/Quantova/QVM.git?rev=25d218719a289f943f8681e682da13a668c72290#25d218719a289f943f8681e682da13a668c72290"
+source = "git+https://github.com/Quantova/QVM.git?rev=5634db731274589aec34601e53a5ea05fc252c4d#5634db731274589aec34601e53a5ea05fc252c4d"
 dependencies = [
  "qtv-crypto",
 ]
@@ -161,7 +161,7 @@ dependencies = [
 [[package]]
 name = "qtv-wipe"
 version = "0.1.0"
-source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=9cabd50a4f88d0ce47a0f54517ace18e6975c879#9cabd50a4f88d0ce47a0f54517ace18e6975c879"
+source = "git+https://github.com/Quantova/Quantova-Chain.git?rev=28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51#28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51"
 
 [[package]]
 name = "quote"
