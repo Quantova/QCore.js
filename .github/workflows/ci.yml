@@ -86,6 +86,9 @@ jobs:
         run: |
           npm ci
           npm test
+      - name: fuzz
+        working-directory: QCore.js
+        run: node fuzz.js 1000000 "$GITHUB_RUN_NUMBER"
       - name: lint
         if: always()
         working-directory: QCore.js
