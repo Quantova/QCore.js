@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -72,7 +72,7 @@ jobs:
         working-directory: QCore.js
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install wasm-pack --version 0.13.1 --locked
+          cargo install wasm-pack --version 0.15.0 --locked
           bash scripts/build.sh
           git diff --exit-code -- pkg pkg-node shared.mjs
       - name: the tag must name the version being published
@@ -97,7 +97,7 @@ jobs:
 
   publish:
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: npm
     permissions:
       contents: read

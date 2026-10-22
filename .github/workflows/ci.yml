@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -26,7 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           pin() { awk -v k="$1" '$1==k{print $2}' QCore.js/cross-repo-pins; }
-          for k in Q-Crypto Quantova-Chain QVM QCore.rs; do
+          for k in Q-Crypto Quantova-Chain QVM QRC-CONSENSUS QCore.rs; do
             v=$(pin "$k")
             case "$v" in
               *[!0-9a-f]* | "") echo "cross-repo-pins $k is not a commit: '$v'" >&2; exit 1 ;;
@@ -35,7 +35,7 @@ jobs:
               echo "cross-repo-pins $k must name a full commit, not '$v'" >&2; exit 1
             fi
           done
-          for k in Q-Crypto Quantova-Chain QVM; do
+          for k in Q-Crypto Quantova-Chain QVM QRC-CONSENSUS; do
             locked=$(grep -oE "$k\\.git\\?rev=[0-9a-f]{40}" QCore.js/Cargo.lock | sed "s/.*rev=//" | sort -u)
             if [ "$locked" != "$(pin "$k")" ]; then
               echo "Cargo.lock $k does not match the pinned $(pin "$k")" >&2
@@ -66,12 +66,12 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 20
+          node-version: 24
       - name: rebuild wasm from source
         working-directory: QCore.js
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install wasm-pack --version 0.13.1 --locked
+          cargo install wasm-pack --version 0.15.0 --locked
           bash scripts/build.sh
       - name: keep the rebuilt core
         if: always()
@@ -81,17 +81,41 @@ jobs:
           path: |
             QCore.js/pkg
             QCore.js/pkg-node
-      - name: the committed core must equal the rebuilt core on main
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-        working-directory: QCore.js
-        run: git diff --exit-code -- pkg pkg-node shared.mjs
-      - name: supply chain gate (cargo deny)
-        working-directory: QCore.js
-        run: |
-          cargo install cargo-deny --version 0.19.9 --locked
-          cargo deny --locked check bans sources advisories
       - name: test
         working-directory: QCore.js
         run: |
           npm ci
           npm test
+      - name: lint
+        if: always()
+        working-directory: QCore.js
+        run: |
+          for f in index.js shared.js test*.js; do node --check "$f"; done
+          node --check shared.mjs
+          npx --no-install tsc --noEmit --skipLibCheck index.d.ts
+          cargo fmt -- --check
+          cargo clippy --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: software bill of materials
+        if: always()
+        working-directory: QCore.js
+        run: |
+          npm sbom --sbom-format cyclonedx --package-lock-only > sbom.npm.json
+          cargo metadata --format-version 1 --locked > sbom.cargo.json
+      - name: keep the bill of materials
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qcore-js-sbom
+          path: |
+            QCore.js/sbom.npm.json
+            QCore.js/sbom.cargo.json
+      - name: supply chain gate (cargo deny)
+        if: always()
+        working-directory: QCore.js
+        run: |
+          cargo install cargo-deny --version 0.19.9 --locked
+          cargo deny --locked check bans sources advisories
+      - name: the committed core must equal the rebuilt core on main
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+        working-directory: QCore.js
+        run: git diff --exit-code -- pkg pkg-node shared.mjs
