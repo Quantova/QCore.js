@@ -1,0 +1,36 @@
+# Copyright 2026 Quantova Inc
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+name: contributor check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  ai-disclosure:
+    if: github.event.pull_request.user.login != 'quantova-inc' && github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: read the AI disclosure
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -u
+          yes=$(printf '%s\n' "$BODY" | grep -ciE '\[x\][[:space:]]*AI tools helped write this change' || true)
+          no=$(printf '%s\n' "$BODY" | grep -ciE '\[x\][[:space:]]*No AI tools were used' || true)
+          if [ "$no" -gt 0 ] && [ "$yes" -eq 0 ]; then
+            echo "$AUTHOR declares that no AI tools were used" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$yes" -gt 0 ] && [ "$no" -eq 0 ]; then
+            echo "AI ASSISTED. $AUTHOR declares that AI tools helped write this change. A maintainer must review every line before merge." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::AI assisted pull request from $AUTHOR, a maintainer must review every line before merge"
+            exit 1
+          fi
+          echo "AI DISCLOSURE MISSING. $AUTHOR did not tick exactly one box in the AI disclosure section." >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::Tick exactly one box in the AI disclosure section of the pull request description"
+          exit 1
