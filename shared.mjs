@@ -859,18 +859,6 @@ function makeClient(core) {
       if (!verified && ((this.network && this.network.isMainnet === true) || isPublicChain(chain))) {
         throw new Error(`the head of the public chain ${shown(chain)} must be verified against a trusted validator roster before signing, pin the network roster commitment or call trustRoster`);
       }
-      let genesisSecs = this.network ? this.network.genesisSecs : null;
-      let blocksPerSec = this.network ? this.network.blocksPerSec : null;
-      if (genesisSecs === null && chain === NETWORK_DEFAULTS.testnetChainName && NETWORK_DEFAULTS.testnetBlocksPerSec != null) {
-        genesisSecs = BigInt(NETWORK_DEFAULTS.testnetGenesisSecs);
-        blocksPerSec = BigInt(NETWORK_DEFAULTS.testnetBlocksPerSec);
-      }
-      const wall = BigInt(Math.floor(Date.now() / 1000));
-      const floor = this._nonces.headFloor(chain);
-      const floorHeight = floor ? BigInt(floor[0]) : undefined;
-      const age = floor && wall > BigInt(floor[1]) ? wall - BigInt(floor[1]) : 0n;
-      const until = BigInt(core.boundedValidUntilFor(genesisSecs === null ? undefined : genesisSecs, blocksPerSec === null ? undefined : blocksPerSec, verified === true, head, wall, floorHeight, age));
-      this._nonces.noteHead(chain, head, wall);
       const genesis = info && typeof info.genesis_hash === 'string' ? info.genesis_hash : '';
       if (!/^[0-9a-fA-F]{64}$/.test(genesis)) {
         throw new Error('the gateway reports a genesis hash that is not 32 bytes of hex, refusing to sign');
@@ -886,6 +874,18 @@ function makeClient(core) {
       } else if (isPublicChain(chain)) {
         throw new Error(`no genesis hash is pinned for the public chain ${shown(chain)}, pin the network genesis before signing`);
       }
+      let genesisSecs = this.network ? this.network.genesisSecs : null;
+      let blocksPerSec = this.network ? this.network.blocksPerSec : null;
+      if (genesisSecs === null && chain === NETWORK_DEFAULTS.testnetChainName && NETWORK_DEFAULTS.testnetBlocksPerSec != null) {
+        genesisSecs = BigInt(NETWORK_DEFAULTS.testnetGenesisSecs);
+        blocksPerSec = BigInt(NETWORK_DEFAULTS.testnetBlocksPerSec);
+      }
+      const wall = BigInt(Math.floor(Date.now() / 1000));
+      const floor = this._nonces.headFloor(chain);
+      const floorHeight = floor ? BigInt(floor[0]) : undefined;
+      const age = floor && wall > BigInt(floor[1]) ? wall - BigInt(floor[1]) : 0n;
+      const until = BigInt(core.boundedValidUntilFor(genesisSecs === null ? undefined : genesisSecs, blocksPerSec === null ? undefined : blocksPerSec, verified === true, head, wall, floorHeight, age));
+      this._nonces.noteHead(chain, head, wall);
       return { until, head, genesis: this._trustedGenesis || reported };
     }
 
