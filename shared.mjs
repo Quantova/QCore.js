@@ -113,8 +113,8 @@ const CORE_ARGS = {
   sign_call: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
   signPayableCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64s', 'value'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
   signAssetCall: [['seed', 'seed'], ['u64', 'account index'], ['text', 'target'], ['text', 'call arguments'], ['text', 'asset issuer'], ['u64s', 'amount'], ['u64', 'nonce'], ['u64', 'meter limit'], ['u128s', 'fee'], ['u64', 'chain id'], ['u64', 'validity deadline'], ['u128s', 'transfer fee'], ['u64', 'head height'], ['text', 'genesis hash']],
-  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
-  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  buildSignedOrderCall: [['u64', 'chain id'], ['text', 'genesis hash'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['text', 'field offsets'], ['text', 'fields'], ['u64', 'region offset'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
+  buildTypedOrderCall: [['u64', 'chain id'], ['text', 'genesis hash'], ['text', 'contract'], ['text', 'selector'], ['text', 'layout hash'], ['u64', 'scheme offset'], ['u64', 'pointer offset'], ['u64', 'expiry offset'], ['u64', 'region offset'], ['text', 'fields'], ['seed', 'owner seed'], ['u64', 'owner index'], ['u64', 'order nonce'], ['u64', 'order expiry']],
   orderLayoutHash: [['text', 'selector'], ['text', 'order layout']],
   checkOrderExpiry: [['u64', 'order expiry'], ['u64', 'wall clock seconds']],
   storageValueReported: [['text', 'storage response'], ['text', 'slot key']],
@@ -142,7 +142,7 @@ const CORE_ARGS = {
 
 const STRING_ARGS = {
   account_body: [0], assetBalanceBody: [0, 1], assetSupplyBody: [0], boundedValidUntil: [0],
-  buildSignedOrderCall: [1, 2, 3, 7, 8], buildTypedOrderCall: [1, 2, 3, 8], chainIdFromName: [0],
+  buildSignedOrderCall: [1, 2, 3, 4, 8, 9], buildTypedOrderCall: [1, 2, 3, 4, 9], chainIdFromName: [0],
   checkEndpoint: [0], checkGatewayJson: [0], contractAddress: [0], decodeEvent: [0], deployFeeQuon: [0],
   genesisSecs: [0], headCeiling: [0], lookalikeOf: [0], mapAddrWordKey: [1], mapSlotKey: [1], nameKey: [0],
   nonceSlotKey: [0], orderLayoutHash: [0, 1], packSymbol: [0], parseEvents: [0], rosterCommitment: [1],
@@ -1084,6 +1084,7 @@ function makeClient(core) {
         core.checkOrderExpiry(orderExpiry, nowSecs);
         const order = JSON.parse(core.buildTypedOrderCall(
           chainId,
+          genesis,
           contract,
           selectorHex,
           orderSpec.layoutHash,

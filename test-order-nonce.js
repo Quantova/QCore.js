@@ -68,7 +68,7 @@ async function sign(c, expected, layout, contract) {
   console.log('  ok   the local nonce follows the chain and an expected nonce must match it');
 
   const ordered = client(5n, 2n);
-  const layout = { layoutHash: core.orderLayoutHash('00000000', JSON.stringify([{ name: 'order.step', type: 'u64', width: 8 }])), schemeOff: 120, ptrOff: 128, expiryOff: 144, expiry: Math.floor(Date.now() / 1000) + 3600, fields: [{ offset: 136, width: 8, value: '1' }] };
+  const layout = { layoutHash: core.orderLayoutHash('00000000', JSON.stringify([{ name: 'order.step', type: 'u64', width: 8 }])), schemeOff: 152, ptrOff: 160, expiryOff: 176, expiry: Math.floor(Date.now() / 1000) + 3600, fields: [{ offset: 168, width: 8, value: '1' }] };
   const done = await sign(ordered, 5n, layout);
   assert.strictEqual(done.orderNonce, 5n);
   const caller = 'Q-dev-net-1/' + core.address(new Uint8Array(32).fill(0xaa), 0n);

@@ -45,7 +45,7 @@ for (const b of bad) {
 }
 
 let orderThrew = false;
-try { core.buildSignedOrderCall(core.localChainId(), 'not an address', '00000000', '00'.repeat(32), 0n, 0n, 0n, '', '', 0n, seed, 0n, 0n, 0n); }
+try { core.buildSignedOrderCall(core.localChainId(), '5a'.repeat(32), 'not an address', '00000000', '00'.repeat(32), 0n, 0n, 0n, '', '', 0n, seed, 0n, 0n, 0n); }
 catch { orderThrew = true; }
 if (!orderThrew) fail('buildSignedOrderCall built an order for a bad contract');
 

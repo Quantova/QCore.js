@@ -310,6 +310,7 @@ export function boundedValidUntilFor(genesis_secs, blocks_per_sec, verified, hea
 
 /**
  * @param {bigint} chain_id
+ * @param {string} genesis_hex
  * @param {string} contract
  * @param {string} selector_hex
  * @param {string} layout_hash_hex
@@ -325,39 +326,42 @@ export function boundedValidUntilFor(genesis_secs, blocks_per_sec, verified, hea
  * @param {bigint} expiry
  * @returns {string}
  */
-export function buildSignedOrderCall(chain_id, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce, expiry) {
-    let deferred8_0;
-    let deferred8_1;
+export function buildSignedOrderCall(chain_id, genesis_hex, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, field_offs_csv, fields_csv, region_off, owner_seed_bytes, owner_index, nonce, expiry) {
+    let deferred9_0;
+    let deferred9_1;
     try {
-        const ptr0 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(field_offs_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passStringToWasm0(fields_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr4 = passStringToWasm0(field_offs_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len4 = WASM_VECTOR_LEN;
-        const ptr5 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const ptr5 = passStringToWasm0(fields_csv, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len5 = WASM_VECTOR_LEN;
-        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, scheme_off, ptr_off, expiry_off, ptr3, len3, ptr4, len4, region_off, ptr5, len5, owner_index, nonce, expiry);
-        var ptr7 = ret[0];
-        var len7 = ret[1];
+        const ptr6 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const len6 = WASM_VECTOR_LEN;
+        const ret = wasm.buildSignedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, scheme_off, ptr_off, expiry_off, ptr4, len4, ptr5, len5, region_off, ptr6, len6, owner_index, nonce, expiry);
+        var ptr8 = ret[0];
+        var len8 = ret[1];
         if (ret[3]) {
-            ptr7 = 0; len7 = 0;
+            ptr8 = 0; len8 = 0;
             throw takeFromExternrefTable0(ret[2]);
         }
-        deferred8_0 = ptr7;
-        deferred8_1 = len7;
-        return getStringFromWasm0(ptr7, len7);
+        deferred9_0 = ptr8;
+        deferred9_1 = len8;
+        return getStringFromWasm0(ptr8, len8);
     } finally {
-        wasm.__wbindgen_free(deferred8_0, deferred8_1, 1);
+        wasm.__wbindgen_free(deferred9_0, deferred9_1, 1);
     }
 }
 
 /**
  * @param {bigint} chain_id
+ * @param {string} genesis_hex
  * @param {string} contract
  * @param {string} selector_hex
  * @param {string} layout_hash_hex
@@ -372,32 +376,34 @@ export function buildSignedOrderCall(chain_id, contract, selector_hex, layout_ha
  * @param {bigint} expiry
  * @returns {string}
  */
-export function buildTypedOrderCall(chain_id, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce, expiry) {
-    let deferred7_0;
-    let deferred7_1;
+export function buildTypedOrderCall(chain_id, genesis_hex, contract, selector_hex, layout_hash_hex, scheme_off, ptr_off, expiry_off, region_off, fields_json, owner_seed_bytes, owner_index, nonce, expiry) {
+    let deferred8_0;
+    let deferred8_1;
     try {
-        const ptr0 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passStringToWasm0(genesis_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(contract, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(selector_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr3 = passStringToWasm0(layout_hash_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const ptr4 = passStringToWasm0(fields_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len4 = WASM_VECTOR_LEN;
-        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, scheme_off, ptr_off, expiry_off, region_off, ptr3, len3, ptr4, len4, owner_index, nonce, expiry);
-        var ptr6 = ret[0];
-        var len6 = ret[1];
+        const ptr5 = passArray8ToWasm0(owner_seed_bytes, wasm.__wbindgen_malloc);
+        const len5 = WASM_VECTOR_LEN;
+        const ret = wasm.buildTypedOrderCall(chain_id, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, scheme_off, ptr_off, expiry_off, region_off, ptr4, len4, ptr5, len5, owner_index, nonce, expiry);
+        var ptr7 = ret[0];
+        var len7 = ret[1];
         if (ret[3]) {
-            ptr6 = 0; len6 = 0;
+            ptr7 = 0; len7 = 0;
             throw takeFromExternrefTable0(ret[2]);
         }
-        deferred7_0 = ptr6;
-        deferred7_1 = len6;
-        return getStringFromWasm0(ptr6, len6);
+        deferred8_0 = ptr7;
+        deferred8_1 = len7;
+        return getStringFromWasm0(ptr7, len7);
     } finally {
-        wasm.__wbindgen_free(deferred7_0, deferred7_1, 1);
+        wasm.__wbindgen_free(deferred8_0, deferred8_1, 1);
     }
 }
 

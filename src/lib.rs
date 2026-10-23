@@ -585,6 +585,7 @@ pub fn name_key(label: &str) -> String {
 #[allow(clippy::too_many_arguments)]
 pub fn build_signed_order_call(
     chain_id: u64,
+    genesis_hex: &str,
     contract: &str,
     selector_hex: &str,
     layout_hash_hex: &str,
@@ -621,6 +622,7 @@ pub fn build_signed_order_call(
         let fields = u64_list(fields_csv)?;
         let order = qcore::contract::build_signed_order_call(
             chain_id,
+            &genesis(genesis_hex)?,
             contract,
             selector,
             &layout,
@@ -662,6 +664,7 @@ pub fn build_signed_order_call(
 #[allow(clippy::too_many_arguments)]
 pub fn build_typed_order_call(
     chain_id: u64,
+    genesis_hex: &str,
     contract: &str,
     selector_hex: &str,
     layout_hash_hex: &str,
@@ -686,6 +689,7 @@ pub fn build_typed_order_call(
         let fields = parse_typed_fields(fields_json)?;
         let order = qcore::contract::build_order_from_typed(
             chain_id,
+            &genesis(genesis_hex)?,
             contract,
             selector,
             &layout_hash,

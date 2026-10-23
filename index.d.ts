@@ -68,6 +68,7 @@ export interface QCore {
   block_by_height_body(height: WholeNumber): string;
   buildSignedOrderCall(
     chain_id: WholeNumber,
+    genesis_hash_hex: string,
     contract: string,
     selector_hex: string,
     layout_hash_hex: string,
@@ -84,6 +85,7 @@ export interface QCore {
   ): string;
   buildTypedOrderCall(
     chain_id: WholeNumber,
+    genesis_hash_hex: string,
     contract: string,
     selector_hex: string,
     layout_hash_hex: string,

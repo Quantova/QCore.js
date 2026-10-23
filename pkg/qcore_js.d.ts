@@ -34,9 +34,9 @@ export function boundedValidUntil(chain_name: string, head: bigint, wall_secs: b
 
 export function boundedValidUntilFor(genesis_secs: bigint | null | undefined, blocks_per_sec: bigint | null | undefined, verified: boolean, head: bigint, wall_secs: bigint, floor: bigint | null | undefined, floor_age_secs: bigint): bigint;
 
-export function buildSignedOrderCall(chain_id: bigint, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildSignedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
-export function buildTypedOrderCall(chain_id: bigint, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildTypedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
 export function chainIdFromName(name: string): bigint;
 
