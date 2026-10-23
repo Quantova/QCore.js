@@ -106,7 +106,6 @@ export interface QCore {
   mapAddrWordKey(map_domain_tag: WholeNumber, key32_hex: string, word: WholeNumber): string;
   mapSlotKey(map_domain_tag: WholeNumber, key_address_hex: string): string;
   mnemonicFromSeed(seed: Uint8Array): Uint8Array;
-  mnemonicFromSeedText(seed: Uint8Array): string;
   nonceSlotKey(signer_hex: string): string;
   orderLayoutHash(selector_hex: string, fields_json: string): string;
   checkOrderExpiry(expiry: WholeNumber, now_secs: WholeNumber): void;

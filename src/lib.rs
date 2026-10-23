@@ -124,14 +124,6 @@ pub fn mnemonic_from_seed(seed_bytes: &[u8]) -> Result<Vec<u8>, JsError> {
     })
 }
 
-#[wasm_bindgen(js_name = mnemonicFromSeedText)]
-pub fn mnemonic_from_seed_text(seed_bytes: &[u8]) -> Result<JsValue, JsError> {
-    scrubbed(|| {
-        let phrase = qcore::mnemonic_from_seed(&*seed(seed_bytes)?);
-        Ok(JsValue::from_str(&phrase))
-    })
-}
-
 #[inline(never)]
 fn restore_seed(mut phrase: String) -> Result<Vec<u8>, JsError> {
     let derived = qcore::seed_from_mnemonic(&phrase);

@@ -101,7 +101,6 @@ function coreArg(kind, label, value) {
 const CORE_ARGS = {
   address: [['seed', 'seed'], ['u64', 'account index']],
   mnemonicFromSeed: [['seed', 'seed']],
-  mnemonicFromSeedText: [['seed', 'seed']],
   seedFromMnemonic: [['text', 'recovery phrase']],
   seedFromMnemonicBytes: [['phrase', 'recovery phrase']],
   genesisSecs: [['text', 'chain name']],
@@ -168,8 +167,6 @@ function stringsChecked(name, fn) {
   };
 }
 
-let warnedText = false;
-
 function wrapCore(raw) {
   const core = Object.assign({}, raw);
   for (const name of Object.keys(STRING_ARGS)) {
@@ -179,16 +176,6 @@ function wrapCore(raw) {
     const fn = core[name];
     if (typeof fn !== 'function') continue;
     core[name] = (...args) => fn(...kinds.map(([kind, label], i) => coreArg(kind, label, args[i])));
-  }
-  const textPhrase = core.mnemonicFromSeedText;
-  if (typeof textPhrase === 'function') {
-    core.mnemonicFromSeedText = (seed) => {
-      if (!warnedText && typeof process !== 'undefined' && process && typeof process.emitWarning === 'function') {
-        warnedText = true;
-        process.emitWarning('mnemonicFromSeedText returns a JavaScript string that cannot be wiped, use mnemonicFromSeed, which returns a Uint8Array you can fill with zeros', 'DeprecationWarning');
-      }
-      return textPhrase(seed);
-    };
   }
   const fee = core.vmCallFee;
   if (typeof fee === 'function') core.vmCallFee = (transferFee, meterLimit) => BigInt(fee(transferFee, meterLimit));

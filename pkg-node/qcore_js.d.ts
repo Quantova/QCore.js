@@ -84,8 +84,6 @@ export function mapSlotKey(map_domain_tag: bigint, key_address_hex: string): str
 
 export function mnemonicFromSeed(seed_bytes: Uint8Array): Uint8Array;
 
-export function mnemonicFromSeedText(seed_bytes: Uint8Array): any;
-
 export function nameKey(label: string): string;
 
 export function nonceSlotKey(signer_hex: string): string;

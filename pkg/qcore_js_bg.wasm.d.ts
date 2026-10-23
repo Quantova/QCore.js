@@ -33,7 +33,6 @@ export const mainnetGenesisHash: () => [number, number];
 export const mapAddrWordKey: (a: bigint, b: number, c: number, d: bigint) => [number, number, number, number];
 export const mapSlotKey: (a: bigint, b: number, c: number) => [number, number, number, number];
 export const mnemonicFromSeed: (a: number, b: number) => [number, number, number, number];
-export const mnemonicFromSeedText: (a: number, b: number) => [number, number, number];
 export const nameKey: (a: number, b: number) => [number, number];
 export const nonceSlotKey: (a: number, b: number) => [number, number, number, number];
 export const orderLayoutHash: (a: number, b: number, c: number, d: number) => [number, number, number, number];

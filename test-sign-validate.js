@@ -113,8 +113,8 @@ if (core.testnetChainId() !== core.chainIdFromName(Network.testnet().chainId)) f
 
 const phraseBytes = core.mnemonicFromSeed(seed);
 if (!(phraseBytes instanceof Uint8Array)) fail('the phrase is returned as a byte buffer the caller can wipe');
-const phrase = core.mnemonicFromSeedText(seed);
-if (new TextDecoder().decode(phraseBytes) !== phrase) fail('the byte and text phrases carry the same words');
+if (typeof core.mnemonicFromSeedText !== 'undefined') fail('no call returns the phrase as an unwipeable string');
+const phrase = new TextDecoder().decode(phraseBytes);
 const sameBytes0 = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
 if (!sameBytes0(core.seedFromMnemonic(phraseBytes), seed)) fail('a phrase passed as bytes restores the same seed');
 phraseBytes.fill(0);

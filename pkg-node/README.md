@@ -118,8 +118,8 @@ from it.
 Every seed is a Uint8Array. Call `seed.fill(0)` when you are done with it, and never print or log any part of
 it. The WASM core wipes its own copies of a seed before it frees them. The phrase comes back as a Uint8Array
 of UTF-8 text for the same reason, so call `phrase.fill(0)` once it has been shown, and pass it back to
-`core.seedFromMnemonic` as the same bytes. `core.mnemonicFromSeedText(seed)` returns the words as a string for
-a caller that must display them, and a JavaScript string can never be wiped, so prefer the bytes.
+`core.seedFromMnemonic` as the same bytes. No call returns the phrase as a string, because a JavaScript string can
+never be wiped.
 
 ## Using it
 

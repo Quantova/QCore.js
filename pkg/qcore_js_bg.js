@@ -744,20 +744,6 @@ export function mnemonicFromSeed(seed_bytes) {
 }
 
 /**
- * @param {Uint8Array} seed_bytes
- * @returns {any}
- */
-export function mnemonicFromSeedText(seed_bytes) {
-    const ptr0 = passArray8ToWasm0(seed_bytes, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.mnemonicFromSeedText(ptr0, len0);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
  * @param {string} label
  * @returns {string}
  */
@@ -1750,11 +1736,6 @@ export function __wbg_getRandomValues_d20a3446be66dcdf() { return handleError(fu
     const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
     return ret;
 }, arguments); }
-export function __wbindgen_cast_0000000000000001(arg0, arg1) {
-    // Cast intrinsic for `Ref(String) -> Externref`.
-    const ret = getStringFromWasm0(arg0, arg1);
-    return ret;
-}
 export function __wbindgen_init_externref_table() {
     const table = wasm.__wbindgen_externrefs;
     const offset = table.grow(4);
