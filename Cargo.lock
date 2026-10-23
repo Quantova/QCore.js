@@ -59,8 +59,6 @@ name = "qcore-js"
 version = "0.10.0"
 dependencies = [
  "qcore",
- "qtv-crypto",
- "qtv-idfmt",
  "qtv-tx",
  "qtv-wipe",
  "wasm-bindgen",

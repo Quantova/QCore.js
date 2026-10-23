@@ -17,8 +17,6 @@ qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
 qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51" }
 qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51" }
-qtv-idfmt = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "28d1bdf65ce596af66c8ec2a8c9dc3a58eb12a51" }
-qtv-crypto = { git = "https://github.com/Quantova/Q-Crypto.git", rev = "28c0fff8f620c1663663f4bd271b7bae3dbddc80" }
 
 [profile.release]
 overflow-checks = true
