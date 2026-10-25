@@ -112,6 +112,7 @@ export interface QCore {
   orderLayoutHash(selector_hex: string, fields_json: string): string;
   checkOrderExpiry(expiry: WholeNumber, now_secs: WholeNumber): void;
   verifyFinality(chain_id: WholeNumber, genesis_hex: string, header_hex: string, certificate_hex: string, roster_json: string): string;
+  verifyFinalityAnyEpoch(chain_id: WholeNumber, genesis_hex: string, header_hex: string, certificate_hex: string, roster_json: string): string;
   verifyEvent(event_root_hex: string, leaf_hex: string, steps_json: string): boolean;
   verifyTransaction(transaction_root_hex: string, tx_id: string, leaf_hex: string, steps_json: string): boolean;
   decodeEvent(leaf_hex: string): string;

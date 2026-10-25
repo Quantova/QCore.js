@@ -177,6 +177,18 @@ function wrapCore(raw) {
     if (typeof fn !== 'function') continue;
     core[name] = (...args) => fn(...kinds.map(([kind, label], i) => coreArg(kind, label, args[i])));
   }
+  const anyEpoch = core.verifyFinality;
+  if (typeof anyEpoch === 'function') {
+    let warned = false;
+    core.verifyFinalityAnyEpoch = anyEpoch;
+    core.verifyFinality = (...args) => {
+      if (!warned) {
+        warned = true;
+        console.warn('core.verifyFinality does not bind the certificate to the epoch of its roster and is deprecated, use core.verifyFinalityInEpoch, or core.verifyFinalityAnyEpoch when the caller picks the roster of the epoch itself');
+      }
+      return anyEpoch(...args);
+    };
+  }
   const fee = core.vmCallFee;
   if (typeof fee === 'function') core.vmCallFee = (transferFee, meterLimit) => BigInt(fee(transferFee, meterLimit));
   const text = core.seedFromMnemonic;
