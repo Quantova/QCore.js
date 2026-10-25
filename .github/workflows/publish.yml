@@ -106,6 +106,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
@@ -117,9 +118,52 @@ jobs:
             refs/tags/v*) ;;
             *) echo "publish runs only from a vX.Y.Z tag, refusing $GITHUB_REF" >&2; exit 1 ;;
           esac
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "the tagged commit $GITHUB_SHA is not on main, refusing to publish it" >&2; exit 1
+          fi
           tagged="${GITHUB_REF_NAME#v}"
           declared=$(node -p "require('./package.json').version")
           if [ "$tagged" != "$declared" ]; then
             echo "tag $GITHUB_REF_NAME does not name package version $declared" >&2; exit 1
           fi
           npm publish --provenance --access public --ignore-scripts
+      - name: the published version must carry provenance for this tag and commit
+        env:
+          PKG: "@quantovainc/qcore"
+          WORKFLOW_PATH: .github/workflows/publish.yml
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./package.json').version")
+          url=""
+          for _ in $(seq 1 120); do
+            url=$(npm view "$PKG@$V" dist.attestations.url 2>/dev/null || true)
+            [ -n "$url" ] && break
+            sleep 10
+          done
+          [ -n "$url" ] || { echo "$PKG@$V shows no provenance attestation" >&2; exit 1; }
+          integrity=$(npm view "$PKG@$V" dist.integrity)
+          for _ in $(seq 1 40); do
+            curl -sSf "$url" -o "$RUNNER_TEMP/attestations.json" 2>/dev/null && break
+            rm -f "$RUNNER_TEMP/attestations.json"
+            sleep 15
+          done
+          [ -s "$RUNNER_TEMP/attestations.json" ] || { echo "$PKG@$V attestation bundle is not served" >&2; exit 1; }
+          node - "$RUNNER_TEMP/attestations.json" "$integrity" "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_REF" "$WORKFLOW_PATH" <<'JS'
+          'use strict';
+          const fs = require('fs');
+          const [file, integrity, repo, sha, ref, path] = process.argv.slice(2);
+          const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const slsa = (doc.attestations || []).filter((a) => a.predicateType === 'https://slsa.dev/provenance/v1');
+          if (slsa.length !== 1) throw new Error('expected one SLSA provenance attestation, found ' + slsa.length);
+          const st = JSON.parse(Buffer.from(slsa[0].bundle.dsseEnvelope.payload, 'base64').toString('utf8'));
+          const want = Buffer.from(integrity.replace(/^sha512-/, ''), 'base64').toString('hex');
+          if (!st.subject || st.subject.length !== 1 || st.subject[0].digest.sha512 !== want) throw new Error('the attested subject is not the published tarball');
+          const bd = st.predicate.buildDefinition;
+          const wf = bd.externalParameters.workflow;
+          if (wf.repository !== 'https://github.com/' + repo) throw new Error('built from ' + wf.repository + ', not ' + repo);
+          if (wf.path !== path) throw new Error('built by ' + wf.path + ', not ' + path);
+          if (wf.ref !== ref) throw new Error('built from ref ' + wf.ref + ', not ' + ref);
+          const src = (bd.resolvedDependencies || []).find((d) => d.digest && d.digest.gitCommit);
+          if (!src || src.digest.gitCommit !== sha) throw new Error('built from commit ' + (src && src.digest.gitCommit) + ', not ' + sha);
+          console.log('provenance binds ' + st.subject[0].name + ' to ' + repo + ' ' + ref + ' at ' + sha);
+          JS
