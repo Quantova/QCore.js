@@ -858,6 +858,7 @@ function makeClient(core) {
         if (!answer || typeof answer.leaf !== 'string') continue;
         if (!core.verifyEvent(confirmed.header.event_root, answer.leaf, JSON.stringify(answer.steps))) continue;
         const proven = JSON.parse(core.decodeEvent(answer.leaf));
+        if (proven.tx !== txId) continue;
         if (core.sameAddress(proven.contract, contract) && proven.selector === selector && (data === null || proven.data === data)) {
           return Object.assign({}, confirmed, { outcome: 'event proven', eventIndex: BigInt(position) });
         }
