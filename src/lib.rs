@@ -1507,6 +1507,7 @@ pub fn decode_event(leaf_hex: &str) -> Result<String, JsError> {
             "data",
             qcore::json::Json::str(qcore::json::to_hex(&event.data)),
         ),
+        ("tx", qcore::json::Json::str(event.tx)),
     ])
     .render())
 }
