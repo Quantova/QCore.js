@@ -904,6 +904,9 @@ function makeClient(core) {
       if (!status || status.status !== 'finalised') return status;
       if (await this._anchorPinnedRoster()) {
         const confirmed = await this.confirmInclusionTrusted(txId);
+        if (confirmed.kind !== 'transfer') {
+          return Object.assign({}, status, { status: 'included', reportedStatus: 'finalised', kind: 'call', outcome: 'unproven', height: Number(confirmed.height), block: confirmed.header.hash, verified: false, inclusionVerified: true });
+        }
         return Object.assign({}, status, { height: Number(confirmed.height), block: confirmed.header.hash, verified: true });
       }
       const configuredMainnet = (this.network && this.network.isMainnet === true) || isMainnetChain((this.network && this.network.chainId) || '');
