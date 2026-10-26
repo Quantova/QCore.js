@@ -36,14 +36,14 @@ assert(
 console.log('  ok   a refused chain is not pinned');
 
 const unnamed = new Client('https://gateway.example');
-const publicTestnet = threw(() => unnamed._signingChainId({ chain_id: 'Q-test-net-01' }));
+const publicTestnet = threw(() => unnamed._signingChainId({ chain_id: 'Q-test-net-0001' }));
 assert(publicTestnet && publicTestnet.includes('unnamed network'), 'an unnamed client must be configured before it signs for a public testnet');
 assert(threw(() => unnamed._signingChainId({ chain_id: 'Q-main-net-2' })), 'any Q-main-net- chain is mainnet');
 const ackedUnnamed = new Client('https://gateway.example', { acknowledgeMainnet: true });
-assert(threw(() => ackedUnnamed._signingChainId({ chain_id: 'Q-test-net-01' })), 'acknowledging mainnet does not open a public testnet to an unnamed client');
+assert(threw(() => ackedUnnamed._signingChainId({ chain_id: 'Q-test-net-0001' })), 'acknowledging mainnet does not open a public testnet to an unnamed client');
 assert(typeof ackedUnnamed._signingChainId({ chain_id: 'Q-main-net-2' }) === 'bigint', 'an acknowledged unnamed client signs for a mainnet it named by prefix');
 const namedTestnet = new Client(Network.testnet());
-assert(typeof namedTestnet._signingChainId({ chain_id: 'Q-test-net-01' }) === 'bigint', 'a client configured for the testnet signs for it');
+assert(typeof namedTestnet._signingChainId({ chain_id: 'Q-test-net-0001' }) === 'bigint', 'a client configured for the testnet signs for it');
 const configuredNext = new Client('https://gateway.example', { network: new Network({ name: 'next', chainId: 'Q-main-net-2', rpcUrl: 'https://gateway.example', isMainnet: false }) });
 assert(threw(() => configuredNext._signingChainId({ chain_id: 'Q-main-net-2' })), 'a configured Q-main-net- chain needs acknowledgement even with the flag off');
 console.log('  ok   public chains follow the Rust policy and mainnet is detected by prefix');

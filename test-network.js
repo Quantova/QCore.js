@@ -14,8 +14,8 @@ function throws(label, fn) {
 }
 
 const testnet = Network.testnet();
-ok('testnet chain id', testnet.chainId === 'Q-test-net-01');
-ok('testnet rpc url', testnet.rpcUrl === 'https://q-test-net-01.quantova.org');
+ok('testnet chain id', testnet.chainId === 'Q-test-net-0001');
+ok('testnet rpc url', testnet.rpcUrl === 'https://q-test-net-0001.quantova.org');
 ok('testnet denomination', testnet.denomination === 'Quon');
 ok('testnet decimals are six', testnet.decimals === 6);
 ok('testnet is not mainnet', testnet.isMainnet === false);
@@ -23,7 +23,7 @@ ok('mainnet is flagged', Network.mainnet().isMainnet === true);
 ok('mainnet rpc is not the testnet url', Network.mainnet().rpcUrl !== testnet.rpcUrl);
 
 const client = new Client(testnet);
-ok('testnet client carries its network', client.network.chainId === 'Q-test-net-01');
+ok('testnet client carries its network', client.network.chainId === 'Q-test-net-0001');
 
 const liveMainnet = new Network({ name: 'mainnet', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: true });
 throws('mainnet client without acknowledgement is refused', () => new Client(liveMainnet));
@@ -42,7 +42,7 @@ ok('an acknowledged mainnet client passes the guard', overUrlAcked._guardMainnet
 
 throws('a plain url client refuses a gateway that reports mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-1' }));
 throws('a plain url client refuses a gateway that reports another mainnet', () => overUrl._signingChainId({ chain_id: 'Q-main-net-2' }));
-throws('a plain url client refuses a public testnet until the network is configured', () => overUrl._signingChainId({ chain_id: 'Q-test-net-01' }));
+throws('a plain url client refuses a public testnet until the network is configured', () => overUrl._signingChainId({ chain_id: 'Q-test-net-0001' }));
 ok('a plain url client still binds a private dev chain', typeof overUrl._signingChainId({ chain_id: 'Q-dev-net-1' }) === 'bigint');
 
 const inconsistentMainnet = new Client('https://rpc.quantova.org', { network: new Network({ name: 'custom', chainId: 'Q-main-net-1', rpcUrl: 'https://rpc.quantova.org', isMainnet: false }) });
