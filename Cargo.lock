@@ -150,7 +150,7 @@ dependencies = [
 [[package]]
 name = "qtv-vm"
 version = "0.2.0"
-source = "git+https://github.com/Quantova/QVM.git?rev=32825549c2e4fb2238470a04664cfa0d9cbafc2b#32825549c2e4fb2238470a04664cfa0d9cbafc2b"
+source = "git+https://github.com/Quantova/QVM.git?rev=dd69b022d48b8dbfb36b8d26110d15b160fccff6#dd69b022d48b8dbfb36b8d26110d15b160fccff6"
 dependencies = [
  "qtv-crypto",
 ]
