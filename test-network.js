@@ -15,7 +15,7 @@ function throws(label, fn) {
 
 const testnet = Network.testnet();
 ok('testnet chain id', testnet.chainId === 'Test-Net-0-1');
-ok('testnet rpc url', testnet.rpcUrl === 'https://q-test-net-0001.quantova.org');
+ok('testnet rpc url', testnet.rpcUrl === 'https://test-net-0-1.quantova.org');
 ok('testnet denomination', testnet.denomination === 'Quon');
 ok('testnet decimals are six', testnet.decimals === 6);
 ok('testnet is not mainnet', testnet.isMainnet === false);

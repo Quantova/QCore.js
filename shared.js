@@ -274,7 +274,7 @@ function isMainnetChain(name) {
 }
 
 function isPublicChain(name) {
-  return name.startsWith('Q-test-net-') || isMainnetChain(name);
+  return name === NETWORK_DEFAULTS.testnetChainName || name.startsWith('Q-test-net-') || isMainnetChain(name);
 }
 
 function meterLimitOf(meterLimit) {
