@@ -118,20 +118,20 @@ export class SigningSession {
     }
     /**
      * @param {string} key
+     */
+    releasePending(key) {
+        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.signingsession_releasePending(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * @param {string} key
      * @param {bigint} slot
      */
     release(key, slot) {
         const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         wasm.signingsession_release(this.__wbg_ptr, ptr0, len0, slot);
-    }
-    /**
-     * @param {string} key
-     */
-    releasePending(key) {
-        const ptr0 = passStringToWasm0(key, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.signingsession_releasePending(this.__wbg_ptr, ptr0, len0);
     }
     /**
      * @param {string} address
@@ -478,7 +478,7 @@ export function contractAddress(deployer, nonce) {
     const ret = wasm.contractAddress(ptr0, len0, nonce);
     let v2;
     if (ret[0] !== 0) {
-        v2 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v2 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v2;
@@ -632,7 +632,7 @@ export function lookalikeOf(candidate, known) {
     const ret = wasm.lookalikeOf(ptr0, len0, ptr1, len1);
     let v3;
     if (ret[0] !== 0) {
-        v3 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v3 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v3;
@@ -661,7 +661,7 @@ export function mainnetGenesisHash() {
     const ret = wasm.mainnetGenesisHash();
     let v1;
     if (ret[0] !== 0) {
-        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v1 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v1;
@@ -674,7 +674,7 @@ export function mainnetRosterCommitment() {
     const ret = wasm.mainnetRosterCommitment();
     let v1;
     if (ret[0] !== 0) {
-        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v1 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v1;
@@ -1275,7 +1275,7 @@ export function storageValueReported(response, slot_key_hex) {
     }
     let v3;
     if (ret[0] !== 0) {
-        v3 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v3 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v3;
@@ -1353,7 +1353,7 @@ export function testnetGenesisHash() {
     const ret = wasm.testnetGenesisHash();
     let v1;
     if (ret[0] !== 0) {
-        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v1 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v1;
@@ -1374,7 +1374,7 @@ export function testnetRosterCommitment() {
     const ret = wasm.testnetRosterCommitment();
     let v1;
     if (ret[0] !== 0) {
-        v1 = getStringFromWasm0(ret[0], ret[1]).slice();
+        v1 = getStringFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     }
     return v1;
@@ -1723,11 +1723,11 @@ export function vmDeployAddress() {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
 }
-export function __wbg_Error_92b29b0548f8b746(arg0, arg1) {
+export function __wbg_Error_30c8987f7c2ed4e2(arg0, arg1) {
     const ret = Error(getStringFromWasm0(arg0, arg1));
     return ret;
 }
-export function __wbg___wbindgen_string_get_b0ca35b86a603356(arg0, arg1) {
+export function __wbg___wbindgen_string_get_0380ccaa2f57f0d9(arg0, arg1) {
     const obj = arg1;
     const ret = typeof(obj) === 'string' ? obj : undefined;
     var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -1735,10 +1735,10 @@ export function __wbg___wbindgen_string_get_b0ca35b86a603356(arg0, arg1) {
     getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
     getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
 }
-export function __wbg___wbindgen_throw_344f42d3211c4765(arg0, arg1) {
+export function __wbg___wbindgen_throw_41e9ee4f547fc59a(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 }
-export function __wbg_getRandomValues_c50fd87eababee18() { return handleError(function (arg0, arg1) {
+export function __wbg_getRandomValues_8bbedc8ec8b09f9f() { return handleError(function (arg0, arg1) {
     const ret = globalThis.crypto.getRandomValues(getArrayU8FromWasm0(arg0, arg1));
     return ret;
 }, arguments); }

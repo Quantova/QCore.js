@@ -5,7 +5,7 @@
 all-features = true
 
 [bans]
-multiple-versions = "warn"
+multiple-versions = "deny"
 wildcards = "allow"
 deny = [
     "k256",

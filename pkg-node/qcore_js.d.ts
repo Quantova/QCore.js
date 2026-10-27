@@ -13,8 +13,8 @@ export class SigningSession {
     nextNonce(key: string): bigint | undefined;
     noteHead(chain: string, height: bigint, wall_secs: bigint): void;
     outcome(key: string, slot: bigint, accepted: boolean): void;
-    release(key: string, slot: bigint): void;
     releasePending(key: string): void;
+    release(key: string, slot: bigint): void;
     rememberAddress(address: string): void;
     signed(key: string, slot: bigint): void;
     slot(key: string, reported: bigint, expected: bigint | null | undefined, order: boolean): bigint;

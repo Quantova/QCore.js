@@ -30,6 +30,7 @@ export const lookalikeOf: (a: number, b: number, c: number, d: number) => [numbe
 export const mainnetChainId: () => bigint;
 export const mainnetEpochLength: () => [number, bigint];
 export const mainnetGenesisHash: () => [number, number];
+export const mainnetRosterCommitment: () => [number, number];
 export const mapAddrWordKey: (a: bigint, b: number, c: number, d: bigint) => [number, number, number, number];
 export const mapSlotKey: (a: bigint, b: number, c: number) => [number, number, number, number];
 export const mnemonicFromSeed: (a: number, b: number) => [number, number, number, number];
@@ -92,7 +93,6 @@ export const verifyNextRoster: (a: bigint, b: number, c: number, d: bigint, e: b
 export const verifyTransaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number];
 export const vmCallFee: (a: number, b: number, c: bigint) => [number, number, number, number];
 export const vmDeployAddress: () => [number, number];
-export const mainnetRosterCommitment: () => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_exn_store: (a: number) => void;
