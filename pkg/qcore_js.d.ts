@@ -22,7 +22,7 @@ export class SigningSession {
 
 export function account_body(address: string): string;
 
-export function address(seed_bytes: Uint8Array, index: bigint): string;
+export function address(seed_bytes: Uint8Array | number[], index: bigint): string;
 
 export function assetBalanceBody(issuer: string, holder: string): string;
 
@@ -34,9 +34,9 @@ export function boundedValidUntil(chain_name: string, head: bigint, wall_secs: b
 
 export function boundedValidUntilFor(genesis_secs: bigint | null | undefined, blocks_per_sec: bigint | null | undefined, verified: boolean, head: bigint, wall_secs: bigint, floor: bigint | null | undefined, floor_age_secs: bigint): bigint;
 
-export function buildSignedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildSignedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, field_offs_csv: string, fields_csv: string, region_off: bigint, owner_seed_bytes: Uint8Array | number[], owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
-export function buildTypedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array, owner_index: bigint, nonce: bigint, expiry: bigint): string;
+export function buildTypedOrderCall(chain_id: bigint, genesis_hex: string, contract: string, selector_hex: string, layout_hash_hex: string, scheme_off: bigint, ptr_off: bigint, expiry_off: bigint, region_off: bigint, fields_json: string, owner_seed_bytes: Uint8Array | number[], owner_index: bigint, nonce: bigint, expiry: bigint): string;
 
 export function chainIdFromName(name: string): bigint;
 
@@ -82,7 +82,7 @@ export function mapAddrWordKey(map_domain_tag: bigint, key32_hex: string, word: 
 
 export function mapSlotKey(map_domain_tag: bigint, key_address_hex: string): string;
 
-export function mnemonicFromSeed(seed_bytes: Uint8Array): Uint8Array;
+export function mnemonicFromSeed(seed_bytes: Uint8Array | number[]): Uint8Array;
 
 export function nameKey(label: string): string;
 
@@ -90,7 +90,7 @@ export function nonceSlotKey(signer_hex: string): string;
 
 export function orderLayoutHash(selector_hex: string, fields_json: string): string;
 
-export function orderSigner(seed_bytes: Uint8Array, index: bigint): string;
+export function orderSigner(seed_bytes: Uint8Array | number[], index: bigint): string;
 
 export function packSymbol(symbol: string): bigint;
 
@@ -106,17 +106,17 @@ export function scalarSlotKey(slot: bigint): string;
 
 export function seedFromMnemonic(phrase: string): Uint8Array;
 
-export function seedFromMnemonicBytes(phrase: Uint8Array): Uint8Array;
+export function seedFromMnemonicBytes(phrase: Uint8Array | number[]): Uint8Array;
 
-export function signAssetCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
+export function signAssetCall(seed_bytes: Uint8Array | number[], index: bigint, target: string, args_hex: string, asset_issuer: string, amount: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
 
-export function signPayableCall(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
+export function signPayableCall(seed_bytes: Uint8Array | number[], index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, value: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
 
-export function signRegister(seed_bytes: Uint8Array, index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint, genesis_hex: string): string;
+export function signRegister(seed_bytes: Uint8Array | number[], index: bigint, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint, genesis_hex: string): string;
 
-export function sign_call(seed_bytes: Uint8Array, index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
+export function sign_call(seed_bytes: Uint8Array | number[], index: bigint, target: string, args_hex: string, nonce: bigint, meter_limit: bigint, fee: string, chain_id: bigint, valid_until: bigint, transfer_fee: string | null | undefined, head: bigint, genesis_hex: string): string;
 
-export function sign_transfer(seed_bytes: Uint8Array, index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint, genesis_hex: string): string;
+export function sign_transfer(seed_bytes: Uint8Array | number[], index: bigint, to: string, amount: string, nonce: bigint, fee: string, chain_id: bigint, valid_until: bigint, head: bigint, genesis_hex: string): string;
 
 export function start(): void;
 
