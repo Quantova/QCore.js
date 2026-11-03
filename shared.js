@@ -273,8 +273,12 @@ function isMainnetChain(name) {
   return name.startsWith('Q-main-net-');
 }
 
-function isPublicChain(name) {
-  return name === NETWORK_DEFAULTS.testnetChainName || name.startsWith('Q-test-net-') || isMainnetChain(name);
+function isPublicChain(core, name) {
+  const testnetName = NETWORK_DEFAULTS.testnetChainName;
+  if (testnetName && BigInt(core.chainIdFromName(name)) === BigInt(core.chainIdFromName(testnetName))) {
+    return true;
+  }
+  return name.startsWith('Q-test-net-') || isMainnetChain(name);
 }
 
 function meterLimitOf(meterLimit) {
@@ -530,7 +534,7 @@ function makeClient(core) {
         if (name !== configured) {
           throw new Error(`the gateway reports chain ${shown(name)} but this client is configured for ${configured}; refusing to sign a transaction that would be valid on a network you did not choose`);
         }
-      } else if (isPublicChain(name) && !(mainnet && this.acknowledgeMainnet)) {
+      } else if (isPublicChain(core, name) && !(mainnet && this.acknowledgeMainnet)) {
         throw new Error(`the gateway reports the public chain ${shown(name)} but this client was opened for an unnamed network; configure the testnet or mainnet network before signing for it`);
       }
       if (mainnet && !this.acknowledgeMainnet) {
@@ -869,7 +873,7 @@ function makeClient(core) {
     _validity(info, verified) {
       const head = gatewayInteger(info && info.head_height, 'head height');
       const chain = info && typeof info.chain_id === 'string' ? info.chain_id : '';
-      if (!verified && ((this.network && this.network.isMainnet === true) || isPublicChain(chain))) {
+      if (!verified && ((this.network && this.network.isMainnet === true) || isPublicChain(core, chain))) {
         throw new Error(`the head of the public chain ${shown(chain)} must be verified against a trusted validator roster before signing, pin the network roster commitment or call trustRoster`);
       }
       const genesis = info && typeof info.genesis_hash === 'string' ? info.genesis_hash : '';
@@ -884,7 +888,7 @@ function makeClient(core) {
         if (this._pinnedGenesis !== reported) {
           throw new Error('the gateway reports a genesis hash other than the one pinned for this network, refusing to sign');
         }
-      } else if (isPublicChain(chain)) {
+      } else if (isPublicChain(core, chain)) {
         throw new Error(`no genesis hash is pinned for the public chain ${shown(chain)}, pin the network genesis before signing`);
       }
       let genesisSecs = this.network ? this.network.genesisSecs : null;
