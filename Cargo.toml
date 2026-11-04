@@ -15,10 +15,10 @@ crate-type = ["cdylib"]
 [dependencies]
 qcore = { path = "../QCore.rs", default-features = false }
 wasm-bindgen = "0.2"
-qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "19f2e8d5cde914ef618c5ddb564dc7dae79473ea" }
+qtv-wipe = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "9fcac19566b21fa01cdf0e230704263f2b382af6" }
 
 [dev-dependencies]
-qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "19f2e8d5cde914ef618c5ddb564dc7dae79473ea" }
+qtv-tx = { git = "https://github.com/Quantova/Quantova-Chain.git", rev = "9fcac19566b21fa01cdf0e230704263f2b382af6" }
 
 [profile.release]
 overflow-checks = true
